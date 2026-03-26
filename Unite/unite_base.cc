@@ -1,18 +1,5 @@
 #include "unite_base.hh"
 #include <iostream>
-
-std::string directionToString(direction dir) {
-    switch (dir) {
-    case direction::nord_ouest: return "Nord-Ouest";
-    case direction::nord_est:   return "Nord-Est";
-    case direction::ouest:      return "Ouest";
-    case direction::est:        return "Est";
-    case direction::sud_ouest:  return "Sud-Ouest";
-    case direction::sud_est:    return "Sud-Est";
-    default:                    return "Direction inconnue";
-    }
-}
-
 // ==========================================
 //                     Unite
 // ==========================================
@@ -183,10 +170,19 @@ void Unite_transport::affiche() const
 
 void Unite_transport::affiche_unites() const
 {
-    std::cout<<"[ "<<std::endl;
-    for(auto &elt : _liste_unite)
+    std::cout<<"[|";
+    for(auto &elt : _liste_transport)
     {
-        std::cout<<elt->name()<<"/";
+        std::cout<<elt->name()<<"|";
     }
-    std::cout<<" ]"<<std::endl;
+    std::cout<<"]"<<std::endl;
+}
+
+void Unite_transport::ajout_unite(std::shared_ptr<Unite> u)
+{
+    _liste_transport.push_back(u);
+}
+void Unite_transport::retire_unite(std::shared_ptr<Unite> u)
+{
+    _liste_transport.remove(u);
 }

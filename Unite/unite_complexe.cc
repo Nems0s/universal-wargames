@@ -76,20 +76,20 @@ void Unite_amphibi::affiche() const
 // ==========================================
 //             Unite Cargo Volant
 // ==========================================
-Unite_cargo_volant::Unite_cargo_volant(const std::string &name, int hp, int dmg, int mov, direction dir, Case loc)
+Unite_cargo::Unite_cargo(const std::string &name, int hp, int dmg, int mov, direction dir, Case loc)
     : Unite(name, hp, dmg, mov, dir, loc),
     Unite_volante(name, hp, dmg, mov, dir, loc),
     Unite_transport(name, hp, dmg, mov, dir, loc)
 {}
 
-void Unite_cargo_volant::movement(Case const& c)
+void Unite_cargo::movement(Case const& c)
 {
     Unite::movement(c);
 }
-void Unite_cargo_volant::affiche() const
+void Unite_cargo::affiche() const
 {
     std::cout << "=== CARGO AERIEN (Volant + Transport) : " << _name << " ===" << std::endl;
-    Unite::affiche();
+    Unite_transport::affiche();
 }
 
 
@@ -113,5 +113,5 @@ void Unite_embarcation::movement(Case const& c)
 void Unite_embarcation::affiche() const
 {
     std::cout << "=== EMBARCATION ARMEE (Marine + Transport) : " << _name << " ===" << std::endl;
-    Unite::affiche();
+    Unite_transport::affiche();
 }

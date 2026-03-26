@@ -1,6 +1,9 @@
 #pragma once
 #include "unite_base.hh"
 
+// ==========================================
+//               Unite Cuirrasse
+// ==========================================
 class Unite_cuirrasse : public Unite_maritime, public Unite_lourde
 {
 public:
@@ -10,6 +13,9 @@ public:
 };
 
 
+// ==========================================
+//                Unite Gunship
+// ==========================================
 class Unite_gunship : public Unite_volante, public Unite_lourde
 {
 public:
@@ -18,6 +24,10 @@ public:
     void affiche() const override;
 };
 
+
+// ==========================================
+//                 Unite Amphibi
+// ==========================================
 class Unite_amphibi : public Unite_legere, public Unite_maritime
 {
 public:
@@ -26,15 +36,22 @@ public:
     void affiche() const override;
 };
 
-class Unite_cargo_volant : public Unite_volante, public Unite_transport
+
+// ==========================================
+//            Unite Cargo
+// ==========================================
+class Unite_cargo : public Unite_volante, public Unite_transport
 {
 public:
-    Unite_cargo_volant(const std::string &name, int hp, int dmg, int mov, direction dir, Case loc);
+    Unite_cargo(const std::string &name, int hp, int dmg, int mov, direction dir, Case loc);
     void movement(Case const& c) override;
     void affiche() const override;
 };
 
 
+// ==========================================
+//            Unite Embarcation
+// ==========================================
 class Unite_embarcation : public Unite_maritime, public Unite_transport
 {
 public:

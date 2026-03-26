@@ -2,14 +2,8 @@
 #include <iostream>
 #include <string>
 #include <list>
-
-enum class direction{nord_ouest, nord_est, ouest, est, sud_ouest, sud_est};
-std::string directionToString(direction dir);
-
-struct Case{
-    int x;
-    int y;
-};
+#include "rank.hh"
+#include "orientation.hh"
 
 // ==========================================
 //                     Unite
@@ -24,6 +18,7 @@ protected:
     int _move_per_laps;
     direction _regarde;
     Case _location;
+    std::shared_ptr<IRank> rank;
 
 public:
     Unite(const std::string &name, int health_point, int damage_point, int move_per_laps, direction regarde, Case location);
@@ -98,10 +93,12 @@ public:
 // ==========================================
 class Unite_transport : virtual public Unite {
 private:
-    std::list<std::shared_ptr<Unite>> _liste_unite;
+    std::list<std::shared_ptr<Unite>> _liste_transport;
     void affiche_unites() const;
 public:
     Unite_transport(const std::string &name, int health_point, int damage_point, int move_per_laps, direction regarde, Case location);
     // void movement(Case const& c) override;
     void affiche() const override;
+    void ajout_unite(std::shared_ptr<Unite> u);
+    void retire_unite(std::shared_ptr<Unite> u);
 };
