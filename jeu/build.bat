@@ -1,0 +1,1 @@
+g++ -Wall -Wextra -g3 *.cc -o main.exe && main.exe
