@@ -28,14 +28,6 @@ class mer : virtual public Unite {
 class amphibie : public terre, public mer {};
 
 
-
-
-
-
-
-
-
-
 class hexa {
 public:
     virtual ~hexa() = default;
@@ -53,6 +45,7 @@ struct TuileData {
     bool marche;
     bool nage;
     int poids;
+    int nbMin;
 };
 
 class TuileConfigurable : public hexa {
@@ -81,83 +74,53 @@ public:
 
 class FileFactory : public WorldGenerator {
     public:
-        void chargerConfig(std::string cheminFichier) {
-            std::ifstream fichier(cheminFichier);
-            if (!fichier.is_open()) {
-                std::cerr << "Erreur : Impossible d'ouvrir " << cheminFichier << std::endl;
-                return;
-            }
-
-            std::string nom;
-            char symb;
-            int cout, p;
-            bool m, n;
-
-            // Format attendu : Plaine T 1 1 0
-            while (fichier >> nom >> symb >> cout >> m >> n >> p) {
-                TuileData nouvelleTuile;
-                nouvelleTuile.nom = nom;
-                nouvelleTuile.symbole = symb;
-                nouvelleTuile.cout = cout;
-                nouvelleTuile.marche = m;
-                nouvelleTuile.nage = n;
-                nouvelleTuile.poids = p;
-
-                // TuileData nouvelleTuile = {nom, symb, cout, m, n, p}
-
-                _catalogue[symb] = nouvelleTuile;
-                
-                std::cout << "Chargé : " << nom << " (" << symb << ")" << std::endl;
-            }
+        void chargerConfig(std::string cheminFichier);
+        std::unique_ptr<hexa> createTile(int, int);
+        const std::map<char, TuileData>& getCatalogue() const {
+            return _catalogue;
         }
 
-        std::unique_ptr<hexa> createTile(int, int) override {
-            if (_catalogue.empty()) return nullptr;
-
-            int poidsTotal = 0;
-            for (auto const& [symb, data] : _catalogue) {
-                poidsTotal += data.poids;
-            }
-
-            int tirage = rand() % poidsTotal;
-
-            int seuil = 0;
-            for (auto const& [symb, data] : _catalogue) {
-                seuil += data.poids;
-                if (tirage < seuil) {
-                    return std::make_unique<TuileConfigurable>(data);
-                }
-            }
-
-            return std::make_unique<TuileConfigurable>(_catalogue.begin()->second);
-        }
-
-
-
-
-
-
-private:
-    std::map<char, TuileData> _catalogue;
+    private:
+        std::map<char, TuileData> _catalogue;
 };
-
-
 
 
 class board {
     public:
         board(int size, WorldGenerator & gen) : _size(size) {
+            
+            FileFactory & ff = static_cast<FileFactory&>(gen);
+            std::map<char, int> compteurs;
+
             for (int i = 0; i < size; ++i) {
                 std::vector<std::unique_ptr<hexa>> ligne;
                 for (int j = 0; j < size; ++j) {
-                    ligne.push_back(gen.createTile(i,j));
+                    if (i == 0 || i == size - 1 || j == 0 || j == size - 1) {
+                        TuileData limiteData{"Limite", '#', -1, false, false, 0, 0};
+                        ligne.push_back(std::make_unique<TuileConfigurable>(limiteData));
+                    } else {
+                        auto tuile = gen.createTile(i, j);
+                        compteurs[tuile->getSymbole()]++;
+                        ligne.push_back(std::move(tuile));
+                    }
                 }
                 _matrix.push_back(std::move(ligne));
+            }
+
+            for (auto const& [symb, data] : ff.getCatalogue()) {
+                while (compteurs[symb] < data.nbMin) {
+                    int x = rand() % (size - 1);
+                    int y = rand() % (size - 1);
+
+                    if (_matrix[x][y]->getSymbole() != '#' && _matrix[x][y]->getSymbole() != symb) {
+                        _matrix[x][y] = std::make_unique<TuileConfigurable>(data);
+                        compteurs[symb]++;
+                    }
+                }
             }
         }
 
         const hexa* getCell(int i, int j) const { return _matrix[i][j].get(); }
-
         void affichage() const;
 
     private:
