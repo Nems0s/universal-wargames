@@ -34,5 +34,5 @@ void Rank_Commandant::supprimer_unite(std::shared_ptr<Unite>const & u)
 // ==========================================
 void Rank_Regulier::get_role()const
 {
-    std::cout<<"Unite régulière";
+    std::cout<<"Unite reguliere";
 }
