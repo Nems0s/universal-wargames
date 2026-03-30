@@ -1,6 +1,7 @@
 #include "comportement.hh"
 #include "unite.hh"
-#include <typeinfo>
+#include "orientation.hh"
+
 //====================================================================================================
 //                                              Mouvement
 //====================================================================================================
@@ -158,57 +159,102 @@ void CompAtt::setPortee(int newPortee)
 //===================================================================
 //                        Attaque Direct
 //===================================================================
-CompAttDirect::CompAttDirect(int damage_point):CompAtt(damage_point, 1){}
+CompAttMelee::CompAttMelee(int damage_point):CompAtt(damage_point, 1){}
 
-void CompAttDirect::affiche() const
+void CompAttMelee::affiche() const
 {
 
 }
 
-void CompAttDirect::update(Unite& proprietaire)
+void CompAttMelee::update(Unite& proprietaire)
 {
 
 }
 
-bool CompAttDirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
+bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
 {
-    for(auto const& comp_a : attaquante.liste_comportements())
+    auto cases_possibles = Voisins(attaquante.location());
+
+    auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
+
+    if (it != cases_possibles.end())
     {
-        if(auto TypeMouvA = std::dynamic_pointer_cast<CompMouv>(comp_a))
+        auto listMouvA = attaquante.Mobilite();
+        auto listMouvC = cible.Mobilite();
+
+        for (auto* mouvA : listMouvA)
         {
-            for(auto const& comp_c : cible.liste_comportements())
+            auto natureA = mouvA->Nature();
+
+            for (auto* mouvC : listMouvC)
             {
-                auto typemouvA = TypeMouvA->Nature();
+                auto natureC = mouvC->Nature();
 
-                if(auto TypeMouvC = std::dynamic_pointer_cast<CompMouv>(comp_c))
-                {
-                    auto typemouvC = TypeMouvC->Nature();
+                if (natureA == natureC) return true;
 
-                    if(typemouvA == typemouvC)
-                    {
-                        return true;
-                    }
+                if (natureA == NatureMouv::AIR) return true;
 
-                    if(typemouvA == "Volant")
-                    {
-                        return true;
-                    }
-
-                    if(typemouvA == "Marin" && typemouvC == "Terrestre")
-                    {
-                        return true;
-                    }
-                }
+                if (natureA == NatureMouv::MER && natureC == NatureMouv::TERRE) return true;
             }
         }
     }
-    return false;
+    else return false;
 }
 
 //===================================================================
 //                        Attaque Distance
 //===================================================================
+CompAttDistance::CompAttDistance(int damage_point):
+    CompAtt(damage_point, 2),
+    _munitions(10),
+    _portee_mini(2)
+{}
 
+CompAttDistance::CompAttDistance(int damage_point, int portee, int munitions, int portee_mini):
+    CompAtt(damage_point, portee),
+    _munitions(munitions),
+    _portee_mini(portee_mini)
+{}
+
+void CompAttDistance::setMunitions(int newMunitions)
+{
+    _munitions = newMunitions;
+}
+int CompAttDistance::munitions() const
+{
+    return _munitions;
+}
+int CompAttDistance::portee_mini() const
+{
+    return _portee_mini;
+}
+
+void CompAttDistance::setPortee_mini(int newPortee_mini)
+{
+    _portee_mini = newPortee_mini;
+}
+
+void CompAttDistance::affiche()const
+{
+
+}
+void CompAttDistance::update(Unite& proprietaire)
+{
+
+}
+
+bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
+{
+    if(_munitions<=0) return false;
+    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
+    auto cases_impossibles = case_adjascentes(attaquante.location(), _portee_mini-1);
+
+    if((cases_possibles.count(cible.location()) > 0) && (cases_impossibles.count(cible.location()) == 0)) //On peut utiliser .contains(cible) en C++
+    {
+        return true; //Chaque unité distance peut toucher n'importe quel unité
+    }
+    else return false;
+}
 
 //===================================================================
 //                        Attaque Indirect

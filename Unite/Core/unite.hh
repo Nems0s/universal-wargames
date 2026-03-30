@@ -19,7 +19,7 @@ private:
     direction _regarde;
     Case _location;
     std::shared_ptr<IRank> _rank;
-    std::list<std::unique_ptr<IComportement>> _liste_comportements;
+    std::list<std::shared_ptr<IComportement>> _liste_comportements;
 
 public:
     Unite(const std::string &name, int hp, int dmg, direction dir, Case loc, std::shared_ptr<IRank> r);
@@ -40,12 +40,12 @@ public:
     direction regarde() const;
     Case location() const;
     std::shared_ptr<IRank> rank() const;
-    std::list<std::unique_ptr<IComportement>> liste_comportements() const;
+    std::list<std::shared_ptr<IComportement>> liste_comportements() const;
 
     /*Méthodes*/
     // void movement(Case const& c);
     void affiche() const;
-    void ajouterComportement(std::unique_ptr<IComportement> comp);
+    void ajouterComportement(std::shared_ptr<IComportement> comp);
     void update();
-
+    std::list<CompMouv*> Mobilite() const;
 };

@@ -71,13 +71,13 @@ std::shared_ptr<IRank> Unite::rank() const
     return _rank;
 }
 
-std::list<std::unique_ptr<IComportement> > Unite::liste_comportements() const
+std::list<std::shared_ptr<IComportement> > Unite::liste_comportements() const
 {
     return _liste_comportements;
 }
 
 
-void Unite::ajouterComportement(std::unique_ptr<IComportement> comp)
+void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
 {
     if (comp)
     {
@@ -91,6 +91,20 @@ void Unite::update()
     {
         elt->update(*this);
     }
+}
+
+std::list<CompMouv*> Unite::Mobilite() const
+{
+    std::list<CompMouv*> liste_CompMouv;
+
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* typeMouv = dynamic_cast<CompMouv*>(comp_ptr.get()))
+        {
+            liste_CompMouv.push_back(typeMouv);
+        }
+    }
+    return liste_CompMouv;
 }
 
 void Unite::affiche() const

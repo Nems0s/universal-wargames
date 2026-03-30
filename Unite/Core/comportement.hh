@@ -4,7 +4,7 @@
 #include <list>
 #include <orientation.hh>
 
-enum class NatureMouv { TERRE, MER, AIR };
+enum class NatureMouv {TERRE, MER, AIR};
 
 class Unite;
 
@@ -92,15 +92,35 @@ public:
     virtual bool PeuxAttaquer(Unite const& attaquante, Unite const& cible)=0;
 };
 
-class CompAttDirect : public CompAtt
+class CompAttMelee : public CompAtt
 {
 public:
-    CompAttDirect(int damage_point);
+    CompAttMelee(int damage_point);
 
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
+};
+
+class CompAttDistance : public CompAtt
+{
+private:
+    int _munitions;
+    int _portee_mini;
+public:
+    CompAttDistance(int damage_point);
+    CompAttDistance(int damage_point, int portee, int munitions, int portee_mini);
+
+    void setMunitions(int newMunitions);
+    int munitions() const;
+
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
+
+    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
+    int portee_mini() const;
+    void setPortee_mini(int newPortee_mini);
 };
 
 
