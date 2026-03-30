@@ -19,15 +19,13 @@ private:
     direction _regarde;
     Case _location;
     std::shared_ptr<IRank> _rank;
-    std::list<std::shared_ptr<IComportement>> _liste_comportements;
+    std::list<std::unique_ptr<IComportement>> _liste_comportements;
 
 public:
     Unite(const std::string &name, int hp, int dmg, direction dir, Case loc, std::shared_ptr<IRank> r);
     virtual ~Unite() = default;
 
     /*Setters*/
-    void movement(Case const& c);
-    void affiche() const;
     void setHealth_point(int newHealth_point);
     void setDamage_point(int newDamage_point);
     void setMoral_point(int newMoral_point);
@@ -42,10 +40,12 @@ public:
     direction regarde() const;
     Case location() const;
     std::shared_ptr<IRank> rank() const;
-    std::list<std::shared_ptr<IComportement>> liste_comportements() const;
+    std::list<std::unique_ptr<IComportement>> liste_comportements() const;
 
     /*Méthodes*/
-    void ajouterComportement(std::shared_ptr<IComportement> comp);
+    // void movement(Case const& c);
+    void affiche() const;
+    void ajouterComportement(std::unique_ptr<IComportement> comp);
     void update();
 
 };

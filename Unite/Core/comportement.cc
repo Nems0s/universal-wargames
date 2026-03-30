@@ -1,5 +1,6 @@
 #include "comportement.hh"
 #include "unite.hh"
+#include <typeinfo>
 //====================================================================================================
 //                                              Mouvement
 //====================================================================================================
@@ -46,6 +47,11 @@ bool CompMouvVolant::EstCaseValide(Case const& actuel, Case const& cible)
     //else return false;
 }
 
+NatureMouv CompMouvVolant::Nature() const
+{
+    return NatureMouv::AIR;
+}
+
 
 //===================================================================
 //                         Mouvement Marin
@@ -77,6 +83,10 @@ bool CompMouvMarin::EstCaseValide(Case const& actuel, Case const& cible)
     //else return false;
 }
 
+NatureMouv CompMouvMarin::Nature() const
+{
+    return NatureMouv::MER;
+}
 
 //===================================================================
 //                        Mouvement Terrestre
@@ -108,6 +118,10 @@ bool CompMouvTerrestre::EstCaseValide(Case const& actuel, Case const& cible)
     //else return false;
 }
 
+NatureMouv CompMouvTerrestre::Nature() const
+{
+    return NatureMouv::TERRE;
+}
 
 //====================================================================================================
 //====================================================================================================
@@ -140,14 +154,55 @@ void CompAtt::setPortee(int newPortee)
     _portee = newPortee;
 }
 
+
 //===================================================================
 //                        Attaque Direct
 //===================================================================
 CompAttDirect::CompAttDirect(int damage_point):CompAtt(damage_point, 1){}
 
-bool CompAttDirect::PeuxAttaquer(const Case &actuel, Unite const& cible)
+void CompAttDirect::affiche() const
 {
 
+}
+
+void CompAttDirect::update(Unite& proprietaire)
+{
+
+}
+
+bool CompAttDirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
+{
+    for(auto const& comp_a : attaquante.liste_comportements())
+    {
+        if(auto TypeMouvA = std::dynamic_pointer_cast<CompMouv>(comp_a))
+        {
+            for(auto const& comp_c : cible.liste_comportements())
+            {
+                auto typemouvA = TypeMouvA->Nature();
+
+                if(auto TypeMouvC = std::dynamic_pointer_cast<CompMouv>(comp_c))
+                {
+                    auto typemouvC = TypeMouvC->Nature();
+
+                    if(typemouvA == typemouvC)
+                    {
+                        return true;
+                    }
+
+                    if(typemouvA == "Volant")
+                    {
+                        return true;
+                    }
+
+                    if(typemouvA == "Marin" && typemouvC == "Terrestre")
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
 
 //===================================================================

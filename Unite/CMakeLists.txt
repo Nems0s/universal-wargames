@@ -16,6 +16,9 @@ add_executable(Unite
     Core/comportement.hh
     Core/comportement.cc
 
+    ../jeu/jeu.cc
+    ../jeu/jeu.hh
+
     Game/joueur.hh
     Game/joueur.cc
 )
@@ -23,6 +26,7 @@ add_executable(Unite
 target_include_directories(Unite PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Core
     ${CMAKE_CURRENT_SOURCE_DIR}/Game
+    ${CMAKE_CURRENT_SOURCE_DIR}../jeu
 )
 
 include(GNUInstallDirs)

@@ -4,6 +4,8 @@
 #include <list>
 #include <orientation.hh>
 
+enum class NatureMouv { TERRE, MER, AIR };
+
 class Unite;
 
 class IComportement
@@ -28,6 +30,7 @@ public:
     void setMov_per_laps(int newMov_per_laps);
 
     virtual bool EstCaseValide(Case const& actuel, Case const& cible) = 0;
+    virtual NatureMouv Nature()const=0;
 };
 
 class CompMouvVolant : public CompMouv
@@ -40,6 +43,7 @@ public:
     void update(Unite& proprietaire) override;
 
     bool EstCaseValide(Case const& actuel, Case const& cible) override;
+    NatureMouv Nature() const override;
 };
 
 class CompMouvMarin : public CompMouv
@@ -52,6 +56,7 @@ public:
     void update(Unite& proprietaire) override;
 
     bool EstCaseValide(Case const& actuel, Case const& cible) override;
+    NatureMouv Nature() const override;
 };
 
 class CompMouvTerrestre : public CompMouv
@@ -64,6 +69,7 @@ public:
     void update(Unite& proprietaire) override;
 
     bool EstCaseValide(Case const& actuel, Case const& cible) override;
+    NatureMouv Nature() const override;
 };
 
 
@@ -83,8 +89,7 @@ public:
     int portee() const;
     void setPortee(int newPortee);
 
-    void update(Unite& proprietaire) override;
-    virtual bool PeuxAttaquer(Case const& actuel, Case const& cible)=0;
+    virtual bool PeuxAttaquer(Unite const& attaquante, Unite const& cible)=0;
 };
 
 class CompAttDirect : public CompAtt
@@ -95,8 +100,7 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool EstCaseValide(Case const& actuel, Case const& cible);
-    bool PeuxAttaquer(Case const& actuel, Case const& cible) override;
+    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
 };
 
 

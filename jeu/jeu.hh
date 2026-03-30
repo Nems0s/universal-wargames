@@ -36,6 +36,7 @@ class amphibie : public terre, public mer {};
 
 
 
+
 class hexa {
 public:
     virtual ~hexa() = default;
@@ -87,12 +88,6 @@ class FileFactory : public WorldGenerator {
         const std::map<char, TuileData>& getCatalogue() const {
             return _catalogue;
         }
-
-
-
-
-
-
 private:
     std::map<char, TuileData> _catalogue;
 };

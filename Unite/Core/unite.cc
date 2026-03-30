@@ -71,13 +71,13 @@ std::shared_ptr<IRank> Unite::rank() const
     return _rank;
 }
 
-std::list<std::shared_ptr<IComportement> > Unite::liste_comportements() const
+std::list<std::unique_ptr<IComportement> > Unite::liste_comportements() const
 {
     return _liste_comportements;
 }
 
 
-void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
+void Unite::ajouterComportement(std::unique_ptr<IComportement> comp)
 {
     if (comp)
     {
@@ -108,16 +108,16 @@ void Unite::affiche() const
     }
 }
 
-void Unite::movement(Case const& c) {
-    for(auto const& elt : _liste_comportements)
-    {
-        if(auto TypeMouv = std::dynamic_pointer_cast<CompMouv>(elt))
-        {
-            if(TypeMouv->EstCaseValide(_location, c))
-            {
-                _location = c;
-                return;
-            }
-        }
-    }
-}
+// void Unite::movement(Case const& c) {
+//     for(auto const& elt : _liste_comportements)
+//     {
+//         if(auto TypeMouv = std::dynamic_pointer_cast<CompMouv>(elt))
+//         {
+//             if(TypeMouv->EstCaseValide(_location, c))
+//             {
+//                 _location = c;
+//                 return;
+//             }
+//         }
+//     }
+// }
