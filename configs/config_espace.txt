@@ -1,0 +1,4 @@
+Espace . 1 1 1 80 0 0 None
+Planete P 5 1 0 10 2 1 None
+Etoile E 1 1 0 5 1 1 poussiereDEtoile
+TrouNoir X 99 0 0 5 1 0 None

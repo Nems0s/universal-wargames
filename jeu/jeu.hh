@@ -9,6 +9,10 @@
 #include <map>
 #include <algorithm>
 
+#include "city.hh"
+#include "batiment.hh"
+#include "../joueur/joueur.hh"
+
 // Exemple actuel à supprimer quand class unité créer
 class Unite {
     public:
@@ -56,6 +60,9 @@ struct TuileData {
     bool nage;
     int poids;
     int nbMin;
+
+    bool constructible;
+    Ressource* ressourceSpeciale;
 };
 
 class TuileConfigurable : public hexa {
@@ -65,15 +72,23 @@ public:
     std::string getType() const override { return _d.nom; }
     char getSymbole() const override { return _d.symbole; }
     int getCoutDeplacement() const override { return _d.cout; }
+    Ressource* getRessource() const { return _d.ressourceSpeciale; }
     
-    bool estFranchissable(const Unite& u) const override {
-        if (_d.marche && u.peutMarcher()) return true;
-        if (_d.nage && u.peutNager()) return true;
-        return false;
-    }
+    bool estFranchissable(const Unite& u) const;
+
+    bool peutConstrVille() const;
+    bool peutConstrBatiment(const Batiment & b) const;
+    bool peutConstrBatimentSpecial(const Batiment & b) const;
+
+    void constrVille(int max, bool capitale);
+    void constrBatimentSpeciale(std::unique_ptr<Batiment> b);
+
+    City * getCity() const { return _city.get(); }
 
 private:
     TuileData _d;
+    std::unique_ptr<City> _city;
+    std::unique_ptr<Batiment> _batimentSpecial;
 };
 
 class WorldGenerator {
@@ -86,7 +101,7 @@ public:
 
 class FileFactory : public WorldGenerator {
     public:
-        void chargerConfig(std::string cheminFichier);
+        void chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo);
         std::unique_ptr<hexa> createTile(int, int);
         const std::map<char, TuileData>& getCatalogue() const {
             return _catalogue;
@@ -106,7 +121,7 @@ class board {
                 std::vector<std::unique_ptr<hexa>> ligne;
                 for (int j = 0; j < size; ++j) {
                     if (i == 0 || i == size - 1 || j == 0 || j == size - 1) {
-                        TuileData limiteData{"Limite", '#', -1, false, false, 0, 0};
+                        TuileData limiteData{"Limite", '#', -1, false, false, 0, 0, false, nullptr};
                         ligne.push_back(std::make_unique<TuileConfigurable>(limiteData));
                     } else {
                         ligne.push_back(gen.createTile(i, j));
@@ -124,6 +139,8 @@ class board {
         void placerUnite(int x, int y, std::unique_ptr<Unite> u);
         bool deplacerUnite(int xSrc, int ySrc, int xDest, int yDest);
         Unite * getUnite(int x, int y) const;
+
+        void tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur & j);
 
     private:
         int _size;

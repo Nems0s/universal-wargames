@@ -1,5 +1,38 @@
 #include "jeu.hh"
 
+
+bool TuileConfigurable::estFranchissable(const Unite& u) const {
+    if (_d.marche && u.peutMarcher()) return true;
+    if (_d.nage && u.peutNager()) return true;
+    return false;
+}
+
+bool TuileConfigurable::peutConstrVille() const {
+    return _d.constructible && !_city;
+}
+
+bool TuileConfigurable::peutConstrBatiment(const Batiment & b) const {
+    return (b.getRessourceRequired() == nullptr);
+}
+
+bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
+    return (b.getRessourceRequired() != nullptr && b.getRessourceRequired() == _d.ressourceSpeciale);
+}
+
+void TuileConfigurable::constrVille(int max, bool capitale) {
+    if (peutConstrVille()) {
+        _city = std::make_unique<City>(max, capitale);
+    }
+}
+
+void TuileConfigurable::constrBatimentSpeciale(std::unique_ptr<Batiment> b) {
+    if (peutConstrBatimentSpecial(*b)) {
+        _batimentSpecial = std::move(b);
+    }
+}
+
+
+// BOARD //
 void board::affichage() const {
     for (int i = 0; i < _size; ++i) {
         if (i%2 == 0) {
@@ -44,7 +77,35 @@ bool board::deplacerUnite(int xSrc, int ySrc, int xDest, int yDest) {
 }
 
 
-void FileFactory::chargerConfig(std::string cheminFichier) {
+void board::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur & j) {
+    TuileConfigurable* tuile = dynamic_cast<TuileConfigurable*>(_matrix[x][y].get());
+    if (!tuile) return;
+
+    Ressource* resRequise = b->getRessourceRequired();
+
+    if (_matrix[x][y]->getSymbole() != '#') {
+        if (resRequise != nullptr) {
+            if (tuile->getRessource() == resRequise) {
+                if (j.peutPayer(b->getResourceConstr())) {
+                    j.payer(b->getResourceConstr());
+                    tuile->constrBatimentSpeciale(std::move(b));
+                }
+            }
+        } else {
+            if (tuile->getCity() && tuile->getCity()->peutAjouterBatiment()) {
+                if (j.peutPayer(b->getResourceConstr())) {
+                    j.payer(b->getResourceConstr());
+                    tuile->getCity()->creeBatiment(std::move(b));
+                }
+            }
+        }
+    }
+}
+
+
+// FILEFACTORY //
+
+void FileFactory::chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo) {
 
     std::ifstream fichier(cheminFichier);
         if (!fichier.is_open()) {
@@ -52,14 +113,20 @@ void FileFactory::chargerConfig(std::string cheminFichier) {
             return;
         }
 
-        std::string nom;
+        std::string nom, nomRes;
         char symb;
         int cout, p, min;
-        bool m, n;
+        bool m, n, constr;
 
-        // Format attendu : Plaine T 1 1 0 70
-        while (fichier >> nom >> symb >> cout >> m >> n >> p >> min) {
-            TuileData nouvelleTuile = {nom, symb, cout, m, n, p, min};
+        // Format attendu : Etoile E 1 1 0 5 1 1 poussiereDEtoile
+        while (fichier >> nom >> symb >> cout >> m >> n >> p >> min >> constr >> nomRes) {
+            Ressource* r = nullptr;
+
+            if (nomRes != "None" && ressourcesDispo.count(nomRes)) {
+                r = ressourcesDispo.at(nomRes);
+            }
+
+            TuileData nouvelleTuile = {nom, symb, cout, m, n, p, min, constr, r};
 
             _catalogue[symb] = nouvelleTuile;
             
