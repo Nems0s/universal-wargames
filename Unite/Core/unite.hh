@@ -28,7 +28,6 @@ public:
     /*Setters*/
     void movement(Case const& c);
     void affiche() const;
-    void update();
     void setHealth_point(int newHealth_point);
     void setDamage_point(int newDamage_point);
     void setMoral_point(int newMoral_point);
@@ -47,5 +46,6 @@ public:
 
     /*Méthodes*/
     void ajouterComportement(std::shared_ptr<IComportement> comp);
+    void update();
 
 };
