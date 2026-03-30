@@ -7,10 +7,12 @@
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <algorithm>
 
 // Exemple actuel à supprimer quand class unité créer
 class Unite {
     public:
+        virtual ~Unite() = default;
         virtual bool peutMarcher() const { return false; }
         virtual bool peutNager() const { return false; }
 }; 
@@ -78,6 +80,8 @@ class WorldGenerator {
 public:
     virtual ~WorldGenerator() = default;
     virtual std::unique_ptr<hexa> createTile(int i, int j) = 0;
+
+    virtual void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>> & matrix, int size) = 0;
 };
 
 class FileFactory : public WorldGenerator {
@@ -88,10 +92,7 @@ class FileFactory : public WorldGenerator {
             return _catalogue;
         }
 
-
-
-
-
+        void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size);
 
 private:
     std::map<char, TuileData> _catalogue;
@@ -101,10 +102,6 @@ private:
 class board {
     public:
         board(int size, WorldGenerator & gen) : _size(size) {
-            
-            FileFactory & ff = static_cast<FileFactory&>(gen);
-            std::map<char, int> compteurs;
-
             for (int i = 0; i < size; ++i) {
                 std::vector<std::unique_ptr<hexa>> ligne;
                 for (int j = 0; j < size; ++j) {
@@ -112,31 +109,24 @@ class board {
                         TuileData limiteData{"Limite", '#', -1, false, false, 0, 0};
                         ligne.push_back(std::make_unique<TuileConfigurable>(limiteData));
                     } else {
-                        auto tuile = gen.createTile(i, j);
-                        compteurs[tuile->getSymbole()]++;
-                        ligne.push_back(std::move(tuile));
+                        ligne.push_back(gen.createTile(i, j));
                     }
                 }
                 _matrix.push_back(std::move(ligne));
             }
 
-            for (auto const& [symb, data] : ff.getCatalogue()) {
-                while (compteurs[symb] < data.nbMin) {
-                    int x = rand() % (size - 1);
-                    int y = rand() % (size - 1);
-
-                    if (_matrix[x][y]->getSymbole() != '#' && _matrix[x][y]->getSymbole() != symb) {
-                        _matrix[x][y] = std::make_unique<TuileConfigurable>(data);
-                        compteurs[symb]++;
-                    }
-                }
-            }
+            gen.postGeneration(_matrix, _size);
         }
 
         const hexa* getCell(int i, int j) const { return _matrix[i][j].get(); }
         void affichage() const;
 
+        void placerUnite(int x, int y, std::unique_ptr<Unite> u);
+        bool deplacerUnite(int xSrc, int ySrc, int xDest, int yDest);
+        Unite * getUnite(int x, int y) const;
+
     private:
         int _size;
         std::vector<std::vector<std::unique_ptr<hexa>>> _matrix;
+        std::map<std::pair<int, int>, std::unique_ptr<Unite>> _unites;
 };
