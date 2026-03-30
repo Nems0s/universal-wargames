@@ -8,7 +8,7 @@
 #include <sstream>
 #include <map>
 
-
+// Exemple actuel à supprimer quand class unité créer
 class Unite {
     public:
         virtual bool peutMarcher() const { return false; }
@@ -26,13 +26,6 @@ class mer : virtual public Unite {
 }; 
 
 class amphibie : public terre, public mer {};
-
-
-
-
-
-
-
 
 
 
@@ -132,16 +125,9 @@ class FileFactory : public WorldGenerator {
             return std::make_unique<TuileConfigurable>(_catalogue.begin()->second);
         }
 
-
-
-
-
-
 private:
     std::map<char, TuileData> _catalogue;
 };
-
-
 
 
 class board {
@@ -164,9 +150,3 @@ class board {
         int _size;
         std::vector<std::vector<std::unique_ptr<hexa>>> _matrix;
 };
-
-
-
-
-
-
