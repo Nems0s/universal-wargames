@@ -12,6 +12,37 @@ void board::affichage() const {
     }
 }
 
+void board::placerUnite(int x, int y, std::unique_ptr<Unite> u) {
+    if (x >= 0 && x < _size && y >= 0 && y < _size) {
+        _unites[{x, y}] = std::move(u);
+    }
+}
+
+Unite * board::getUnite(int x, int y) const {
+    auto it = _unites.find({x, y});
+    if (it != _unites.end()) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+bool board::deplacerUnite(int xSrc, int ySrc, int xDest, int yDest) {
+    auto it = _unites.find({xSrc, ySrc});
+    if (it == _unites.end()) return false;
+
+    if (xDest < 0 || xDest >= _size || yDest < 0 || yDest >= _size) return false;
+    if (_unites.count({xDest, yDest})) return false;
+
+    if (!_matrix[xDest][yDest]->estFranchissable(*(it->second))) {
+        return false;
+    }
+
+    _unites[{xDest, yDest}] = std::move(it->second);
+    _unites.erase(it);
+    
+    return true;
+}
+
 
 void FileFactory::chargerConfig(std::string cheminFichier) {
 
@@ -36,7 +67,6 @@ void FileFactory::chargerConfig(std::string cheminFichier) {
         }
 }
 
-
 std::unique_ptr<hexa> FileFactory::createTile(int, int) {
     if (_catalogue.empty()) return nullptr;
 
@@ -45,15 +75,44 @@ std::unique_ptr<hexa> FileFactory::createTile(int, int) {
         poidsTotal += data.poids;
     }
 
-    int tirage = rand() % poidsTotal;
-
-    int seuil = 0;
-    for (auto const& [symb, data] : _catalogue) {
-        seuil += data.poids;
-        if (tirage < seuil) {
-            return std::make_unique<TuileConfigurable>(data);
+    // tuile au hasard si poidstotal à 0
+    if (poidsTotal == 0) {
+        auto it = _catalogue.begin();
+        std::advance(it, rand() % _catalogue.size());
+        return std::make_unique<TuileConfigurable>(it->second);
+    } else {
+        // par rapport aux poids
+        int tirage = rand() % poidsTotal;
+        int seuil = 0;
+        for (auto const& [symb, data] : _catalogue) {
+            seuil += data.poids;
+            if (tirage < seuil) {
+                return std::make_unique<TuileConfigurable>(data);
+            }
         }
     }
 
     return std::make_unique<TuileConfigurable>(_catalogue.begin()->second);
+}
+
+void FileFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size) {
+    std::map<char, int> compteurs;
+    
+    for (auto & ligne : matrix) {
+        for (auto & tuile : ligne) {
+            compteurs[tuile->getSymbole()]++;
+        }
+    }
+
+    for (auto const & [symb, data] : _catalogue) {
+        while (compteurs[symb] < data.nbMin) {
+            int x = rand() % (size - 2) + 1;
+            int y = rand() % (size - 2) + 1;
+
+            if (matrix[x][y]->getSymbole() != '#' && matrix[x][y]->getSymbole() != symb) {
+                matrix[x][y] = std::make_unique<TuileConfigurable>(data);
+                compteurs[symb]++;
+            }
+        }
+    }
 }
