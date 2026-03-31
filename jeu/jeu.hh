@@ -25,12 +25,12 @@ class Unite {
 class terre : virtual public Unite {
     public:
         bool peutMarcher() const override { return true; }
-}; 
+};
 
 class mer : virtual public Unite {
     public:
         bool peutNager() const override { return true; }
-}; 
+};
 
 class aerien : virtual public Unite {
     public:
@@ -38,6 +38,7 @@ class aerien : virtual public Unite {
 }; 
 
 class amphibie : public terre, public mer {};
+
 
 
 
