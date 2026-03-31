@@ -32,6 +32,17 @@ int main() {
         TxtWorldReader worldReader;
         try {
             worldReader.chargerConfig("configs/config_espace.txt", ressources, world);
+
+            TuileData limite;
+            limite.nom = "Limite";
+            limite.symbole = '#';
+            limite.cout = -1;
+            limite.constructible = false;
+            limite.gen = {0, 0};
+            limite.mouv = {false, false, false};
+
+            world.ajouterAuCatalogue('#', limite);
+
         } catch(const std::out_of_range& e) {
             throw std::runtime_error("Erreur dans FileFactory : " + std::string(e.what()));
         }

@@ -10,12 +10,12 @@ class Joueur;
 
 class Batiment {
     protected:
-        int _level;
         std::string _name;
         std::map<Ressource*, int> _cout;
+        int _level;
 
     public:
-        Batiment(int level=1, std::string n, std::map<Ressource*, int> c) : _level(level), _name(n), _cout(c) {}
+        Batiment(std::string n, std::map<Ressource*, int> c, int level=1) : _name(n), _cout(c), _level(level){}
         virtual ~Batiment() = default;
 
         virtual std::unique_ptr<Batiment> clone() const = 0;
@@ -34,8 +34,8 @@ class BatimentRessource : public Batiment {
         Ressource* _ressourceSolRequise;
     
     public:
-        BatimentRessource(int l=1, std::string n, std::map<Ressource*, int> c, Ressource* p, int q, Ressource* sol=nullptr)
-            : Batiment(l,n,c), _produit(p), _quantite(q), _ressourceSolRequise(sol) {}
+        BatimentRessource(std::string n, std::map<Ressource*, int> c, Ressource* p, int q, Ressource* sol=nullptr, int l=1)
+            : Batiment(n,c,l), _produit(p), _quantite(q), _ressourceSolRequise(sol) {}
 
         std::unique_ptr<Batiment> clone() const override {
             return std::make_unique<BatimentRessource>(*this);

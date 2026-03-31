@@ -1,4 +1,31 @@
-Espace . 1 1 1 80 0 0 None
-Planete P 5 1 0 10 2 1 None
-Etoile E 1 1 0 5 1 1 poussiereDEtoile
-TrouNoir X 99 0 0 5 1 0 None
+TILE Espace . 1 0
+	MOUV 1 0 1
+	GEN 80 0
+	ENV 0 0 0
+	RES None
+	DATA None
+END
+
+TILE Planete P 1 1
+	MOUV 1 1 1
+	GEN 10 3
+	ENV 0.5 0 0.5
+	RES None
+	DATA temperature 15 gravite 1
+END
+
+TILE Etoile E 1 1
+	MOUV 1 1 1
+	GEN 5 2
+	ENV 1 0 0.8
+	RES poussiereDEtoile Or
+	DATA eruption_proba 0.1 rayon_activate 3
+END
+
+TILE TrouNoir X 99 0
+	MOUV 0 0 0
+	GEN 5 1
+	ENV 1 0 1
+	RES None
+	DATA None
+END

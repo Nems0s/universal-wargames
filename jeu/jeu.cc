@@ -2,13 +2,14 @@
 
 
 bool TuileConfigurable::estFranchissable(const Unite& u) const {
-    if (_d.marche && u.peutMarcher()) return true;
-    if (_d.nage && u.peutNager()) return true;
+    if (_d->mouv.marche && u.peutMarcher()) return true;
+    if (_d->mouv.nage && u.peutNager()) return true;
+    if (_d->mouv.aerien && u.peutVoler()) return true;
     return false;
 }
 
 bool TuileConfigurable::peutConstrVille() const {
-    return _d.constructible && !_city;
+    return _d->constructible && !_city;
 }
 
 bool TuileConfigurable::peutConstrBatiment(const Batiment & b) const {
@@ -16,7 +17,14 @@ bool TuileConfigurable::peutConstrBatiment(const Batiment & b) const {
 }
 
 bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
-    return (b.getRessourceRequired() != nullptr && b.getRessourceRequired() == _d.ressourceSpeciale);
+    Ressource* required = b.getRessourceRequired();
+    if (required == nullptr) return false;
+
+    for (Ressource* r : _d->ressourceSpeciale) {
+        if (r == required) return true;
+    }
+
+    return false;
 }
 
 void TuileConfigurable::constrVille(int max, bool capitale) {
@@ -81,11 +89,9 @@ void board::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur
     TuileConfigurable* tuile = dynamic_cast<TuileConfigurable*>(_matrix[x][y].get());
     if (!tuile) return;
 
-    Ressource* resRequise = b->getRessourceRequired();
-
     if (_matrix[x][y]->getSymbole() != '#') {
-        if (resRequise != nullptr) {
-            if (tuile->getRessource() == resRequise) {
+        if (b->getRessourceRequired() != nullptr) {
+            if (tuile->peutConstrBatimentSpecial(*b)) {
                 if (j.peutPayer(b->getResourceConstr())) {
                     j.payer(b->getResourceConstr());
                     tuile->constrBatimentSpeciale(std::move(b));
@@ -105,49 +111,74 @@ void board::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur
 
 // FILEFACTORY //
 
-void TxtWorldReader::chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo, WorldFactory & factory) {
+void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
+    std::ifstream fichier(chemin);
+    std::string mot, ligne;
 
-    std::ifstream fichier(cheminFichier);
-    if (!fichier.is_open()) {
-        throw std::runtime_error("Erreur : Impossible d'ouvrir " + cheminFichier);
-    }
+    while (fichier >> mot) {
+        if (mot == "TILE") {
+            TuileData d;
+            // nom tuile, symbole, cout unite, constructible dessus ou non
+            fichier >> d.nom >> d.symbole >> d.cout >> d.constructible;
 
-    std::string nom, nomRes;
-    char symb;
-    int cout, p, min;
-    bool m, n, constr;
+            while (fichier >> mot && mot != "END") {
+                if (mot == "GEN") {
+                    // Pourcentage quantité, nombres minimum sur le terrain
+                    fichier >> d.gen.poids >> d.gen.nbMin;
+                } 
+                else if (mot == "MOUV") {
+                    // marche, nage, aerien
+                    fichier >> d.mouv.marche >> d.mouv.nage >> d.mouv.aerien;
+                }
+                else if (mot == "RES") {
+                    // lis les ressources
+                    std::getline(fichier, ligne);
+                    std::stringstream ss(ligne);
+                    std::string nomRes;
 
-    // Format attendu : Etoile E 1 1 0 5 1 1 poussiereDEtoile
-    while (fichier >> nom >> symb >> cout >> m >> n >> p >> min >> constr >> nomRes) {
-        Ressource* r = nullptr;
+                    while (ss >> nomRes) {
+                        if (nomRes == "None" || nomRes.empty()) continue;
 
-        if (nomRes == "None") {
-            r = nullptr;
-        } else if (ressourcesDispo.count(nomRes)) {
-            r = ressourcesDispo.at(nomRes);
-        } else {
-            throw std::runtime_error("Ressource inconnue : " + nomRes + " sur la tuile : " + nom);
+                        if (resDispo.count(nomRes)) {
+                            d.ressourceSpeciale.push_back(resDispo.at(nomRes));
+                        }
+                    }
+                }
+                else if (mot == "ENV") {
+                    // température, radiation, gravite
+                    fichier >> d.env.temperature >> d.env.radiation >> d.env.gravite;
+                }
+                else if (mot == "DATA") {
+                    // lecture clé-valeur des data
+                    std::getline(fichier, ligne);
+                    std::stringstream ss(ligne);
+                    std::string cle;
+                    float val;
+                    while (ss >> cle) {
+                        if (cle == "None") break;
+                        if (ss >> val) {
+                            d.properties[cle] = val; 
+                        }
+                    }
+                }
+            }
+            factory.ajouterAuCatalogue(d.symbole, d);
+            std::cout << "Chargé : " << d.nom << " (" << d.symbole << ")" << std::endl;
         }
-
-        TuileData nouvelleTuile = {nom, symb, cout, m, n, p, min, constr, r};
-
-        factory.ajouterAuCatalogue(symb, nouvelleTuile);
-        std::cout << "Chargé : " << nom << " (" << symb << ")" << std::endl;
     }
 
     if (!fichier.eof() && fichier.fail()) {
-        throw std::runtime_error("Erreur dans le fichier : " + cheminFichier);
+        throw std::runtime_error("Erreur dans le fichier : " + chemin);
     }
-    
 }
 
 std::unique_ptr<hexa> WorldFactory::createTile(char symbole) {
-    if (_catalogue.count(symbole)) {
-        return std::make_unique<TuileConfigurable>(_catalogue.at(symbole));
+    auto it = _catalogue.find(symbole);
+    if (it != _catalogue.end()) {
+        return std::make_unique<TuileConfigurable>(&(it->second));
     } else {
         return nullptr;
     }
-    
 }
 
 std::unique_ptr<hexa> WorldFactory::createRandomTile() {
@@ -155,27 +186,26 @@ std::unique_ptr<hexa> WorldFactory::createRandomTile() {
 
     int poidsTotal = 0;
     for (auto const& [symb, data] : _catalogue) {
-        poidsTotal += data.poids;
+        poidsTotal += data.gen.poids;
     }
 
     // tuile au hasard si poidstotal à 0
     if (poidsTotal == 0) {
         auto it = _catalogue.begin();
         std::advance(it, rand() % _catalogue.size());
-        return std::make_unique<TuileConfigurable>(it->second);
+        return std::make_unique<TuileConfigurable>(&(it->second));
     } else {
         // par rapport aux poids
         int tirage = rand() % poidsTotal;
         int seuil = 0;
-        for (auto const& [symb, data] : _catalogue) {
-            seuil += data.poids;
+        for (auto & [symb, data] : _catalogue) {
+            seuil += data.gen.poids;
             if (tirage < seuil) {
-                return std::make_unique<TuileConfigurable>(data);
+                return std::make_unique<TuileConfigurable>(&data);
             }
         }
     }
-
-    return std::make_unique<TuileConfigurable>(_catalogue.begin()->second);
+    return std::make_unique<TuileConfigurable>(&(_catalogue.begin()->second));
 }
 
 void WorldFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size) {
@@ -188,12 +218,12 @@ void WorldFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>
     }
 
     for (auto const & [symb, data] : _catalogue) {
-        while (compteurs[symb] < data.nbMin) {
+        while (compteurs[symb] < data.gen.nbMin) {
             int x = rand() % (size - 2) + 1;
             int y = rand() % (size - 2) + 1;
 
             if (matrix[x][y]->getSymbole() != '#' && matrix[x][y]->getSymbole() != symb) {
-                matrix[x][y] = std::make_unique<TuileConfigurable>(data);
+                matrix[x][y] = std::make_unique<TuileConfigurable>(&(_catalogue.at(symb)));
                 compteurs[symb]++;
             }
         }
