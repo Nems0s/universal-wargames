@@ -91,32 +91,41 @@ private:
     std::unique_ptr<Batiment> _batimentSpecial;
 };
 
-class WorldGenerator {
+class WorldConfigReader {
 public:
-    virtual ~WorldGenerator() = default;
-    virtual std::unique_ptr<hexa> createTile(int i, int j) = 0;
+    virtual ~WorldConfigReader() = default;
 
-    virtual void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>> & matrix, int size) = 0;
+    virtual void chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& ressourcesDispo, WorldFactory& factory) = 0;
 };
 
-class FileFactory : public WorldGenerator {
+class TxtWorldReader : public WorldConfigReader {
     public:
-        void chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo);
-        std::unique_ptr<hexa> createTile(int, int);
-        const std::map<char, TuileData>& getCatalogue() const {
-            return _catalogue;
+        void chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo, WorldFactory& factory) override;
+
+};
+
+
+class WorldFactory {
+    private:
+        std::map<char, TuileData> _catalogue;
+
+    public:
+        void ajouterAuCatalogue(char symbole, const TuileData& data) {
+            _catalogue[symbole] = data;
         }
+
+        std::unique_ptr<hexa> createTile(char symbole);
+        std::unique_ptr<hexa> createRandomTile();
 
         void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size);
 
-private:
-    std::map<char, TuileData> _catalogue;
+        bool estVide() const { return _catalogue.empty(); }
 };
 
 
 class board {
     public:
-        board(int size, WorldGenerator & gen) : _size(size) {
+        board(int size, WorldFactory & world) : _size(size) {
             for (int i = 0; i < size; ++i) {
                 std::vector<std::unique_ptr<hexa>> ligne;
                 for (int j = 0; j < size; ++j) {
@@ -124,13 +133,13 @@ class board {
                         TuileData limiteData{"Limite", '#', -1, false, false, 0, 0, false, nullptr};
                         ligne.push_back(std::make_unique<TuileConfigurable>(limiteData));
                     } else {
-                        ligne.push_back(gen.createTile(i, j));
+                        ligne.push_back(world.createRandomTile());
                     }
                 }
                 _matrix.push_back(std::move(ligne));
             }
 
-            gen.postGeneration(_matrix, _size);
+            world.postGeneration(_matrix, _size);
         }
 
         const hexa* getCell(int i, int j) const { return _matrix[i][j].get(); }

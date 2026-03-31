@@ -25,21 +25,31 @@ void TxtBatimentReader::load(const std::string& chemin,
 
         if (!(ss >> nomBat >> symbBat >> nomResCout >> qCout)) continue;
 
-        Ressource* resCout = ressourcesDispo.at(nomResCout);
-        std::map<Ressource*, int> coutMap;
-        coutMap[resCout] = qCout;
+        try {
+            if (ressourcesDispo.find(nomResCout) == ressourcesDispo.end()) {
+                throw std::runtime_error("Ressource inconnue : " + nomResCout + " pour le batiment : " + nomBat);
+            }
+            Ressource* resCout = ressourcesDispo.at(nomResCout);
 
-        if (ss >> nomResProd >> qProd) {
-            Ressource* resProd = ressourcesDispo.at(nomResProd);
-            Ressource* sol = resProd;
-            catalogue[nomBat] = std::make_unique<BatimentRessource>(
-                nomBat, coutMap, resProd, qProd, sol
-            );
-        } else {
-            catalogue[nomBat] = std::make_unique<BatimentRessource>(
-                nomBat, coutMap, nullptr, 0, nullptr
-            );
+            std::map<Ressource*, int> coutMap;
+            coutMap[resCout] = qCout;
+
+            if (ss >> nomResProd >> qProd) {
+                if (ressourcesDispo.find(nomResProd) == ressourcesDispo.end()) {
+                    throw std::runtime_error("Ressource Produite inconnue : " + nomResProd + " pour le batiment : " + nomBat);
+                }
+                
+                Ressource* resProd = ressourcesDispo.at(nomResProd);
+                catalogue[nomBat] = std::make_unique<BatimentRessource>(
+                    nomBat, coutMap, resProd, qProd, resProd
+                );
+            } else {
+                catalogue[nomBat] = std::make_unique<BatimentRessource>(
+                    nomBat, coutMap, nullptr, 0, nullptr
+                );
+            }
+        } catch(const std::exception& e) {
+            throw std::runtime_error("Erreur dans le fichier batiment : " + std::string(e.what()));
         }
-        
     }
 }

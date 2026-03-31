@@ -105,36 +105,52 @@ void board::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur
 
 // FILEFACTORY //
 
-void FileFactory::chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo) {
+void TxtWorldReader::chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo, WorldFactory & factory) {
 
     std::ifstream fichier(cheminFichier);
-        if (!fichier.is_open()) {
-            std::cerr << "Erreur : Impossible d'ouvrir " << cheminFichier << std::endl;
-            return;
+    if (!fichier.is_open()) {
+        throw std::runtime_error("Erreur : Impossible d'ouvrir " + cheminFichier);
+    }
+
+    std::string nom, nomRes;
+    char symb;
+    int cout, p, min;
+    bool m, n, constr;
+
+    // Format attendu : Etoile E 1 1 0 5 1 1 poussiereDEtoile
+    while (fichier >> nom >> symb >> cout >> m >> n >> p >> min >> constr >> nomRes) {
+        Ressource* r = nullptr;
+
+        if (nomRes == "None") {
+            r = nullptr;
+        } else if (ressourcesDispo.count(nomRes)) {
+            r = ressourcesDispo.at(nomRes);
+        } else {
+            throw std::runtime_error("Ressource inconnue : " + nomRes + " sur la tuile : " + nom);
         }
 
-        std::string nom, nomRes;
-        char symb;
-        int cout, p, min;
-        bool m, n, constr;
+        TuileData nouvelleTuile = {nom, symb, cout, m, n, p, min, constr, r};
 
-        // Format attendu : Etoile E 1 1 0 5 1 1 poussiereDEtoile
-        while (fichier >> nom >> symb >> cout >> m >> n >> p >> min >> constr >> nomRes) {
-            Ressource* r = nullptr;
+        factory.ajouterAuCatalogue(symb, nouvelleTuile);
+        std::cout << "Chargé : " << nom << " (" << symb << ")" << std::endl;
+    }
 
-            if (nomRes != "None" && ressourcesDispo.count(nomRes)) {
-                r = ressourcesDispo.at(nomRes);
-            }
-
-            TuileData nouvelleTuile = {nom, symb, cout, m, n, p, min, constr, r};
-
-            _catalogue[symb] = nouvelleTuile;
-            
-            std::cout << "Chargé : " << nom << " (" << symb << ")" << std::endl;
-        }
+    if (!fichier.eof() && fichier.fail()) {
+        throw std::runtime_error("Erreur dans le fichier : " + cheminFichier);
+    }
+    
 }
 
-std::unique_ptr<hexa> FileFactory::createTile(int, int) {
+std::unique_ptr<hexa> WorldFactory::createTile(char symbole) {
+    if (_catalogue.count(symbole)) {
+        return std::make_unique<TuileConfigurable>(_catalogue.at(symbole));
+    } else {
+        return nullptr;
+    }
+    
+}
+
+std::unique_ptr<hexa> WorldFactory::createRandomTile() {
     if (_catalogue.empty()) return nullptr;
 
     int poidsTotal = 0;
@@ -162,7 +178,7 @@ std::unique_ptr<hexa> FileFactory::createTile(int, int) {
     return std::make_unique<TuileConfigurable>(_catalogue.begin()->second);
 }
 
-void FileFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size) {
+void WorldFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size) {
     std::map<char, int> compteurs;
     
     for (auto & ligne : matrix) {

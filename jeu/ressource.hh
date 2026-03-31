@@ -6,12 +6,12 @@
 class Ressource {
     private:
         std::string _name;
-        char _symbole;
+        std::string _symbole;
     
     public:
-        Ressource(std::string n, char s) : _name(n), _symbole(s) {}
+        Ressource(std::string n, std::string s) : _name(n), _symbole(s) {}
         std::string getName() const { return _name; }
-        char getSymbole() const { return _symbole; }
+        std::string getSymbole() const { return _symbole; }
 
 };
 

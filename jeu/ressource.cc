@@ -3,7 +3,7 @@
 void TxtRessourceReader::load(const std::string& chemin, std::map<std::string, Ressource*>& catalogue) {
     std::ifstream fichier(chemin);
     std::string nom;
-    char symb;
+    std::string symb;
 
     // Format : poussiereDEtoile PE
     while (fichier >> nom >> symb) {
