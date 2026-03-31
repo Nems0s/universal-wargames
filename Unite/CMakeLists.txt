@@ -16,13 +16,17 @@ add_executable(unite
     comportement.hh
     comportement.cc
 
-
     ../jeu/jeu.cc
     ../jeu/jeu.hh
+
+    ../combat/combat.cc
+    ../combat/combat.hh
 )
 
 target_include_directories(unite PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}../jeu
+    ${CMAKE_CURRENT_SOURCE_DIR}../combat
 )
 
 include(GNUInstallDirs)

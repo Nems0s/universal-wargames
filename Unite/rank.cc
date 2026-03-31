@@ -1,4 +1,5 @@
 #include "rank.hh"
+#include "unite.hh"
 #include <iostream>
 
 // ==========================================
@@ -32,7 +33,23 @@ void Rank_Commandant::supprimer_unite(std::shared_ptr<Unite>const & u)
 // ==========================================
 //                    Regulier
 // ==========================================
+Unite* Rank_Regulier::commandant() const
+{
+    return _commandant.get();
+}
+
+void Rank_Regulier::setCommandant(std::unique_ptr<Unite> newCommandant)
+{
+    _commandant = std::move(newCommandant);
+}
+
 void Rank_Regulier::get_role()const
 {
     std::cout<<"Unite reguliere";
 }
+
+bool Rank_Regulier::PossedeCommandant() const
+{
+    return _commandant != nullptr;
+}
+

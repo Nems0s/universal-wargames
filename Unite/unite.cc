@@ -118,6 +118,33 @@ std::list<CompMouv*> Unite::Mobilite() const
     }
     return liste_CompMouv;
 }
+std::list<CompAtt*> Unite::Offensive() const
+{
+    std::list<CompAtt*> liste_CompAtt;
+
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* typeMouv = dynamic_cast<CompAtt*>(comp_ptr.get()))
+        {
+            liste_CompAtt.push_back(typeMouv);
+        }
+    }
+    return liste_CompAtt;
+}
+
+std::list<CompDef*> Unite::Defensif() const
+{
+    std::list<CompDef*> liste_CompDef;
+
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* typeMouv = dynamic_cast<CompDef*>(comp_ptr.get()))
+        {
+            liste_CompDef.push_back(typeMouv);
+        }
+    }
+    return liste_CompDef;
+}
 
 void Unite::affiche() const
 {

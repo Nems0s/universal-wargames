@@ -9,6 +9,8 @@
 enum class Poids{Leger, Moyen, Lourd};
 class IComportement;
 class CompMouv;
+class CompAtt;
+class CompDef;
 
 // ==========================================
 //                     Unite
@@ -56,4 +58,6 @@ public:
     void ajouterComportement(std::shared_ptr<IComportement> comp);
     void update();
     std::list<CompMouv*> Mobilite() const;
+    std::list<CompAtt*> Offensive() const;
+    std::list<CompDef*> Defensif() const;
 };
