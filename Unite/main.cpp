@@ -12,13 +12,13 @@ int main() {
 
     // 2. Création des Unités
     // Une unité de cavalerie (Terrestre) à la position (2,2)
-    Unite cavalier("Chevalier Noir", 100, 20, direction::est, {2, 2}, gradeReg);
+    Unite cavalier("Chevalier Noir", 100, 20, Poids::Leger, direction::est, {2, 2}, gradeReg);
 
     // Un Griffon (Volant) à la position (3,3)
-    Unite griffon("Griffon Royal", 80, 15, direction::nord_ouest, {3, 3}, gradeReg);
+    Unite griffon("Griffon Royal", 80, 15, Poids::Moyen, direction::nord_ouest, {3, 3}, gradeReg);
 
     // Un Commandant (Terrestre) à la position (2,1)
-    auto cmd = std::make_shared<Unite>("General Maximus", 150, 25, direction::sud_est, Case{2, 1}, gradeCmd);
+    auto cmd = std::make_shared<Unite>("General Maximus", 150, 25, Poids::Lourd, direction::sud_est, Case{2, 1}, gradeCmd);
 
     // 3. Ajout des comportements
     // Le cavalier peut bouger sur terre et attaquer au corps à corps

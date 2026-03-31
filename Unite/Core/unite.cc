@@ -1,10 +1,12 @@
 #include "unite.hh"
+#include "comportement.hh"
 
-Unite::Unite(const std::string &name, int hp, int dmg, direction dir, Case loc, std::shared_ptr<IRank> r)
+Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r)
     :_name(name),
     _health_point(hp),
     _damage_point(dmg),
     _moral_point(0),
+    _poids(poids),
     _regarde(dir),
     _location(loc),
     _rank(r)
@@ -43,6 +45,16 @@ int Unite::moral_point() const
 void Unite::setMoral_point(int newMoral_point)
 {
     _moral_point = newMoral_point;
+}
+
+Poids Unite::poids() const
+{
+    return _poids;
+}
+
+void Unite::setPoids(Poids newPoids)
+{
+    _poids = newPoids;
 }
 
 

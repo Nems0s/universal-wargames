@@ -21,7 +21,6 @@ void CompMouv::setMov_per_laps(int newMov_per_laps)
 //===================================================================
 //                         Mouvement Volant
 //===================================================================
-CompMouvVolant::CompMouvVolant():CompMouv(2){}
 CompMouvVolant::CompMouvVolant(int mouvement_par_tour): CompMouv(mouvement_par_tour){}
 
 void CompMouvVolant::affiche() const
@@ -57,7 +56,6 @@ NatureMouv CompMouvVolant::Nature() const
 //===================================================================
 //                         Mouvement Marin
 //===================================================================
-CompMouvMarin::CompMouvMarin():CompMouv(2){}
 CompMouvMarin::CompMouvMarin(int mouvement_par_tour): CompMouv(mouvement_par_tour){}
 
 void CompMouvMarin::affiche() const
@@ -92,7 +90,6 @@ NatureMouv CompMouvMarin::Nature() const
 //===================================================================
 //                        Mouvement Terrestre
 //===================================================================
-CompMouvTerrestre::CompMouvTerrestre():CompMouv(1){}
 CompMouvTerrestre::CompMouvTerrestre(int mouvement_par_tour): CompMouv(mouvement_par_tour){}
 
 void CompMouvTerrestre::affiche() const
@@ -204,12 +201,6 @@ bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
 //===================================================================
 //                        Attaque Distance
 //===================================================================
-CompAttDistance::CompAttDistance(int damage_point):
-    CompAtt(damage_point, 2),
-    _munitions(10),
-    _portee_mini(2)
-{}
-
 CompAttDistance::CompAttDistance(int damage_point, int portee, int munitions, int portee_mini):
     CompAtt(damage_point, portee),
     _munitions(munitions),
@@ -259,7 +250,47 @@ bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
 //===================================================================
 //                        Attaque Indirect
 //===================================================================
+CompAttIndirect::CompAttIndirect(int damage_point, int portee, int nombre_de_tour_infection):
+    CompAtt(damage_point, portee),
+    _nombre_de_tour_infection(nombre_de_tour_infection)
+{}
 
+void CompAttIndirect::setNombreDeTourInfection(int newNombreDeTourInfection)
+{
+    _nombre_de_tour_infection = newNombreDeTourInfection;
+}
+int CompAttIndirect::nombredetourinfection() const
+{
+    return _nombre_de_tour_infection;
+}
+
+void CompAttIndirect::affiche() const
+{
+
+}
+void CompAttIndirect::update(Unite& proprietaire)
+{
+
+}
+
+bool CompAttIndirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
+{
+    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
+
+    if(cases_possibles.count(cible.location()) > 0)
+    {
+        return true;
+    }
+    else return false;
+}
+void CompAttIndirect::AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible)
+{
+    _liste_infecter.push_back(infecter{cible, _nombre_de_tour_infection});
+}
+void CompAttIndirect::RetireCibleAtteinte(infecter const& I)
+{
+    _liste_infecter.remove(I);
+}
 
 
 //====================================================================================================
@@ -267,3 +298,133 @@ bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
 //====================================================================================================
 //====================================================================================================
 
+
+//====================================================================================================
+//                                              Defense
+//====================================================================================================
+
+//===================================================================
+//                        Defense Armure
+//===================================================================
+CompDefArmure::CompDefArmure(int armure): _armure(armure){}
+
+int CompDefArmure::armure() const
+{
+    return _armure;
+}
+void CompDefArmure::setArmure(int newArmure)
+{
+    _armure = newArmure;
+}
+
+int CompDefArmure::ReductionDegats(int degat_subit)
+{
+    return std::abs(degat_subit - _armure);
+}
+
+//===================================================================
+//                        Defense Bouclier
+//===================================================================
+CompDefBouclier::CompDefBouclier(int nombre_bouclier): _nombre_bouclier(nombre_bouclier){}
+
+int CompDefBouclier::nombre_bouclier() const
+{
+    return _nombre_bouclier;
+}
+
+void CompDefBouclier::setNombre_bouclier(int newNombre_bouclier)
+{
+    _nombre_bouclier = newNombre_bouclier;
+}
+
+int CompDefBouclier::ReductionDegats(int degat_subit)
+{
+    if(_nombre_bouclier > 0)
+    {
+        -- _nombre_bouclier;
+        return 0;
+    }
+    else
+    {
+        return degat_subit;
+    }
+}
+
+//====================================================================================================
+//====================================================================================================
+//====================================================================================================
+//====================================================================================================
+
+
+//====================================================================================================
+//                                              Spéciaux
+//====================================================================================================
+//===================================================================
+//                        Transport
+//===================================================================
+
+CompTransport::CompTransport(int max_unite_transporter): _max_unite_transporter(max_unite_transporter){}
+
+std::list<std::shared_ptr<Unite> > CompTransport::liste_unite_transporter() const
+{
+    return _liste_unite_transporter;
+}
+
+void CompTransport::setListe_unite_transporter(const std::list<std::shared_ptr<Unite>> &newListe_unite_transporter)
+{
+    _liste_unite_transporter = newListe_unite_transporter;
+}
+
+int CompTransport::max_unite_transporter() const
+{
+    return _max_unite_transporter;
+}
+
+void CompTransport::setMax_unite_transporter(int newMax_unite_transporter)
+{
+    _max_unite_transporter = newMax_unite_transporter;
+}
+
+
+bool CompTransport::MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur)
+{
+    auto cases_possibles = Voisins(Voyageur->location());
+
+    auto it = std::find(cases_possibles.begin(), cases_possibles.end(), Transport.location());
+
+    if (it != cases_possibles.end())
+    {
+        _liste_unite_transporter.push_back(Voyageur);
+        return true;
+    }
+    else return false;
+}
+
+bool CompTransport::DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur)
+{
+    bool present = false;
+    for(auto const& U : _liste_unite_transporter)
+    {
+        if(U == Voyageur) present = true;
+    }
+
+    if(present)
+    {
+        auto cases_possibles = Voisins(Transport.location());
+        auto mouv = Voyageur->Mobilite();
+
+        for(auto const& C : cases_possibles)
+        {
+            for(auto const& M : mouv)
+            {
+                if(M->EstCaseValide(Transport.location(), C))
+                {
+                    _liste_unite_transporter.remove(Voyageur);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    else return false;
+}

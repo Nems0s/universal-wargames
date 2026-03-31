@@ -36,8 +36,7 @@ public:
 class CompMouvVolant : public CompMouv
 {
 public:
-    CompMouvVolant();
-    CompMouvVolant(int mouvement_par_tour);
+    CompMouvVolant(int mouvement_par_tour = 2);
 
     void affiche() const override;
     void update(Unite& proprietaire) override;
@@ -49,8 +48,7 @@ public:
 class CompMouvMarin : public CompMouv
 {
 public:
-    CompMouvMarin();
-    CompMouvMarin(int mouvement_par_tour);
+    CompMouvMarin(int mouvement_par_tour = 1);
 
     void affiche() const override;
     void update(Unite& proprietaire) override;
@@ -62,8 +60,7 @@ public:
 class CompMouvTerrestre : public CompMouv
 {
 public:
-    CompMouvTerrestre();
-    CompMouvTerrestre(int mouvement_par_tour);
+    CompMouvTerrestre(int mouvement_par_tour = 1);
 
     void affiche() const override;
     void update(Unite& proprietaire) override;
@@ -109,19 +106,102 @@ private:
     int _munitions;
     int _portee_mini;
 public:
-    CompAttDistance(int damage_point);
-    CompAttDistance(int damage_point, int portee, int munitions, int portee_mini);
+    CompAttDistance(int damage_point, int portee = 2, int munitions = 10, int portee_mini = 2);
 
-    void setMunitions(int newMunitions);
     int munitions() const;
+    void setMunitions(int newMunitions);
+    int portee_mini() const;
+    void setPortee_mini(int newPortee_mini);
 
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
-    int portee_mini() const;
-    void setPortee_mini(int newPortee_mini);
+};
+
+class CompAttIndirect : public CompAtt
+{
+private:
+    struct infecter
+    {
+        std::weak_ptr<Unite> cible;
+        int tour_infection;
+
+        bool operator==(const infecter& other) const {
+            bool memeCible = !cible.owner_before(other.cible) && !other.cible.owner_before(cible);
+            return memeCible && (tour_infection == other.tour_infection);
+        }
+    };
+
+    int _nombre_de_tour_infection;
+    std::list<infecter> _liste_infecter;
+public:
+    CompAttIndirect(int damage_point, int portee = 1, int nombre_de_tour_infection = 2);
+
+    void setNombreDeTourInfection(int newNombreDeTourInfection);
+    int nombredetourinfection() const;
+
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
+
+    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
+    void AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible);
+    void RetireCibleAtteinte(infecter const& I);
 };
 
 
+//===================================================================
+//                   Comportement Defense
+//===================================================================
+class CompDef : public IComportement
+{
+public:
+    CompDef() = default;
+    virtual int ReductionDegats(int degat_subit) = 0;
+};
 
+class CompDefArmure : public CompDef
+{
+private:
+    int _armure;
+public:
+    CompDefArmure(int armure);
+
+    int armure() const;
+    void setArmure(int newArmure);
+
+    int ReductionDegats(int degat_subit) override;
+};
+
+class CompDefBouclier : public CompDef
+{
+private:
+    int _nombre_bouclier;
+public:
+    CompDefBouclier(int nombre_bouclier);
+
+    int nombre_bouclier() const;
+    void setNombre_bouclier(int newNombre_bouclier);
+
+    int ReductionDegats(int degat_subit) override;
+};
+
+//===================================================================
+//                   Comportement Spéciaux
+//===================================================================
+class CompTransport : public IComportement
+{
+private:
+    std::list<std::shared_ptr<Unite>> _liste_unite_transporter;
+    int _max_unite_transporter;
+public:
+    CompTransport(int max_unite_transporter = 3);
+
+    std::list<std::shared_ptr<Unite> > liste_unite_transporter() const;
+    void setListe_unite_transporter(const std::list<std::shared_ptr<Unite> > &newListe_unite_transporter);
+    int max_unite_transporter() const;
+    void setMax_unite_transporter(int newMax_unite_transporter);
+
+    bool MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
+    bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
+};
