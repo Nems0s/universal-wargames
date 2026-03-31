@@ -15,19 +15,20 @@ class Unite {
         virtual ~Unite() = default;
         virtual bool peutMarcher() const { return false; }
         virtual bool peutNager() const { return false; }
-}; 
+};
 
 class terre : virtual public Unite {
     public:
         bool peutMarcher() const override { return true; }
-}; 
+};
 
 class mer : virtual public Unite {
     public:
         bool peutNager() const override { return true; }
-}; 
+};
 
 class amphibie : public terre, public mer {};
+
 
 
 
