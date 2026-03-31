@@ -2,7 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <list>
-#include <orientation.hh>
+#include "orientation.hh"
 
 enum class NatureMouv {TERRE, MER, AIR};
 
@@ -170,6 +170,9 @@ public:
     int armure() const;
     void setArmure(int newArmure);
 
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
+
     int ReductionDegats(int degat_subit) override;
 };
 
@@ -182,6 +185,9 @@ public:
 
     int nombre_bouclier() const;
     void setNombre_bouclier(int newNombre_bouclier);
+
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
 
     int ReductionDegats(int degat_subit) override;
 };
@@ -202,6 +208,34 @@ public:
     int max_unite_transporter() const;
     void setMax_unite_transporter(int newMax_unite_transporter);
 
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
+
     bool MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };
+
+
+// class CompSoin: public IComportement
+// {
+// private:
+//     int _healing_point;
+//     int _portee;
+//     int _rayon;
+// public:
+//     CompSoin(int healing_point = 10, int portee = 2, int rayon = 1);
+
+//     int healing_point() const;
+//     void setHealing_point(int newHealing_point);
+//     int portee() const;
+//     void setPortee(int newPortee);
+//     int rayon() const;
+//     void setRayon(int newRayon);
+
+//     void affiche() const override;
+//     void update(Unite& proprietaire) override;
+
+//     bool PeuxSoigner(Unite const& attaquante, Unite const& cible);
+
+// };
+

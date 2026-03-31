@@ -25,7 +25,7 @@ CompMouvVolant::CompMouvVolant(int mouvement_par_tour): CompMouv(mouvement_par_t
 
 void CompMouvVolant::affiche() const
 {
-
+    std::cout << "[Mouvement] Vol : " << mov_per_laps() << std::endl;
 }
 
 void CompMouvVolant::update(Unite& proprietaire)
@@ -60,7 +60,7 @@ CompMouvMarin::CompMouvMarin(int mouvement_par_tour): CompMouv(mouvement_par_tou
 
 void CompMouvMarin::affiche() const
 {
-
+    std::cout << "[Mouvement] Mer : " << mov_per_laps() << std::endl;
 }
 
 void CompMouvMarin::update(Unite& proprietaire)
@@ -94,7 +94,7 @@ CompMouvTerrestre::CompMouvTerrestre(int mouvement_par_tour): CompMouv(mouvement
 
 void CompMouvTerrestre::affiche() const
 {
-
+    std::cout << "[Mouvement] Terrestre : " << mov_per_laps() << std::endl;
 }
 
 void CompMouvTerrestre::update(Unite& proprietaire)
@@ -160,7 +160,7 @@ CompAttMelee::CompAttMelee(int damage_point):CompAtt(damage_point, 1){}
 
 void CompAttMelee::affiche() const
 {
-
+    std::cout << "[Attaque] Melee : " << damage_point() << "/" << portee() << std::endl;
 }
 
 void CompAttMelee::update(Unite& proprietaire)
@@ -227,7 +227,7 @@ void CompAttDistance::setPortee_mini(int newPortee_mini)
 
 void CompAttDistance::affiche()const
 {
-
+    std::cout << "[Attaque] Distance : " << damage_point() << "/(" << portee() << "|" << _portee_mini<< ")/"  << _munitions << std::endl;
 }
 void CompAttDistance::update(Unite& proprietaire)
 {
@@ -266,7 +266,7 @@ int CompAttIndirect::nombredetourinfection() const
 
 void CompAttIndirect::affiche() const
 {
-
+    std::cout << "[Attaque] Indirect : " << damage_point() << "/" << portee() << "/" << _nombre_de_tour_infection << std::endl;
 }
 void CompAttIndirect::update(Unite& proprietaire)
 {
@@ -317,6 +317,15 @@ void CompDefArmure::setArmure(int newArmure)
     _armure = newArmure;
 }
 
+void CompDefArmure::affiche() const
+{
+    std::cout << "[Defense] Armure : " << _armure << std::endl;
+}
+void CompDefArmure::update(Unite& proprietaire)
+{
+
+}
+
 int CompDefArmure::ReductionDegats(int degat_subit)
 {
     return std::abs(degat_subit - _armure);
@@ -336,6 +345,16 @@ void CompDefBouclier::setNombre_bouclier(int newNombre_bouclier)
 {
     _nombre_bouclier = newNombre_bouclier;
 }
+
+void CompDefBouclier::affiche() const
+{
+    std::cout << "[Defense] Bouclier : " << _nombre_bouclier << std::endl;
+}
+void CompDefBouclier::update(Unite& proprietaire)
+{
+
+}
+
 
 int CompDefBouclier::ReductionDegats(int degat_subit)
 {
@@ -385,6 +404,15 @@ void CompTransport::setMax_unite_transporter(int newMax_unite_transporter)
     _max_unite_transporter = newMax_unite_transporter;
 }
 
+void CompTransport::affiche() const
+{
+    std::cout << "[Special] Transport : " << _liste_unite_transporter.size()<<"/"<< _max_unite_transporter << std::endl;
+}
+void CompTransport::update(Unite& proprietaire)
+{
+
+}
+
 
 bool CompTransport::MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur)
 {
@@ -394,6 +422,7 @@ bool CompTransport::MonterUnite(Unite const& Transport, std::shared_ptr<Unite> c
 
     if (it != cases_possibles.end())
     {
+        Voyageur->setLocation(Transport.location());
         _liste_unite_transporter.push_back(Voyageur);
         return true;
     }
@@ -428,3 +457,57 @@ bool CompTransport::DescenteUniteUnite(Unite const& Transport, std::shared_ptr<U
     }
     else return false;
 }
+
+
+//===================================================================
+//                        Soin
+//===================================================================
+// CompSoin::CompSoin(int healing_point, int portee, int rayon):
+//     _healing_point(healing_point),
+//     _portee(portee),
+//     _rayon(rayon)
+// {}
+
+// int CompSoin::portee() const
+// {
+//     return _portee;
+// }
+
+// void CompSoin::setPortee(int newPortee)
+// {
+//     _portee = newPortee;
+// }
+
+// int CompSoin::rayon() const
+// {
+//     return _rayon;
+// }
+
+// void CompSoin::setRayon(int newRayon)
+// {
+//     _rayon = newRayon;
+// }
+
+// int CompSoin::healing_point() const
+// {
+//     return _healing_point;
+// }
+
+// void CompSoin::setHealing_point(int newHealing_point)
+// {
+//     _healing_point = newHealing_point;
+// }
+
+// void CompSoin::affiche() const
+// {
+//     std::cout << "[Special] Soin : " << _healing_point << std::endl;
+// }
+// void CompSoin::update(Unite& proprietaire)
+// {
+
+// }
+
+// bool CompSoin::PeuxSoigner(Unite const& attaquante, Unite const& cible)
+// {
+
+// }
