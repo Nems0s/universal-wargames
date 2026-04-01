@@ -1,6 +1,31 @@
+# Unreal Engine
+ue5/Binaries/
+ue5/Build/
+ue5/DerivedDataCache/
+ue5/Intermediate/
+ue5/Saved/
+ue5/Script/
+ue5/Backup/
+ue5/*.sln
+ue5/*.sdf
+ue5/*.suo
+ue5/*.pdb
+ue5/*.obj
+
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Divers
+.DS_Store
+Thumbs.db
+
+# Compilation
 build/
 bin/
-.vscode/
 
 # Prerequisites
 *.d
