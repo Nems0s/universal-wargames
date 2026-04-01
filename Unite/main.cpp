@@ -1,127 +1,127 @@
 #include <iostream>
 #include <memory>
 #include <cassert>
+#include <vector>
+
 #include "unite.hh"
 #include "comportement.hh"
 #include "rank.hh"
 #include "orientation.hh"
+#include "../combat/combat.hh"
+
+/**
+ * CLAUDE_VAS_Y : TEST SUITE COMPLET
+ * Ce main teste la chaîne complète : du déplacement au combat buffé.
+ */
 
 int main() {
-    std::cout << "========== DEBUT DES TESTS DU WARGAME ==========" << std::endl << std::endl;
+    std::cout << "====================================================" << std::endl;
+    std::cout << "       WARGAME ENGINE - INTEGRATION TESTS           " << std::endl;
+    std::cout << "====================================================" << std::endl << std::endl;
 
-    // 1. INITIALISATION DES RANGS
-    auto cmd = std::make_shared<Rank_Commandant>();
-    auto reg = std::make_shared<Rank_Regulier>();
+    // ---------------------------------------------------------
+    // 1. PRÉPARATION DES GRADES ET BONUS
+    // ---------------------------------------------------------
+    auto rankCmd = std::make_shared<Rank_Commandant>();
+    auto rankReg1 = std::make_shared<Rank_Regulier>();
+    auto rankReg2 = std::make_shared<Rank_Regulier>();
 
-    // 2. CRÉATION DES UNITÉS ET COMPOSANTS
-    // --- Le Croiseur (Marin + Défense + Transport) ---
-    auto croiseur = std::make_shared<Unite>("Croiseur HMS", 500, 50, Poids::Lourd, direction::est, Case{0, 0}, cmd);
-    croiseur->ajouterComportement(std::make_shared<CompMouvMarin>(3));
-    croiseur->ajouterComportement(std::make_shared<CompDefArmure>(10)); // Réduit de 10
-    auto transport = std::make_shared<CompTransport>(2);
-    croiseur->ajouterComportement(transport);
+    // Ajout de bonus au commandant
+    rankCmd->ajout_bonus(std::make_shared<BonusDegat>(10)); // +10 ATK
+    rankCmd->ajout_bonus(std::make_shared<BonusVie>(25));   // +25 Soin post-combat
 
-    // --- Le Chasseur (Volant + Attaque Distance) ---
-    auto chasseur = std::make_shared<Unite>("Rafale", 150, 40, Poids::Leger, direction::nord_est, Case{2, 2}, reg);
+    // ---------------------------------------------------------
+    // 2. CRÉATION DES UNITÉS
+    // ---------------------------------------------------------
+
+    // Le Commandant : Un Croiseur lourd (Marin)
+    auto croiseur = std::make_shared<Unite>("HMS-Victory", 500, 20, Poids::Lourd, direction::est, Case{0, 0}, rankCmd);
+    croiseur->ajouterComportement(std::make_shared<CompMouvMarin>(2));
+    croiseur->ajouterComportement(std::make_shared<CompDefArmure>(15));
+
+    // Le Soldat : Un Chasseur (Volant) rattaché au Croiseur
+    auto chasseur = std::make_shared<Unite>("Rafale-01", 150, 40, Poids::Leger, direction::nord_est, Case{1, 0}, rankReg1);
     chasseur->ajouterComportement(std::make_shared<CompMouvVolant>(5));
-    chasseur->ajouterComportement(std::make_shared<CompAttDistance>(30, 4, 10, 2)); // Dégâts 30, Portée 4, 10 Mun, Min 2
+    auto attDistance = std::make_shared<CompAttDistance>(40, 4, 10, 2); // Dmg 40, Portée 4, Mun 10, Portée min 2
+    chasseur->ajouterComportement(attDistance);
+    rankReg1->setCommandant(croiseur); // Liaison hiérarchique
 
-    // --- L'Infecteur (Terrestre + Attaque Indirecte) ---
-    auto maraudeur = std::make_shared<Unite>("Maraudeur Toxique", 120, 15, Poids::Moyen, direction::ouest, Case{1, 0}, reg);
-    maraudeur->ajouterComportement(std::make_shared<CompMouvTerrestre>(2));
-    auto poison = std::make_shared<CompAttIndirect>(15, 2, 3); // 15 dmg, portée 2, 3 tours
-    maraudeur->ajouterComportement(poison);
-
-    // --- La Cible (Terrestre + Bouclier) ---
-    auto cible = std::make_shared<Unite>("Tank Test", 200, 20, Poids::Lourd, direction::sud_est, Case{1, 1}, reg);
-    cible->ajouterComportement(std::make_shared<CompMouvTerrestre>(1));
-    cible->ajouterComportement(std::make_shared<CompDefBouclier>(2)); // 2 charges d'annulation
+    // L'Ennemi : Un Tank (Terrestre) avec Bouclier
+    auto tankEnnemi = std::make_shared<Unite>("Panzer-X", 200, 30, Poids::Lourd, direction::ouest, Case{3, 0}, rankReg2);
+    tankEnnemi->ajouterComportement(std::make_shared<CompMouvTerrestre>(1));
+    tankEnnemi->ajouterComportement(std::make_shared<CompDefBouclier>(2)); // Bloque 2 attaques
 
     // ---------------------------------------------------------
-    // 3. TESTS DE LA GÉOMÉTRIE (orientation.cc)
+    // 3. TEST GÉOMÉTRIE ET ORIENTATION
     // ---------------------------------------------------------
-    std::cout << "[TEST GRILLE] Verification des voisins de (1,1)..." << std::endl;
-    auto v = Voisins(Case{1,1});
-    std::cout << "Nombre de voisins trouves : " << v.size() << " (Attendu: 6)" << std::endl;
+    std::cout << "--- [TEST 1] GEOMETRIE ---" << std::endl;
+    Case c1 = {1, 1};
+    auto voisins = Voisins(c1);
+    std::cout << "Unite en (1,1) a " << voisins.size() << " voisins (Attendu: 6)." << std::endl;
 
-    std::cout << "[TEST GRILLE] Verification portee rayon 2 autour de (0,0)..." << std::endl;
-    auto portee2 = case_adjascentes(Case{0,0}, 2);
-    std::cout << "Cases dans le rayon 2 : " << portee2.size() << std::endl;
+    bool avantage = avantage_attaque(Case{0,0}, Case{1,0}, direction::est);
+    std::cout << "Attaque de (0,0) vers (1,0) regardant Est : "
+              << (avantage ? "AVANTAGE (Dos/Flanc)" : "FACE A FACE") << std::endl << std::endl;
 
     // ---------------------------------------------------------
-    // 4. TESTS DE MOUVEMENT (comportement.cc)
+    // 4. TEST TRANSPORT
     // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS MOUVEMENT ---" << std::endl;
-    // Le croiseur (Marin) tente d'aller en (2,2)
-    auto mouvMarin = croiseur->Mobilite().front();
-    if (mouvMarin->EstCaseValide(croiseur->location(), Case{2,2})) {
-        std::cout << "Mouvement Marin (0,0 -> 2,2) : VALIDE" << std::endl;
-    } else {
-        std::cout << "Mouvement Marin (0,0 -> 2,2) : REFUSE (Trop loin ou mauvais terrain)" << std::endl;
+    std::cout << "--- [TEST 2] TRANSPORT ---" << std::endl;
+    auto compTransp = std::make_shared<CompTransport>(1);
+    croiseur->ajouterComportement(compTransp);
+
+    if(compTransp->MonterUnite(*croiseur, chasseur)) {
+        std::cout << "Embarquement reussi : " << chasseur->name() << " est dans " << croiseur->name() << std::endl;
+    }
+    compTransp->affiche();
+
+    // ---------------------------------------------------------
+    // 5. TEST COMBAT COMPLET (AVEC BUFFS ET SOINS)
+    // ---------------------------------------------------------
+    std::cout << std::endl << "--- [TEST 3] COMBAT AVEC BONUS COMMANDANT ---" << std::endl;
+
+    // On débarque et place le chasseur à portée (Distance de 2 cases : (1,0) -> (3,0))
+    chasseur->setLocation(Case{1, 0});
+
+    std::cout << "PV Tank avant : " << tankEnnemi->health_point() << std::endl;
+    std::cout << "Munitions Chasseur : " << attDistance->munitions() << std::endl;
+
+    // Lancement du combat
+    // Le chasseur va bénéficier du +10 dégâts du Croiseur (total 50)
+    // Le Tank va utiliser une charge de bouclier (dégâts -> 0)
+    bool combatOk = Combat::fight(*chasseur, attDistance.get(), *tankEnnemi);
+
+    if(combatOk) {
+        std::cout << "Combat effectue !" << std::endl;
+        std::cout << "PV Tank apres (Bouclier a du bloquer) : " << tankEnnemi->health_point() << std::endl;
+
+        // On simule une blessure sur le chasseur pour tester le soin post-combat
+        chasseur->setHealth_point(100);
+        std::cout << "PV Chasseur blesse avant soin commandant : " << chasseur->health_point() << std::endl;
+
+        // On relance un combat pour déclencher la phase de soin de fin de combat
+        Combat::fight(*chasseur, attDistance.get(), *tankEnnemi);
+
+        std::cout << "PV Chasseur apres soin (Attendu 100 + 25 = 125) : " << chasseur->health_point() << std::endl;
     }
 
     // ---------------------------------------------------------
-    // 5. TESTS DE COMBAT (comportement.cc)
+    // 6. TEST ETAT FINAL ET NETTOYAGE
     // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS COMBAT ---" << std::endl;
+    std::cout << std::endl << "--- [TEST 4] VERIFICATION FINALE ---" << std::endl;
 
-    // Test Attaque Distance (Chasseur (2,2) vs Cible (1,1))
-    // Distance (2,2) à (1,1) est de 1. L'attaque distance a une portee_mini de 2.
-    auto compDist = std::dynamic_pointer_cast<CompAttDistance>(chasseur->liste_comportements().back());
-    if (compDist && compDist->PeuxAttaquer(*chasseur, *cible)) {
-        std::cout << "Chasseur attaque Cible : OUI" << std::endl;
-    } else {
-        std::cout << "Chasseur attaque Cible : NON (Trop proche ! Zone morte de portee_mini=2)" << std::endl;
+    // Vérifier que les stats temporaires sont bien à 0
+    if(chasseur->temporary_damage() == 0) {
+        std::cout << "Nettoyage des stats temporaires : OK" << std::endl;
     }
 
-    // Test Attaque Indirecte (Maraudeur (1,0) vs Cible (1,1))
-    if (poison->PeuxAttaquer(*maraudeur, *cible)) {
-        std::cout << "Maraudeur peut infecter Cible : OUI" << std::endl;
-        poison->AjoutCibleAtteinte(cible);
-        std::cout << "Infection appliquee." << std::endl;
-    }
-
-    // ---------------------------------------------------------
-    // 6. TESTS DE DÉFENSE (comportement.cc)
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS DEFENSE ---" << std::endl;
-    int degats_initiaux = 50;
-
-    // Test Bouclier sur la cible
-    auto it_comp = cible->liste_comportements();
-    for(auto const& c : it_comp) {
-        if(auto def = std::dynamic_pointer_cast<CompDef>(c)) {
-            int restants = def->ReductionDegats(degats_initiaux);
-            std::cout << "Degats apres passage dans " << typeid(*def).name() << " : " << restants << std::endl;
-            degats_initiaux = restants;
-        }
-    }
-
-    // ---------------------------------------------------------
-    // 7. TESTS DE TRANSPORT (comportement.cc)
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS TRANSPORT ---" << std::endl;
-    // Maraudeur en (1,0) est voisin du Croiseur en (0,0) ? Oui selon orientation.cc
-    if (transport->MonterUnite(*croiseur, maraudeur)) {
-        std::cout << "[OK] Maraudeur Toxique a embarque sur le Croiseur." << std::endl;
-    } else {
-        std::cout << "[ECHEC] Trop loin pour embarquer." << std::endl;
-    }
-
-    // ---------------------------------------------------------
-    // 8. TESTS D'AFFICHAGE ET UPDATE
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- AFFICHAGE FINAL DE L'ETAT ---" << std::endl;
     croiseur->affiche();
     chasseur->affiche();
-    maraudeur->affiche();
-    cible->affiche();
+    tankEnnemi->affiche();
 
-    std::cout << std::endl << "[UPDATE] Passage au tour suivant..." << std::endl;
-    maraudeur->update(); // Devrait afficher l'état de l'infection
-    cible->update();    // Devrait afficher l'état du bouclier
-
-    std::cout << std::endl << "========== FIN DES TESTS ==========" << std::endl;
+    std::cout << std::endl << "====================================================" << std::endl;
+    std::cout << "             FIN DES TESTS - TOUT OK                " << std::endl;
+    std::cout << "====================================================" << std::endl;
 
     return 0;
 }

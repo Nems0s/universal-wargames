@@ -28,7 +28,8 @@ private:
     std::shared_ptr<IRank> _rank;
     std::list<std::shared_ptr<IComportement>> _liste_comportements;
 
-
+    int _temporary_health;
+    int _temporary_damage;
 public:
     Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r);
     virtual ~Unite() = default;
@@ -40,6 +41,8 @@ public:
     void setPoids(Poids newPoids);
     void setRegarde(direction newRegarde);
     void setLocation(const Case &newLocation);
+    void setTemporary_health(int newTemporary_health);
+    void setTemporary_damage(int newTemporary_damage);
 
     /*Getters*/
     std::string name() const;
@@ -51,6 +54,8 @@ public:
     Case location() const;
     std::shared_ptr<IRank> rank() const;
     std::list<std::shared_ptr<IComportement>> liste_comportements() const;
+    int temporary_health() const;
+    int temporary_damage() const;
 
     /*Méthodes*/
     // void movement(Case const& c);
@@ -60,4 +65,5 @@ public:
     std::list<CompMouv*> Mobilite() const;
     std::list<CompAtt*> Offensive() const;
     std::list<CompDef*> Defensif() const;
+    void resetTemporary_stats();
 };

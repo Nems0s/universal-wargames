@@ -88,6 +88,25 @@ std::list<std::shared_ptr<IComportement> > Unite::liste_comportements() const
     return _liste_comportements;
 }
 
+int Unite::temporary_health() const
+{
+    return _temporary_health;
+}
+
+void Unite::setTemporary_health(int newTemporary_health)
+{
+    _temporary_health = newTemporary_health;
+}
+
+int Unite::temporary_damage() const
+{
+    return _temporary_damage;
+}
+
+void Unite::setTemporary_damage(int newTemporary_damage)
+{
+    _temporary_damage = newTemporary_damage;
+}
 
 void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
 {
@@ -159,6 +178,12 @@ void Unite::affiche() const
     {
         comp->affiche();
     }
+}
+
+void Unite::resetTemporary_stats()
+{
+    _temporary_damage = 0;
+    _temporary_health = 0;
 }
 
 // void Unite::movement(Case const& c) {
