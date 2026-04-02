@@ -1,6 +1,9 @@
 #pragma once
 #include "unite.hh"
 
+inline int MAX_MORAL = 20;
+inline int MIN_MORAL = -20;
+
 class Combat
 {
 public:

@@ -31,6 +31,7 @@ void BuffCommandant(Unite & u, bool & aSoin)
                 {
                     u.setTemporary_health(def->appliquer(u.health_point()));
                 }
+                std::cout << "[BUFF] " << buff->nom() << " de " << regulier->commandant()->name() << " active sur " << u.name() << std::endl;
             }
         }
     }
@@ -40,14 +41,17 @@ void SoinDuCommandant(Unite & u)
 {
     auto r = u.rank();
     auto regulier = std::dynamic_pointer_cast<Rank_Regulier>(r);
-    if(regulier)
+    if(regulier && regulier->PossedeCommandant())
     {
         auto com = std::dynamic_pointer_cast<Rank_Commandant>(regulier->commandant()->rank());
-        for(auto const& buff : com->liste_bonus())
+        if(com)
         {
-            if(auto soin = std::dynamic_pointer_cast<BonusVie>(buff))
+            for(auto const& buff : com->liste_bonus())
             {
-                u.setHealth_point(soin->appliquer_soin(u.health_point(), u));
+                if(auto soin = std::dynamic_pointer_cast<BonusVie>(buff))
+                {
+                    u.setHealth_point(soin->appliquer_soin(u.health_point(), u));
+                }
             }
         }
     }
@@ -60,9 +64,6 @@ void SoinDuCommandant(Unite & u)
 //==============================================================================
 //                             Gestion du Moral
 //==============================================================================
-int MAX_MORAL = 20;
-int MIN_MORAL = -20;
-
 void AugmentationMoral(Unite &u, int x_point)
 {
     if(x_point > 0)
@@ -76,6 +77,7 @@ void AugmentationMoral(Unite &u, int x_point)
         {
             u.setMoral_point(MAX_MORAL);
         }
+        std::cout << "[MORAL] " << u.name() << " : " << x-x_point << " -> " << u.moral_point() << " (+" << x_point << ")" << std::endl;
     }
 }
 
@@ -84,7 +86,7 @@ void DiminussionMoral(Unite &u, int x_point)
     if(x_point > 0)
     {
         int x = u.moral_point() - x_point;
-        if(x <= MIN_MORAL)
+        if(x >= MIN_MORAL)
         {
             u.setMoral_point(x);
         }
@@ -92,6 +94,7 @@ void DiminussionMoral(Unite &u, int x_point)
         {
             u.setMoral_point(MIN_MORAL);
         }
+        std::cout << "[MORAL] " << u.name() << " : " << x+x_point << " -> " << u.moral_point() << " (-" << x_point << ")" << std::endl;
     }
 }
 
@@ -101,28 +104,14 @@ void EffetMoral(Unite & u)
     int baseDmg = u.damage_point_start();
     float coeff = 1.0;
 
-    // Fatigue
-    if (moral > MAX_MORAL*0.75)
-    {
-        coeff = 0.9;
-    }
+    std::string etat = "Neutre";
 
-    // Héroïsme
-    else if (moral > MAX_MORAL*0.5)
+    // Fuite
+    if (moral < MIN_MORAL*0.75)
     {
-        coeff = 1.5;
-    }
-
-    // Courage
-    else if (moral > MAX_MORAL*0.25)
-    {
-        coeff = 1.2;
-    }
-
-    // Peur
-    else if (moral < MIN_MORAL*0.25)
-    {
-        coeff = 0.8;
+        std::cout << "[ALERTE] " << u.name() << " s'enfuit du champ de bataille !" << std::endl;
+        u.setHealth_point(0);
+        return;
     }
 
     // Panique
@@ -133,14 +122,41 @@ void EffetMoral(Unite & u)
         {
             u.setHealth_point(u.health_point() * 0.8);
         }
+        etat = "Panique (Malus)";
     }
 
-    // Fuite
-    else if (moral < MIN_MORAL*0.75)
+    // Peur
+    else if (moral < MIN_MORAL*0.25)
     {
-        u.setHealth_point(0);
+        coeff = 0.8;
+        etat = "Peur (Malus)";
     }
 
+    // Fatigue
+    else if (moral > MAX_MORAL*0.75)
+    {
+        coeff = 0.9;
+        etat = "Fatigue (Malus)";
+    }
+
+    // Héroïsme
+    else if (moral > MAX_MORAL*0.5)
+    {
+        coeff = 1.5;
+        etat = "Heroisme (Bonus)";
+    }
+
+    // Courage
+    else if (moral > MAX_MORAL*0.25)
+    {
+        coeff = 1.2;
+        etat = "Courage (Bonus)";
+    }
+
+    if(etat != "Neutre")
+    {
+        std::cout << "[ETAT] " << u.name() << " est en etat : " << etat << std::endl;
+    }
     u.setTemporary_damage(static_cast<int>(baseDmg * coeff));
 }
 
@@ -166,8 +182,7 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     {
         if(infect)
         {
-            // A Corriger problème de pointeur
-           // infect->AjoutCibleAtteinte(defenseur);
+           infect->AjoutCibleAtteinte(defenseur.shared_from_this());
         }
     }
 
@@ -181,7 +196,7 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     BuffCommandant(attaquant, attaquantASoin);
     BuffCommandant(defenseur, defenseurASoin);
 
-    int puissance_attaque = std::max(attaquant.damage_point(), attaquant.temporary_damage());
+    int puissance_attaque = std::max(TypeAttaque->damage_point(), attaquant.temporary_damage());
 
     int degats_finals;
 
@@ -222,6 +237,9 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
         DiminussionMoral(defenseur, newmoralDef);
         AugmentationMoral(attaquant, newmoralAtt);
     }
+
+    // Vérifier si le défenseur fuit
+    EffetMoral(defenseur);
 
     defenseur.setHealth_point(defenseur.health_point() - degats_finals);
 

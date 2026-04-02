@@ -15,7 +15,7 @@ class CompDef;
 // ==========================================
 //                     Unite
 // ==========================================
-class Unite
+class Unite : public std::enable_shared_from_this<Unite>
 {
 private:
     std::string _name;
@@ -35,7 +35,7 @@ private:
     int _temporary_health;
     int _temporary_damage;
 public:
-    Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r);
+    Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements);
     virtual ~Unite() = default;
 
     /*Setters*/

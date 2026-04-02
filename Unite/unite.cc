@@ -1,7 +1,7 @@
 #include "unite.hh"
 #include "comportement.hh"
 
-Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r)
+Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
@@ -11,7 +11,8 @@ Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir
     _poids(poids),
     _regarde(dir),
     _location(loc),
-    _rank(r)
+    _rank(r),
+    _liste_comportements(liste_comportements)
 {}
 
 std::string Unite::name() const

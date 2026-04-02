@@ -1,89 +1,79 @@
 #include <iostream>
 #include <memory>
-#include <cassert>
-#include <vector>
-
 #include "unite.hh"
 #include "comportement.hh"
 #include "rank.hh"
-#include "orientation.hh"
 #include "../combat/combat.hh"
-
-/**
- * CLAUDE_VAS_Y : TEST SUITE COMPLET
- * Ce main teste la chaîne complète : du déplacement au combat buffé.
- */
+#include "orientation.hh"
 
 int main() {
-    std::cout << "--- DEBUT DU TEST DE COMBAT ---" << std::endl;
+    std::cout << "========== INITIALISATION DU TEST DE COMBAT ==========" << std::endl;
 
-    // 1. Setup des Rangs et Bonus
+    // 1. Création des Rangs et des Bonus du Commandant
     auto rankCmd = std::make_shared<Rank_Commandant>();
-    rankCmd->ajout_bonus(std::make_shared<BonusDegat>(10)); // +10 Dmg
-    rankCmd->ajout_bonus(std::make_shared<BonusVie>(20));   // Soin après combat
+    rankCmd->ajout_bonus(std::make_shared<BonusDegat>(10)); // +10 de dégâts via le chef
+    rankCmd->ajout_bonus(std::make_shared<BonusVie>(15));   // Capacité de soin
 
-    auto rankSoldat = std::make_shared<Rank_Regulier>();
-    auto rankCible = std::make_shared<Rank_Regulier>();
+    auto rankRegulier = std::make_shared<Rank_Regulier>();
+    auto rankEnnemi = std::make_shared<Rank_Regulier>();
 
     // 2. Création des Unités
-    // Un Commandant pour donner les buffs
-    auto chef = std::make_shared<Unite>("General", 200, 10, Poids::Lourd, direction::est, Case{5,5}, rankCmd);
+    // Note : Le constructeur prend désormais la liste de comportements
+    auto general = std::make_shared<Unite>("General", 200, 10, Poids::Lourd, direction::est, Case{5,5}, rankCmd, std::list<std::shared_ptr<IComportement>>());
 
-    // L'attaquant (lié au chef pour avoir les buffs)
-    auto soldat = std::make_shared<Unite>("Soldat", 100, 20, Poids::Moyen, direction::est, Case{0,0}, rankSoldat);
-    rankSoldat->setCommandant(chef);
+    auto soldat = std::make_shared<Unite>("Fantassin", 100, 20, Poids::Moyen, direction::est, Case{0,0}, rankRegulier, std::list<std::shared_ptr<IComportement>>());
+    rankRegulier->setCommandant(general); // Liaison au commandant
 
-    // Le défenseur (avec une armure)
-    auto cible = std::make_shared<Unite>("Tank", 150, 10, Poids::Lourd, direction::ouest, Case{1,0}, rankCible);
-    cible->ajouterComportement(std::make_shared<CompDefArmure>(5));
+    auto tank = std::make_shared<Unite>("Tank Ennemi", 150, 15, Poids::Lourd, direction::ouest, Case{1,0}, rankEnnemi, std::list<std::shared_ptr<IComportement>>());
+    tank->ajouterComportement(std::make_shared<CompDefArmure>(10)); // Armure de 10
 
-    // 3. Attribution des attaques
-    auto epee = std::make_shared<CompAttMelee>(20);
-    soldat->ajouterComportement(epee);
+    // 3. Ajout des capacités d'attaque
+    auto poison = std::make_shared<CompAttIndirect>(5, 1, 3); // 5 dmg, portée 1, 3 tours
+    soldat->ajouterComportement(poison);
 
-    // ---------------------------------------------------------
-    // SCÉNARIO 1 : Attaque de face (Dégâts normaux + Buffs)
-    // ---------------------------------------------------------
-    std::cout << "\n> SCENARIO 1 : Attaque de face" << std::endl;
-    // On récupère le pointeur nu car c'est ce qu'attend Combat::fight
-    CompAtt* ptrEpee = epee.get();
+    std::cout << "\n--- Etat Initial ---" << std::endl;
+    soldat->affiche(); //
+    tank->affiche();
 
-    if (Combat::fight(*soldat, ptrEpee, *cible)) {
-        std::cout << "Combat fini !" << std::endl;
-        std::cout << "HP Tank : " << cible->health_point() << " (Attendu: 150 - (20+10-5) = 125)" << std::endl;
-        std::cout << "Moral Soldat : " << soldat->moral_point() << " (Attendu: +1)" << std::endl;
+    // --- PHASE 1 : LE COMBAT ---
+    std::cout << "\n========== EXECUTION DU COMBAT (Infection) ==========" << std::endl;
+
+    // On utilise l'attaque indirecte (5 dmg de base)
+    if (Combat::fight(*soldat, poison.get(), *tank)) { //
+        std::cout << "[SYSTEME] Combat termine." << std::endl;
     }
 
-    // ---------------------------------------------------------
-    // SCÉNARIO 2 : Attaque de dos (Avantage tactique x1.5)
-    // ---------------------------------------------------------
-    std::cout << "\n> SCENARIO 2 : Attaque de dos" << std::endl;
-    // Le soldat se déplace derrière (Case{-1,0} n'est pas dans le champ de vision ouest)
-    soldat->setLocation(Case{2,0});
+    std::cout << "\n--- Analyse de l'impact ---" << std::endl;
+    // Calcul attendu : max(Composant(5), Buff(10)) - Armure(10) = 0 dégâts directs ?
+    // Si temporary_damage est 30 (20 base + 10 buff), alors max(5, 30) - 10 = 20 dmg.
+    std::cout << "HP Tank : " << tank->health_point() << " / 150" << std::endl;
+    std::cout << "Moral Soldat : " << soldat->moral_point() << std::endl;
+    std::cout << "Moral Tank : " << tank->moral_point() << std::endl;
 
-    // Le soldat attaque dans le dos du Tank (qui regarde Ouest)
-    Combat::fight(*soldat, ptrEpee, *cible);
-    std::cout << "HP Tank apres coup de dos : " << cible->health_point() << std::endl;
+    // --- PHASE 2 : TOURS D'INFECTION ---
+    std::cout << "\n========== TOURS D'INFECTION (Update) ==========" << std::endl;
+    for (int i = 1; i <= 3; ++i) {
+        std::cout << "\n>>> TOUR " << i << " <<<" << std::endl;
+        soldat->update(); // Applique les dégâts d'infection
+        std::cout << "HP Tank : " << tank->health_point() << std::endl;
+    }
 
-    // ---------------------------------------------------------
-    // SCÉNARIO 3 : Test du Moral (Panique)
-    // ---------------------------------------------------------
-    std::cout << "\n> SCENARIO 3 : Chute du Moral" << std::endl;
-    cible->setMoral_point(-12); // Seuil de Panique (-10)
+    // --- PHASE 3 : TEST DE LA FUITE (MORAL CRITIQUE) ---
+    std::cout << "\n========== TEST DE LA FUITE ========== " << std::endl;
+    std::cout << "Effondrement du moral du Fantassin..." << std::endl;
 
-    std::cout << "HP Tank avant combat panique : " << cible->health_point() << std::endl;
-    Combat::fight(*soldat, ptrEpee, *cible);
-    std::cout << "HP Tank apres panique (perte 20% auto) : " << cible->health_point() << std::endl;
+    // On force le moral au seuil de fuite
+    DiminussionMoral(*soldat, 50);
 
-    // ---------------------------------------------------------
-    // SCÉNARIO 4 : Defense totale (Dégâts <= 0)
-    // ---------------------------------------------------------
-    std::cout << "\n> SCENARIO 4 : Defense parfaite" << std::endl;
-    cible->ajouterComportement(std::make_shared<CompDefBouclier>(1)); // Annule le prochain coup
-    soldat->setMoral_point(-10); // Soldat a peur, ses degats baissent
+    // Appel de l'EffetMoral pour déclencher la fuite
+    EffetMoral(*soldat);
 
-    Combat::fight(*soldat, ptrEpee, *cible);
-    std::cout << "Moral Soldat apres echec : " << soldat->moral_point() << " (Doit baisser)" << std::endl;
-    std::cout << "Moral Tank apres defense reussie : " << cible->moral_point() << " (Doit monter)" << std::endl;
+    if (soldat->health_point() <= 0) {
+        std::cout << "[INFO] " << soldat->name() << " a disparu (HP a 0)." << std::endl;
+    } else {
+        std::cout << "Dmg Temporaires : " << soldat->temporary_damage() << std::endl;
+    }
+
+    std::cout << "\n========== FIN DES TESTS ==========" << std::endl;
     return 0;
 }
