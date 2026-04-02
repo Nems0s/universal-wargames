@@ -19,9 +19,13 @@ class Unite
 {
 private:
     std::string _name;
+
     int _health_point;
+    int _health_point_max; //Qui servira à savoir les points de vie de l'unité initialiser
     int _damage_point;
+    int _damage_point_start; //Qui servira de référenciel pour le moral
     int _moral_point;
+
     Poids _poids;
     direction _regarde;
     Case _location;
@@ -47,6 +51,7 @@ public:
     /*Getters*/
     std::string name() const;
     int health_point() const;
+    int health_point_max() const;
     int damage_point() const;
     int moral_point() const;
     Poids poids() const;
@@ -66,4 +71,5 @@ public:
     std::list<CompAtt*> Offensive() const;
     std::list<CompDef*> Defensif() const;
     void resetTemporary_stats();
+    int damage_point_start() const;
 };

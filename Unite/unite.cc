@@ -4,7 +4,9 @@
 Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r)
     :_name(name),
     _health_point(hp),
+    _health_point_max(hp),
     _damage_point(dmg),
+    _damage_point_start(dmg),
     _moral_point(0),
     _poids(poids),
     _regarde(dir),
@@ -27,6 +29,11 @@ void Unite::setHealth_point(int newHealth_point)
     _health_point = newHealth_point;
 }
 
+int Unite::health_point_max() const
+{
+    return _health_point_max;
+}
+
 int Unite::damage_point() const
 {
     return _damage_point;
@@ -35,6 +42,11 @@ int Unite::damage_point() const
 void Unite::setDamage_point(int newDamage_point)
 {
     _damage_point = newDamage_point;
+}
+
+int Unite::damage_point_start() const
+{
+    return _damage_point_start;
 }
 
 int Unite::moral_point() const
