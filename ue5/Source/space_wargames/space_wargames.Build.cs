@@ -8,8 +8,12 @@ public class space_wargames : ModuleRules
 	public space_wargames(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+
+        bUseRTTI = true;
+
+        bEnableUndefinedIdentifierWarnings = false;
+
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 
 		string LogicPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../"));
 

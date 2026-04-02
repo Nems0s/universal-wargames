@@ -25,7 +25,7 @@ CompMouvVolant::CompMouvVolant(int mouvement_par_tour): CompMouv(mouvement_par_t
 
 void CompMouvVolant::affiche() const
 {
-    std::cout << "[Mouvement] Vol : " << mov_per_laps() << std::endl;
+    //std::cout << "[Mouvement] Vol : " << mov_per_laps() << std::endl;
 }
 
 void CompMouvVolant::update(Unite& proprietaire)
@@ -60,7 +60,7 @@ CompMouvMarin::CompMouvMarin(int mouvement_par_tour): CompMouv(mouvement_par_tou
 
 void CompMouvMarin::affiche() const
 {
-    std::cout << "[Mouvement] Mer : " << mov_per_laps() << std::endl;
+    //std::cout << "[Mouvement] Mer : " << mov_per_laps() << std::endl;
 }
 
 void CompMouvMarin::update(Unite& proprietaire)
@@ -94,7 +94,7 @@ CompMouvTerrestre::CompMouvTerrestre(int mouvement_par_tour): CompMouv(mouvement
 
 void CompMouvTerrestre::affiche() const
 {
-    std::cout << "[Mouvement] Terrestre : " << mov_per_laps() << std::endl;
+    //std::cout << "[Mouvement] Terrestre : " << mov_per_laps() << std::endl;
 }
 
 void CompMouvTerrestre::update(Unite& proprietaire)
@@ -160,7 +160,7 @@ CompAttMelee::CompAttMelee(int damage_point):CompAtt(damage_point, 1){}
 
 void CompAttMelee::affiche() const
 {
-    std::cout << "[Attaque] Melee : " << damage_point() << "/" << portee() << std::endl;
+    //std::cout << "[Attaque] Melee : " << damage_point() << "/" << portee() << std::endl;
 }
 
 void CompAttMelee::update(Unite& proprietaire)
@@ -174,28 +174,28 @@ bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
 
     auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
 
-    if (it != cases_possibles.end())
+    if (it == cases_possibles.end()) return false;
+
+    auto listMouvA = attaquante.Mobilite();
+    auto listMouvC = cible.Mobilite();
+
+    for (auto* mouvA : listMouvA)
     {
-        auto listMouvA = attaquante.Mobilite();
-        auto listMouvC = cible.Mobilite();
+        auto natureA = mouvA->Nature();
 
-        for (auto* mouvA : listMouvA)
+        for (auto* mouvC : listMouvC)
         {
-            auto natureA = mouvA->Nature();
+            auto natureC = mouvC->Nature();
 
-            for (auto* mouvC : listMouvC)
-            {
-                auto natureC = mouvC->Nature();
+            if (natureA == natureC) return true;
 
-                if (natureA == natureC) return true;
+            if (natureA == NatureMouv::AIR) return true;
 
-                if (natureA == NatureMouv::AIR) return true;
-
-                if (natureA == NatureMouv::MER && natureC == NatureMouv::TERRE) return true;
-            }
+            if (natureA == NatureMouv::MER && natureC == NatureMouv::TERRE) return true;
         }
     }
-    else return false;
+
+    return false;
 }
 
 //===================================================================
@@ -227,7 +227,7 @@ void CompAttDistance::setPortee_mini(int newPortee_mini)
 
 void CompAttDistance::affiche()const
 {
-    std::cout << "[Attaque] Distance : " << damage_point() << "/(" << portee() << "|" << _portee_mini<< ")/"  << _munitions << std::endl;
+    //std::cout << "[Attaque] Distance : " << damage_point() << "/(" << portee() << "|" << _portee_mini<< ")/"  << _munitions << std::endl;
 }
 void CompAttDistance::update(Unite& proprietaire)
 {
@@ -266,7 +266,7 @@ int CompAttIndirect::nombredetourinfection() const
 
 void CompAttIndirect::affiche() const
 {
-    std::cout << "[Attaque] Indirect : " << damage_point() << "/" << portee() << "/" << _nombre_de_tour_infection << std::endl;
+    //std::cout << "[Attaque] Indirect : " << damage_point() << "/" << portee() << "/" << _nombre_de_tour_infection << std::endl;
 }
 void CompAttIndirect::update(Unite& proprietaire)
 {
@@ -319,7 +319,7 @@ void CompDefArmure::setArmure(int newArmure)
 
 void CompDefArmure::affiche() const
 {
-    std::cout << "[Defense] Armure : " << _armure << std::endl;
+    //std::cout << "[Defense] Armure : " << _armure << std::endl;
 }
 void CompDefArmure::update(Unite& proprietaire)
 {
@@ -348,7 +348,7 @@ void CompDefBouclier::setNombre_bouclier(int newNombre_bouclier)
 
 void CompDefBouclier::affiche() const
 {
-    std::cout << "[Defense] Bouclier : " << _nombre_bouclier << std::endl;
+    //std::cout << "[Defense] Bouclier : " << _nombre_bouclier << std::endl;
 }
 void CompDefBouclier::update(Unite& proprietaire)
 {
@@ -406,7 +406,7 @@ void CompTransport::setMax_unite_transporter(int newMax_unite_transporter)
 
 void CompTransport::affiche() const
 {
-    std::cout << "[Special] Transport : " << _liste_unite_transporter.size()<<"/"<< _max_unite_transporter << std::endl;
+    //std::cout << "[Special] Transport : " << _liste_unite_transporter.size()<<"/"<< _max_unite_transporter << std::endl;
 }
 void CompTransport::update(Unite& proprietaire)
 {

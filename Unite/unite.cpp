@@ -121,11 +121,11 @@ std::list<CompMouv*> Unite::Mobilite() const
 
 void Unite::affiche() const
 {
-    std::cout << "=== [" << _name << "] ===" << std::endl;
-    std::cout << "Position: (" << _location.x << "," << _location.y << ")" << std::endl;
+    //std::cout << "=== [" << _name << "] ===" << std::endl;
+    //std::cout << "Position: (" << _location.x << "," << _location.y << ")" << std::endl;
     if(_rank)
     {
-        std::cout << "Grade: "; _rank->get_role(); std::cout << std::endl;
+        //std::cout << "Grade: "; _rank->get_role(); std::cout << std::endl;
     }
 
     for(auto const& comp : _liste_comportements)

@@ -6,7 +6,7 @@
 // ==========================================
 void Rank_Commandant::get_role()const
 {
-    std::cout<<"Commandant";
+    //std::cout<<"Commandant";
 }
 
 std::list<std::shared_ptr<Unite>> Rank_Commandant::liste_unites() const
@@ -34,5 +34,5 @@ void Rank_Commandant::supprimer_unite(std::shared_ptr<Unite>const & u)
 // ==========================================
 void Rank_Regulier::get_role()const
 {
-    std::cout<<"Unite reguliere";
+    //std::cout<<"Unite reguliere";
 }

@@ -1,0 +1,31 @@
+Mouvement :
+- Comportement Mouvement Volant : peut aller sur toute les cases et n'est atteignable que par les unités volante ou à distance.
+
+- Comportement Mouvement Marin : peut aller que sur les case dite de mer(Naïm définit ce qu'est une mer)et n'est atteignable que par les unités marine ou à distance.
+
+- Comportement Mouvement Terrestre : peut aller que sur les case dite de plaine(Naïm définit ce qu'est une plaine).
+
+
+Attaque :
+- Comportement Attaque Direct : attaque sur les case autour de l'unité
+
+- Comportement Attaque Distance : attaque à X case autour de l'unité, à un nombre de munition limité.
+
+- Comportement Attaque Indirect : permet de faire des dégâts à chaque tour pendant X tours sur une unité ciblée.
+
+
+DEFENSE :
+- Comportement Armure : ajoute une armure à l'unité qui s'additionne avec ses PV. Quand l'armure est touché le moral ne baisse pas.
+
+- Comportement Bouclier : annule les X premières salves de dégâts.
+
+- Comportement Soin : permet de redonner des PV à un allier.
+
+
+
+Spécialité :
+- Comportement Transport : peut transporter des troupes.
+
+- Comportement Rapide : ajoute un multiplicateur à tout les délais et permet une plus grande capacité de mouvement.
+
+- Comportement Lent : ajoute un multiplicateur négatif à tout les délais et entraine une plus faible capacité de mouvement.

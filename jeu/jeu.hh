@@ -37,9 +37,11 @@ class aerien : virtual public Unite {
         bool peutVoler() const override { return true; }
 }; 
 
-class amphibie : public terre, public mer {};
-
-
+class amphibie : public terre, public mer {
+    public:
+        bool peutMarcher() const override { return terre::peutMarcher(); }
+        bool peutNager() const override { return mer::peutNager(); }
+};
 
 
 
