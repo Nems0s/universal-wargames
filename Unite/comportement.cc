@@ -270,7 +270,23 @@ void CompAttIndirect::affiche() const
 }
 void CompAttIndirect::update(Unite& proprietaire)
 {
+    std::list<infecter> _liste_final;
 
+    for(auto & infect : _liste_infecter)
+    {
+        auto c = infect.cible.lock();
+        if(c != nullptr)
+        {
+            c->setHealth_point(c->health_point() - _damage_point);
+            infect.tour_infection -= 1;
+
+            if(infect.tour_infection > 0 && c->health_point() > 0)
+            {
+                _liste_final.push_back(infect);
+            }
+        }
+    }
+    _liste_infecter = _liste_final; //
 }
 
 bool CompAttIndirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
@@ -328,7 +344,7 @@ void CompDefArmure::update(Unite& proprietaire)
 
 int CompDefArmure::ReductionDegats(int degat_subit)
 {
-    return std::abs(degat_subit - _armure);
+    return std::max(0, degat_subit - _armure);
 }
 
 //===================================================================
@@ -352,9 +368,8 @@ void CompDefBouclier::affiche() const
 }
 void CompDefBouclier::update(Unite& proprietaire)
 {
-
+    _nombre_bouclier += 1;
 }
-
 
 int CompDefBouclier::ReductionDegats(int degat_subit)
 {
