@@ -1,14 +1,16 @@
 CXX = g++
 # On ajoute les dossiers au path d'inclusion (-I) pour que les #include "fichier.hh" fonctionnent
-CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur
+CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat
 
 BUILD_DIR = build
 BIN_DIR = bin
 
-# On cherche tous les .cc dans les deux sous-dossiers
+# On cherche tous les .cc dans les sous-dossiers
 SRC_JEU = $(wildcard jeu/*.cc)
 SRC_JOUEUR = $(wildcard joueur/*.cc)
-SRC = $(SRC_JEU) $(SRC_JOUEUR)
+SRC_UNITE = $(wildcard unite/*.cc)
+SRC_COMBAT = $(wildcard combat/*.cc)
+SRC = $(SRC_JEU) $(SRC_JOUEUR) $(SRC_UNITE) $(SRC_COMBAT)
 
 # On transforme "jeu/main.cc" en "build/main.o"
 OBJ = $(patsubst %.cc, $(BUILD_DIR)/%.o, $(notdir $(SRC)))
@@ -32,6 +34,14 @@ $(BUILD_DIR)/%.o: jeu/%.cc
 
 # Règle générique pour compiler les fichiers de joueur/
 $(BUILD_DIR)/%.o: joueur/%.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Règle générique pour compiler les fichiers de unite/
+$(BUILD_DIR)/%.o: unite/%.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Règle générique pour compiler les fichiers de combat/
+$(BUILD_DIR)/%.o: combat/%.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:

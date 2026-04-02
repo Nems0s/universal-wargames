@@ -1,15 +1,18 @@
 #include "unite.hh"
 #include "comportement.hh"
 
-Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r)
+Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Case loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements)
     :_name(name),
     _health_point(hp),
+    _health_point_max(hp),
     _damage_point(dmg),
+    _damage_point_start(dmg),
     _moral_point(0),
     _poids(poids),
     _regarde(dir),
     _location(loc),
-    _rank(r)
+    _rank(r),
+    _liste_comportements(liste_comportements)
 {}
 
 std::string Unite::name() const
@@ -27,6 +30,11 @@ void Unite::setHealth_point(int newHealth_point)
     _health_point = newHealth_point;
 }
 
+int Unite::health_point_max() const
+{
+    return _health_point_max;
+}
+
 int Unite::damage_point() const
 {
     return _damage_point;
@@ -35,6 +43,11 @@ int Unite::damage_point() const
 void Unite::setDamage_point(int newDamage_point)
 {
     _damage_point = newDamage_point;
+}
+
+int Unite::damage_point_start() const
+{
+    return _damage_point_start;
 }
 
 int Unite::moral_point() const
@@ -88,6 +101,25 @@ std::list<std::shared_ptr<IComportement> > Unite::liste_comportements() const
     return _liste_comportements;
 }
 
+int Unite::temporary_health() const
+{
+    return _temporary_health;
+}
+
+void Unite::setTemporary_health(int newTemporary_health)
+{
+    _temporary_health = newTemporary_health;
+}
+
+int Unite::temporary_damage() const
+{
+    return _temporary_damage;
+}
+
+void Unite::setTemporary_damage(int newTemporary_damage)
+{
+    _temporary_damage = newTemporary_damage;
+}
 
 void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
 {
@@ -118,6 +150,33 @@ std::list<CompMouv*> Unite::Mobilite() const
     }
     return liste_CompMouv;
 }
+std::list<CompAtt*> Unite::Offensive() const
+{
+    std::list<CompAtt*> liste_CompAtt;
+
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* typeMouv = dynamic_cast<CompAtt*>(comp_ptr.get()))
+        {
+            liste_CompAtt.push_back(typeMouv);
+        }
+    }
+    return liste_CompAtt;
+}
+
+std::list<CompDef*> Unite::Defensif() const
+{
+    std::list<CompDef*> liste_CompDef;
+
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* typeMouv = dynamic_cast<CompDef*>(comp_ptr.get()))
+        {
+            liste_CompDef.push_back(typeMouv);
+        }
+    }
+    return liste_CompDef;
+}
 
 void Unite::affiche() const
 {
@@ -132,6 +191,12 @@ void Unite::affiche() const
     {
         comp->affiche();
     }
+}
+
+void Unite::resetTemporary_stats()
+{
+    _temporary_damage = 0;
+    _temporary_health = 0;
 }
 
 // void Unite::movement(Case const& c) {

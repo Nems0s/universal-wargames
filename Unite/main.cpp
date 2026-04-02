@@ -1,127 +1,79 @@
 #include <iostream>
 #include <memory>
-#include <cassert>
 #include "unite.hh"
 #include "comportement.hh"
 #include "rank.hh"
+#include "../combat/combat.hh"
 #include "orientation.hh"
 
 int main() {
-    std::cout << "========== DEBUT DES TESTS DU WARGAME ==========" << std::endl << std::endl;
+    std::cout << "========== INITIALISATION DU TEST DE COMBAT ==========" << std::endl;
 
-    // 1. INITIALISATION DES RANGS
-    auto cmd = std::make_shared<Rank_Commandant>();
-    auto reg = std::make_shared<Rank_Regulier>();
+    // 1. Création des Rangs et des Bonus du Commandant
+    auto rankCmd = std::make_shared<Rank_Commandant>();
+    rankCmd->ajout_bonus(std::make_shared<BonusDegat>(10)); // +10 de dégâts via le chef
+    rankCmd->ajout_bonus(std::make_shared<BonusVie>(15));   // Capacité de soin
 
-    // 2. CRÉATION DES UNITÉS ET COMPOSANTS
-    // --- Le Croiseur (Marin + Défense + Transport) ---
-    auto croiseur = std::make_shared<Unite>("Croiseur HMS", 500, 50, Poids::Lourd, direction::est, Case{0, 0}, cmd);
-    croiseur->ajouterComportement(std::make_shared<CompMouvMarin>(3));
-    croiseur->ajouterComportement(std::make_shared<CompDefArmure>(10)); // Réduit de 10
-    auto transport = std::make_shared<CompTransport>(2);
-    croiseur->ajouterComportement(transport);
+    auto rankRegulier = std::make_shared<Rank_Regulier>();
+    auto rankEnnemi = std::make_shared<Rank_Regulier>();
 
-    // --- Le Chasseur (Volant + Attaque Distance) ---
-    auto chasseur = std::make_shared<Unite>("Rafale", 150, 40, Poids::Leger, direction::nord_est, Case{2, 2}, reg);
-    chasseur->ajouterComportement(std::make_shared<CompMouvVolant>(5));
-    chasseur->ajouterComportement(std::make_shared<CompAttDistance>(30, 4, 10, 2)); // Dégâts 30, Portée 4, 10 Mun, Min 2
+    // 2. Création des Unités
+    // Note : Le constructeur prend désormais la liste de comportements
+    auto general = std::make_shared<Unite>("General", 200, 10, Poids::Lourd, direction::est, Case{5,5}, rankCmd, std::list<std::shared_ptr<IComportement>>());
 
-    // --- L'Infecteur (Terrestre + Attaque Indirecte) ---
-    auto maraudeur = std::make_shared<Unite>("Maraudeur Toxique", 120, 15, Poids::Moyen, direction::ouest, Case{1, 0}, reg);
-    maraudeur->ajouterComportement(std::make_shared<CompMouvTerrestre>(2));
-    auto poison = std::make_shared<CompAttIndirect>(15, 2, 3); // 15 dmg, portée 2, 3 tours
-    maraudeur->ajouterComportement(poison);
+    auto soldat = std::make_shared<Unite>("Fantassin", 100, 20, Poids::Moyen, direction::est, Case{0,0}, rankRegulier, std::list<std::shared_ptr<IComportement>>());
+    rankRegulier->setCommandant(general); // Liaison au commandant
 
-    // --- La Cible (Terrestre + Bouclier) ---
-    auto cible = std::make_shared<Unite>("Tank Test", 200, 20, Poids::Lourd, direction::sud_est, Case{1, 1}, reg);
-    cible->ajouterComportement(std::make_shared<CompMouvTerrestre>(1));
-    cible->ajouterComportement(std::make_shared<CompDefBouclier>(2)); // 2 charges d'annulation
+    auto tank = std::make_shared<Unite>("Tank Ennemi", 150, 15, Poids::Lourd, direction::ouest, Case{1,0}, rankEnnemi, std::list<std::shared_ptr<IComportement>>());
+    tank->ajouterComportement(std::make_shared<CompDefArmure>(10)); // Armure de 10
 
-    // ---------------------------------------------------------
-    // 3. TESTS DE LA GÉOMÉTRIE (orientation.cc)
-    // ---------------------------------------------------------
-    std::cout << "[TEST GRILLE] Verification des voisins de (1,1)..." << std::endl;
-    auto v = Voisins(Case{1,1});
-    std::cout << "Nombre de voisins trouves : " << v.size() << " (Attendu: 6)" << std::endl;
+    // 3. Ajout des capacités d'attaque
+    auto poison = std::make_shared<CompAttIndirect>(5, 1, 3); // 5 dmg, portée 1, 3 tours
+    soldat->ajouterComportement(poison);
 
-    std::cout << "[TEST GRILLE] Verification portee rayon 2 autour de (0,0)..." << std::endl;
-    auto portee2 = case_adjascentes(Case{0,0}, 2);
-    std::cout << "Cases dans le rayon 2 : " << portee2.size() << std::endl;
+    std::cout << "\n--- Etat Initial ---" << std::endl;
+    soldat->affiche(); //
+    tank->affiche();
 
-    // ---------------------------------------------------------
-    // 4. TESTS DE MOUVEMENT (comportement.cc)
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS MOUVEMENT ---" << std::endl;
-    // Le croiseur (Marin) tente d'aller en (2,2)
-    auto mouvMarin = croiseur->Mobilite().front();
-    if (mouvMarin->EstCaseValide(croiseur->location(), Case{2,2})) {
-        std::cout << "Mouvement Marin (0,0 -> 2,2) : VALIDE" << std::endl;
+    // --- PHASE 1 : LE COMBAT ---
+    std::cout << "\n========== EXECUTION DU COMBAT (Infection) ==========" << std::endl;
+
+    // On utilise l'attaque indirecte (5 dmg de base)
+    if (Combat::fight(*soldat, poison.get(), *tank)) { //
+        std::cout << "[SYSTEME] Combat termine." << std::endl;
+    }
+
+    std::cout << "\n--- Analyse de l'impact ---" << std::endl;
+    // Calcul attendu : max(Composant(5), Buff(10)) - Armure(10) = 0 dégâts directs ?
+    // Si temporary_damage est 30 (20 base + 10 buff), alors max(5, 30) - 10 = 20 dmg.
+    std::cout << "HP Tank : " << tank->health_point() << " / 150" << std::endl;
+    std::cout << "Moral Soldat : " << soldat->moral_point() << std::endl;
+    std::cout << "Moral Tank : " << tank->moral_point() << std::endl;
+
+    // --- PHASE 2 : TOURS D'INFECTION ---
+    std::cout << "\n========== TOURS D'INFECTION (Update) ==========" << std::endl;
+    for (int i = 1; i <= 3; ++i) {
+        std::cout << "\n>>> TOUR " << i << " <<<" << std::endl;
+        soldat->update(); // Applique les dégâts d'infection
+        std::cout << "HP Tank : " << tank->health_point() << std::endl;
+    }
+
+    // --- PHASE 3 : TEST DE LA FUITE (MORAL CRITIQUE) ---
+    std::cout << "\n========== TEST DE LA FUITE ========== " << std::endl;
+    std::cout << "Effondrement du moral du Fantassin..." << std::endl;
+
+    // On force le moral au seuil de fuite
+    DiminussionMoral(*soldat, 50);
+
+    // Appel de l'EffetMoral pour déclencher la fuite
+    EffetMoral(*soldat);
+
+    if (soldat->health_point() <= 0) {
+        std::cout << "[INFO] " << soldat->name() << " a disparu (HP a 0)." << std::endl;
     } else {
-        std::cout << "Mouvement Marin (0,0 -> 2,2) : REFUSE (Trop loin ou mauvais terrain)" << std::endl;
+        std::cout << "Dmg Temporaires : " << soldat->temporary_damage() << std::endl;
     }
 
-    // ---------------------------------------------------------
-    // 5. TESTS DE COMBAT (comportement.cc)
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS COMBAT ---" << std::endl;
-
-    // Test Attaque Distance (Chasseur (2,2) vs Cible (1,1))
-    // Distance (2,2) à (1,1) est de 1. L'attaque distance a une portee_mini de 2.
-    auto compDist = std::dynamic_pointer_cast<CompAttDistance>(chasseur->liste_comportements().back());
-    if (compDist && compDist->PeuxAttaquer(*chasseur, *cible)) {
-        std::cout << "Chasseur attaque Cible : OUI" << std::endl;
-    } else {
-        std::cout << "Chasseur attaque Cible : NON (Trop proche ! Zone morte de portee_mini=2)" << std::endl;
-    }
-
-    // Test Attaque Indirecte (Maraudeur (1,0) vs Cible (1,1))
-    if (poison->PeuxAttaquer(*maraudeur, *cible)) {
-        std::cout << "Maraudeur peut infecter Cible : OUI" << std::endl;
-        poison->AjoutCibleAtteinte(cible);
-        std::cout << "Infection appliquee." << std::endl;
-    }
-
-    // ---------------------------------------------------------
-    // 6. TESTS DE DÉFENSE (comportement.cc)
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS DEFENSE ---" << std::endl;
-    int degats_initiaux = 50;
-
-    // Test Bouclier sur la cible
-    auto it_comp = cible->liste_comportements();
-    for(auto const& c : it_comp) {
-        if(auto def = std::dynamic_pointer_cast<CompDef>(c)) {
-            int restants = def->ReductionDegats(degats_initiaux);
-            std::cout << "Degats apres passage dans " << typeid(*def).name() << " : " << restants << std::endl;
-            degats_initiaux = restants;
-        }
-    }
-
-    // ---------------------------------------------------------
-    // 7. TESTS DE TRANSPORT (comportement.cc)
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- TESTS TRANSPORT ---" << std::endl;
-    // Maraudeur en (1,0) est voisin du Croiseur en (0,0) ? Oui selon orientation.cc
-    if (transport->MonterUnite(*croiseur, maraudeur)) {
-        std::cout << "[OK] Maraudeur Toxique a embarque sur le Croiseur." << std::endl;
-    } else {
-        std::cout << "[ECHEC] Trop loin pour embarquer." << std::endl;
-    }
-
-    // ---------------------------------------------------------
-    // 8. TESTS D'AFFICHAGE ET UPDATE
-    // ---------------------------------------------------------
-    std::cout << std::endl << "--- AFFICHAGE FINAL DE L'ETAT ---" << std::endl;
-    croiseur->affiche();
-    chasseur->affiche();
-    maraudeur->affiche();
-    cible->affiche();
-
-    std::cout << std::endl << "[UPDATE] Passage au tour suivant..." << std::endl;
-    maraudeur->update(); // Devrait afficher l'état de l'infection
-    cible->update();    // Devrait afficher l'état du bouclier
-
-    std::cout << std::endl << "========== FIN DES TESTS ==========" << std::endl;
-
+    std::cout << "\n========== FIN DES TESTS ==========" << std::endl;
     return 0;
 }
