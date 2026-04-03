@@ -2,6 +2,7 @@
 #include <ctime>
 #include <stdexcept>
 #include <memory>
+#include <filesystem>
 
 // Jeu / Plateau
 #include "jeu.hh"
@@ -14,17 +15,31 @@
 #include "orientation.hh"
 
 // ============================================================
+//               Recherche du dossier configs
+// ============================================================
+// Qt Creator lance depuis build/, donc on cherche configs/
+// d'abord dans le répertoire courant, puis en remontant.
+std::string trouverConfigs() {
+    if (std::filesystem::exists("configs")) return "configs";
+    if (std::filesystem::exists("../configs")) return "../configs";
+    if (std::filesystem::exists("../../configs")) return "../../configs";
+    throw std::runtime_error("Dossier 'configs' introuvable ! Verifiez le repertoire de travail.");
+}
+
+// ============================================================
 //                    TEST 1 : PLATEAU DE JEU
 // ============================================================
 void testPlateau() {
     std::cout << "\n========== TEST PLATEAU DE JEU ==========" << std::endl;
+
+    std::string cfgDir = trouverConfigs();
 
     std::map<std::string, Ressource*> ressources;
     WorldFactory world;
 
     TxtRessourceReader resReader;
     try {
-        resReader.load("configs/config_ressources.txt", ressources);
+        resReader.load(cfgDir + "/config_ressources.txt", ressources);
     } catch(const std::out_of_range& e) {
         throw std::runtime_error("Erreur dans TxtRessourceReader : " + std::string(e.what()));
     }
@@ -36,14 +51,14 @@ void testPlateau() {
     BatimentFactory batFactory;
     TxtBatimentReader batReader;
     try {
-        batFactory.chargerConfiguration("configs/config_batiments.txt", batReader, ressources);
+        batFactory.chargerConfiguration(cfgDir + "/config_batiments.txt", batReader, ressources);
     } catch(const std::out_of_range& e) {
         throw std::runtime_error("Erreur dans BatimentFactory : " + std::string(e.what()));
     }
 
     TxtWorldReader worldReader;
     try {
-        worldReader.chargerConfig("configs/config_espace.txt", ressources, world);
+        worldReader.chargerConfig(cfgDir + "/config_espace.txt", ressources, world);
 
         TuileData limite;
         limite.nom = "Limite";

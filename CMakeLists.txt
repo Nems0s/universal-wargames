@@ -42,6 +42,7 @@ target_include_directories(space-wargames PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/combat
     ${CMAKE_CURRENT_SOURCE_DIR}/jeu
     ${CMAKE_CURRENT_SOURCE_DIR}/joueur
+    ${CMAKE_CURRENT_SOURCE_DIR}/configs
 )
 
 include(GNUInstallDirs)
