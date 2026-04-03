@@ -18,6 +18,17 @@ void CompMouv::setMov_per_laps(int newMov_per_laps)
     _mov_per_laps = newMov_per_laps;
 }
 
+bool CompMouv::EstCaseValide(Coord const& actuel, Coord const& cible)
+{
+    // Le Test de franchisemant est fait dans board
+    //Ici on test la porte
+    if((std::abs(actuel.first - cible.first) <= mov_per_laps()) && ((std::abs(actuel.second - cible.second) <= mov_per_laps()))) //std::abs = valeur absolue
+    {
+        return true;
+    }
+    else return false;
+}
+
 //===================================================================
 //                         Mouvement Volant
 //===================================================================
@@ -33,19 +44,6 @@ void CompMouvVolant::update(Unite& proprietaire)
 
 }
 
-bool CompMouvVolant::EstCaseValide(Case const& actuel, Case const& cible)
-{
-    // Finir Quand le plateau sera prêt
-    //if(case != inffranchissable)
-    //{
-    if((std::abs(actuel.x - cible.x) <= mov_per_laps()) && ((std::abs(actuel.y - cible.y) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
-    //}
-    //else return false;
-}
 
 NatureMouv CompMouvVolant::Nature() const
 {
@@ -68,19 +66,6 @@ void CompMouvMarin::update(Unite& proprietaire)
 
 }
 
-bool CompMouvMarin::EstCaseValide(Case const& actuel, Case const& cible)
-{
-    // Finir Quand le plateau sera prêt
-    //if(case != inffranchissable)
-    //{
-    if((std::abs(actuel.x - cible.x) <= mov_per_laps()) && ((std::abs(actuel.y - cible.y) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
-    //}
-    //else return false;
-}
 
 NatureMouv CompMouvMarin::Nature() const
 {
@@ -100,20 +85,6 @@ void CompMouvTerrestre::affiche() const
 void CompMouvTerrestre::update(Unite& proprietaire)
 {
 
-}
-
-bool CompMouvTerrestre::EstCaseValide(Case const& actuel, Case const& cible)
-{
-    // Finir Quand le plateau sera prêt
-    //if(case != inffranchissable)
-    //{
-    if((std::abs(actuel.x - cible.x) <= mov_per_laps()) && ((std::abs(actuel.y - cible.y) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
-    //}
-    //else return false;
 }
 
 NatureMouv CompMouvTerrestre::Nature() const

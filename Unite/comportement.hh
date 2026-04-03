@@ -29,7 +29,7 @@ public:
     int mov_per_laps() const;
     void setMov_per_laps(int newMov_per_laps);
 
-    virtual bool EstCaseValide(Case const& actuel, Case const& cible) = 0;
+    virtual bool EstCaseValide(Coord const& actuel, Coord const& cible) = 0;
     virtual NatureMouv Nature()const=0;
 };
 
@@ -41,7 +41,6 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool EstCaseValide(Case const& actuel, Case const& cible) override;
     NatureMouv Nature() const override;
 };
 
@@ -53,7 +52,6 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool EstCaseValide(Case const& actuel, Case const& cible) override;
     NatureMouv Nature() const override;
 };
 
@@ -65,7 +63,6 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool EstCaseValide(Case const& actuel, Case const& cible) override;
     NatureMouv Nature() const override;
 };
 
