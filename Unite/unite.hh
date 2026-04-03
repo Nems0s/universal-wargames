@@ -3,6 +3,7 @@
 #include <string>
 #include <list>
 #include <memory>
+#include "comportement.hh"
 #include "rank.hh"
 #include "orientation.hh"
 
@@ -70,6 +71,8 @@ public:
     std::list<CompMouv*> Mobilite() const;
     std::list<CompAtt*> Offensive() const;
     std::list<CompDef*> Defensif() const;
+    CompFurtif* Cammouflage() const;
+
     void resetTemporary_stats();
     int damage_point_start() const;
 };

@@ -178,6 +178,18 @@ std::list<CompDef*> Unite::Defensif() const
     return liste_CompDef;
 }
 
+CompFurtif* Unite::Cammouflage() const
+{
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* furtif = dynamic_cast<CompFurtif*>(comp_ptr.get()))
+        {
+            return furtif;
+        }
+    }
+    return nullptr;
+}
+
 void Unite::affiche() const
 {
     std::cout << "=== [" << _name << "] ===" << std::endl;

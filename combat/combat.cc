@@ -186,8 +186,15 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
         }
     }
 
+
     bool attaquantASoin = false;
     bool defenseurASoin = false;
+
+    auto furtifDef = defenseur.Cammouflage(); //evite l'erreur si nullptr
+    if(furtifDef && furtifDef->camoufler())
+    {
+        return false;
+    }
 
     EffetMoral(attaquant);
     EffetMoral(defenseur);
@@ -203,11 +210,15 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     int newmoralAtt = 0;
     int newmoralDef = 0;
 
-    if(avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde()))
+    if((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) || (attaquant.Cammouflage()->camoufler() == true))
     {
         degats_finals = puissance_attaque * 1.5;
         newmoralDef = 2;
         newmoralAtt = 2;
+        if(attaquant.Cammouflage()->camoufler() == true)
+        {
+            attaquant.Cammouflage()->DesactiveCammouflage();
+        }
     }
     else
     {

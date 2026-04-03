@@ -497,3 +497,85 @@ bool CompTransport::DescenteUniteUnite(Unite const& Transport, std::shared_ptr<U
 // {
 
 // }
+
+//===================================================================
+//                        Furtivité
+//===================================================================
+CompFurtif::CompFurtif(int nb_tour_cammouflage, int cooldown):
+    _nb_max_cammouflage(nb_tour_cammouflage),
+    _nb_tour_cammouflage(nb_tour_cammouflage),
+    _cooldown(cooldown),
+    _tour_cooldown(cooldown)
+{}
+
+bool CompFurtif::camoufler() const
+{
+    return _camoufler;
+}
+
+void CompFurtif::setCamoufler(bool newCamoufler)
+{
+    _camoufler = newCamoufler;
+}
+
+int CompFurtif::nb_tour_cammouflage() const
+{
+    return _nb_tour_cammouflage;
+}
+
+void CompFurtif::setNb_tour_cammouflage(int newNb_tour_cammouflage)
+{
+    _nb_tour_cammouflage = newNb_tour_cammouflage;
+}
+
+int CompFurtif::cooldown() const
+{
+    return _cooldown;
+}
+
+void CompFurtif::setCooldown(int newCooldown)
+{
+    _cooldown = newCooldown;
+}
+
+void CompFurtif::affiche() const
+{
+    std::cout << "[Special] Camouflage : " << _nb_tour_cammouflage<<"|"<< _cooldown << std::endl;
+}
+void CompFurtif::update(Unite& proprietaire)
+{
+    if(_camoufler == true)
+    {
+        _nb_tour_cammouflage -= 1;
+        if(_nb_tour_cammouflage <= 0)
+        {
+            _camoufler = false;
+            _nb_tour_cammouflage = _nb_max_cammouflage;
+        }
+    }
+    else
+    {
+        _tour_cooldown -= 1;
+        if(_tour_cooldown <= 0)
+        {
+            _tour_cooldown = 0;
+        }
+    }
+
+}
+void CompFurtif::ActiveCammouflage()
+{
+    if(_tour_cooldown == 0)
+    {
+        _camoufler = true;
+        _nb_tour_cammouflage = _nb_max_cammouflage;
+        _tour_cooldown = _cooldown;
+    }
+}
+
+void CompFurtif::DesactiveCammouflage()
+{
+    _camoufler = false;
+    _nb_tour_cammouflage = _nb_max_cammouflage;
+    _tour_cooldown = _cooldown;
+}

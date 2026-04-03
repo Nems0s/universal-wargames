@@ -236,3 +236,29 @@ public:
 
 // };
 
+class CompFurtif : public IComportement
+{
+private:
+    bool _camoufler;
+    int _nb_tour_cammouflage;
+    int _tour_cooldown;
+
+    int _nb_max_cammouflage;
+    int _cooldown;
+public:
+    CompFurtif(int nb_tour_cammouflage = 3, int cooldown = 2);
+
+    bool camoufler() const;
+    void setCamoufler(bool newCamoufler);
+    int nb_tour_cammouflage() const;
+    void setNb_tour_cammouflage(int newNb_tour_cammouflage);
+    int cooldown() const;
+    void setCooldown(int newCooldown);
+
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
+
+    void ActiveCammouflage();
+    void DesactiveCammouflage();
+};
+
