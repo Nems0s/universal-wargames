@@ -23,8 +23,6 @@ private:
 
     int _health_point;
     int _health_point_max; //Qui servira à savoir les points de vie de l'unité initialiser
-    int _damage_point;
-    int _damage_point_start; //Qui servira de référenciel pour le moral
     int _moral_point;
 
     Poids _poids;
@@ -36,12 +34,11 @@ private:
     int _temporary_health;
     int _temporary_damage;
 public:
-    Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements);
+    Unite(const std::string &name, int hp,Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements);
     virtual ~Unite() = default;
 
     /*Setters*/
     void setHealth_point(int newHealth_point);
-    void setDamage_point(int newDamage_point);
     void setMoral_point(int newMoral_point);
     void setPoids(Poids newPoids);
     void setRegarde(direction newRegarde);
@@ -53,7 +50,6 @@ public:
     std::string name() const;
     int health_point() const;
     int health_point_max() const;
-    int damage_point() const;
     int moral_point() const;
     Poids poids() const;
     direction regarde() const;
@@ -71,8 +67,8 @@ public:
     std::list<CompMouv*> Mobilite() const;
     std::list<CompAtt*> Offensive() const;
     std::list<CompDef*> Defensif() const;
+    std::list<CompSoin*> Soin() const;
     CompFurtif* Cammouflage() const;
 
     void resetTemporary_stats();
-    int damage_point_start() const;
 };

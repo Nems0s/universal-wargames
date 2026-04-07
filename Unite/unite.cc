@@ -1,12 +1,10 @@
 #include "unite.hh"
 #include "comportement.hh"
 
-Unite::Unite(const std::string &name, int hp, int dmg,Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements)
+Unite::Unite(const std::string &name, int hp,Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
-    _damage_point(dmg),
-    _damage_point_start(dmg),
     _moral_point(0),
     _poids(poids),
     _regarde(dir),
@@ -33,21 +31,6 @@ void Unite::setHealth_point(int newHealth_point)
 int Unite::health_point_max() const
 {
     return _health_point_max;
-}
-
-int Unite::damage_point() const
-{
-    return _damage_point;
-}
-
-void Unite::setDamage_point(int newDamage_point)
-{
-    _damage_point = newDamage_point;
-}
-
-int Unite::damage_point_start() const
-{
-    return _damage_point_start;
 }
 
 int Unite::moral_point() const
@@ -178,6 +161,20 @@ std::list<CompDef*> Unite::Defensif() const
     return liste_CompDef;
 }
 
+std::list<CompSoin *> Unite::Soin() const
+{
+    std::list<CompSoin*> liste_CompSoin;
+
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* typeMouv = dynamic_cast<CompSoin*>(comp_ptr.get()))
+        {
+            liste_CompSoin.push_back(typeMouv);
+        }
+    }
+    return liste_CompSoin;
+}
+
 CompFurtif* Unite::Cammouflage() const
 {
     for (const auto& comp_ptr : _liste_comportements)
@@ -211,16 +208,3 @@ void Unite::resetTemporary_stats()
     _temporary_health = 0;
 }
 
-// void Unite::movement(Case const& c) {
-//     for(auto const& elt : _liste_comportements)
-//     {
-//         if(auto TypeMouv = std::dynamic_pointer_cast<CompMouv>(elt))
-//         {
-//             if(TypeMouv->EstCaseValide(_location, c))
-//             {
-//                 _location = c;
-//                 return;
-//             }
-//         }
-//     }
-// }

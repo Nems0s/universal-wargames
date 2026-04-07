@@ -5,7 +5,7 @@
 //==============================================================================
 //                             Compétences Commandant
 //==============================================================================
-void BuffCommandant(Unite & u, bool & aSoin)
+void BuffCommandant(Unite & u, bool & aSoin, int degatsArme)
 {
     auto r = u.rank();
     auto regulier = std::dynamic_pointer_cast<Rank_Regulier>(r);
@@ -25,11 +25,11 @@ void BuffCommandant(Unite & u, bool & aSoin)
                 }
                 else if(auto att = std::dynamic_pointer_cast<BonusDegat>(buff))
                 {
-                    u.setTemporary_damage(att->appliquer(u.damage_point()));
+                    u.setTemporary_damage(att->appliquer(degatsArme));
                 }
                 else if(auto def = std::dynamic_pointer_cast<BonusDefense>(buff))
                 {
-                    u.setTemporary_health(def->appliquer(u.health_point()));
+                    u.setTemporary_health(def->appliquer(u.health_point_max()));
                 }
                 std::cout << "[BUFF] " << buff->nom() << " de " << regulier->commandant()->name() << " active sur " << u.name() << std::endl;
             }
@@ -98,10 +98,9 @@ void DiminussionMoral(Unite &u, int x_point)
     }
 }
 
-void EffetMoral(Unite & u)
+void EffetMoral(Unite & u, int degatsArme)
 {
     int moral = u.moral_point();
-    int baseDmg = u.damage_point_start();
     float coeff = 1.0;
 
     std::string etat = "Neutre";
@@ -157,7 +156,7 @@ void EffetMoral(Unite & u)
     {
         std::cout << "[ETAT] " << u.name() << " est en etat : " << etat << std::endl;
     }
-    u.setTemporary_damage(static_cast<int>(baseDmg * coeff));
+    u.setTemporary_damage(static_cast<int>(degatsArme * coeff));
 }
 
 //==============================================================================
@@ -195,12 +194,16 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     {
         return false;
     }
+    if(attaquant.Cammouflage()==nullptr)
+    {
+        return false;
+    }
 
-    EffetMoral(attaquant);
+    EffetMoral(attaquant, TypeAttaque->damage_point());
     EffetMoral(defenseur);
 
 
-    BuffCommandant(attaquant, attaquantASoin);
+    BuffCommandant(attaquant, attaquantASoin, TypeAttaque->damage_point());
     BuffCommandant(defenseur, defenseurASoin);
 
     int puissance_attaque = std::max(TypeAttaque->damage_point(), attaquant.temporary_damage());
@@ -272,9 +275,30 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
 
 
 
+bool Combat::heal(Unite &healer, CompSoin* const& TypeSoin,Unite & cible)
+{
+    auto styles_healer = healer.Soin();
+    auto it = std::find(styles_healer.begin(), styles_healer.end(), TypeSoin);
 
-// bool Combat::heal(const Unite &healer, const Unite & cible)
-// {
+    if (it == styles_healer.end() || !((*it)->PeuxSoigner(healer, cible)))
+    {
+        return false;
+    }
 
-// }
+    if(auto* soin = dynamic_cast<CompSoinIndirect*>(*it))
+    {
+        if(soin)
+        {
+            soin->AjoutCibleAtteinte(cible.shared_from_this());
+        }
+    }
+
+    if(cible.health_point() + TypeSoin->healing_point() <= cible.health_point_max())
+    {
+        cible.setHealth_point(cible.health_point() + TypeSoin->healing_point());
+        AugmentationMoral(healer, 1);
+        AugmentationMoral(cible, 2);
+    }
+    return true;
+}
 
