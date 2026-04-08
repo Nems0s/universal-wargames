@@ -1,0 +1,48 @@
+{
+    "tiles": [
+        {
+            "nom": "Espace",
+            "symbole": ".",
+            "cout": 1,
+            "constructible": false,
+            "mouv": { "marche": true, "nage": false, "aerien": true },
+            "gen": { "poids": 80, "nbMin": 0 },
+            "env": { "temperature": 0.0, "radiation": 0.0, "gravite": 0.0 },
+            "ressources": [],
+            "properties": {}
+        },
+        {
+            "nom": "Planete",
+            "symbole": "P",
+            "cout": 1,
+            "constructible": true,
+            "mouv": { "marche": true, "nage": true, "aerien": true },
+            "gen": { "poids": 10, "nbMin": 3 },
+            "env": { "temperature": 0.5, "radiation": 0.0, "gravite": 0.5 },
+            "ressources": [],
+            "properties": { "temperature": 15.0, "gravite": 1.0 }
+        },
+        {
+            "nom": "Etoile",
+            "symbole": "E",
+            "cout": 1,
+            "constructible": true,
+            "mouv": { "marche": true, "nage": true, "aerien": true },
+            "gen": { "poids": 5, "nbMin": 2 },
+            "env": { "temperature": 1.0, "radiation": 0.0, "gravite": 0.8 },
+            "ressources": ["poussiereDEtoile", "Or"],
+            "properties": { "eruption_proba": 0.1, "rayon_activate": 3.0 }
+        },
+        {
+            "nom": "TrouNoir",
+            "symbole": "X",
+            "cout": 99,
+            "constructible": false,
+            "mouv": { "marche": false, "nage": false, "aerien": false },
+            "gen": { "poids": 5, "nbMin": 1 },
+            "env": { "temperature": 1.0, "radiation": 0.0, "gravite": 1.0 },
+            "ressources": [],
+            "properties": {}
+        }
+    ]
+}

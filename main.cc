@@ -40,33 +40,26 @@ void testPlateau() {
   std::map<std::string, Ressource *> ressources;
   WorldFactory world;
 
-  TxtRessourceReader resReader;
+  JsonRessourceReader resReader;
   try {
-    resReader.load(cfgDir + "/config_ressources.txt", ressources);
+    resReader.load(cfgDir + "/config_ressources.json", ressources);
   } catch (const std::exception &e) {
     throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
   }
 
   BatimentFactory batFactory;
-  TxtBatimentReader batReader;
+  JsonBatimentReader batReader;
   try {
-    batFactory.chargerConfiguration(cfgDir + "/config_batiments.txt", batReader,
+    batFactory.chargerConfiguration(cfgDir + "/config_batiments.json", batReader,
                                     ressources);
   } catch (const std::exception &e) {
     throw std::runtime_error("Erreur batiments : " + std::string(e.what()));
   }
 
-  TxtWorldReader worldReader;
+  JsonWorldReader worldReader;
   try {
-    worldReader.chargerConfig(cfgDir + "/config_espace.txt", ressources, world);
-    TuileData limite;
-    limite.nom = "Limite";
-    limite.symbole = '#';
-    limite.cout = -1;
-    limite.constructible = false;
-    limite.gen = {0, 0};
-    limite.mouv = {false, false, false};
-    world.ajouterAuCatalogue('#', limite);
+    worldReader.chargerConfig(cfgDir + "/config_espace.json", ressources, world);
+    world.initialiserBords();
   } catch (const std::exception &e) {
     throw std::runtime_error("Erreur monde : " + std::string(e.what()));
   }
@@ -74,6 +67,12 @@ void testPlateau() {
   board jeuSpace(10, world);
   std::cout << "Plateau de jeu genere avec succes." << std::endl;
   jeuSpace.affichage();
+
+  for (auto const& [nom, res] : ressources) {
+    delete res;
+  }
+  ressources.clear();
+
   std::cout << "========== FIN TEST PLATEAU ==========" << std::endl;
 }
 

@@ -96,6 +96,8 @@ class WorldFactory {
     public:
         void ajouterAuCatalogue(char symbole, const TuileData& data);
 
+        void initialiserBords();
+
         std::unique_ptr<hexa> createTile(char symbole);
         std::unique_ptr<hexa> createRandomTile();
 
@@ -112,6 +114,12 @@ public:
 };
 
 class TxtWorldReader : public WorldConfigReader
+{
+public:
+    void chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo, WorldFactory& factory) override;
+};
+
+class JsonWorldReader : public WorldConfigReader
 {
 public:
     void chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo, WorldFactory& factory) override;

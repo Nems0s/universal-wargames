@@ -11,19 +11,21 @@ class Joueur;
 class Batiment
 {
     protected:
+        int _level;
         std::string _name;
         std::map<Ressource*, int> _cout;
-        int _level;
 
     public:
-        Batiment(std::string n, std::map<Ressource*, int> c, int level=1);
+        Batiment(std::string n, std::map<Ressource*, int> c, int level=1)
+            : _level(level), _name(n), _cout(c) {}
         virtual ~Batiment() = default;
 
         virtual std::unique_ptr<Batiment> clone() const = 0;
         
         std::string getName() const;
         const std::map<Ressource*, int> & getResourceConstr() const;
-        virtual Ressource* getRessourceRequired() const;
+        
+        virtual const std::vector<Ressource*>& getRessourcesSolRequired() const;
 
         virtual void action(Joueur & j) = 0;
 };
@@ -31,16 +33,16 @@ class Batiment
 class BatimentRessource : public Batiment
 {
     private:
-        Ressource* _produit;
-        int _quantite;
-        Ressource* _ressourceSolRequise;
+        std::map<Ressource*, int> _produits;
+        std::vector<Ressource*> _ressourcesSolRequises;
     
     public:
-        BatimentRessource(std::string n, std::map<Ressource*, int> c, Ressource* p, int q, Ressource* sol=nullptr, int l=1);
+        BatimentRessource(std::string n, std::map<Ressource*, int> c, std::map<Ressource*, int> p, std::vector<Ressource*> sols, int l=1)
+            : Batiment(n, c, l), _produits(p), _ressourcesSolRequises(sols) {}
 
         std::unique_ptr<Batiment> clone() const override;
 
-        Ressource* getRessourceRequired() const override;
+        const std::vector<Ressource*>& getRessourcesSolRequired() const override;
 
         void action(Joueur & j) override;
 };
@@ -56,6 +58,11 @@ class BatimentConfigReader
 
 class TxtBatimentReader : public BatimentConfigReader
 {
+    public:
+        void load(const std::string& chemin, std::map<std::string, std::unique_ptr<Batiment>>& catalogue, const std::map<std::string, Ressource*>& ressourcesDispo) override;
+};
+
+class JsonBatimentReader : public BatimentConfigReader {
     public:
         void load(const std::string& chemin, std::map<std::string, std::unique_ptr<Batiment>>& catalogue, const std::map<std::string, Ressource*>& ressourcesDispo) override;
 };

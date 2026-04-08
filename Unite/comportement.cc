@@ -1,6 +1,7 @@
 #include "comportement.hh"
 #include "unite.hh"
 #include "orientation.hh"
+#include <algorithm>
 
 //====================================================================================================
 //                                              Mouvement

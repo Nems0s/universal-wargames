@@ -15,7 +15,7 @@ bool City::peutAjouterBatiment() const {
 
 void City::creeBatiment(std::unique_ptr<Batiment> b) {
     if (_batiments.size() >= _nbBatiments) return;
-    if (b->getRessourceRequired() != nullptr) return;
+    if (!b->getRessourcesSolRequired().empty()) return;
     _batiments.push_back(std::move(b));
 }
 
