@@ -13,14 +13,6 @@ bool Joueur::consommerRessource(Ressource* r, int n) {
     }
 }
 
-bool Joueur::peutPayer(const std::map<Ressource*, int>& cout) const {
-    for (auto const& [res, qte] : cout) {
-        auto it = _inventaire.find(res);
-        if (it == _inventaire.end() || it->second < qte) return false;
-    }
-    return true;
-}
-
 void Joueur::payer(const std::map<Ressource*, int>& cout) {
     for (auto const& [res, qte] : cout) {
         _inventaire[res] -= qte;
