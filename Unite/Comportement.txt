@@ -19,13 +19,11 @@ DEFENSE :
 
 - Comportement Bouclier : annule les X premières salves de dégâts.
 
-- Comportement Soin : permet de redonner des PV à un allier.
-
 
 
 Spécialité :
 - Comportement Transport : peut transporter des troupes.
 
-- Comportement Rapide : ajoute un multiplicateur à tout les délais et permet une plus grande capacité de mouvement.
+- Comportement Furtif : ne peut pas être ciblé et prend forcement par surprise
 
-- Comportement Lent : ajoute un multiplicateur négatif à tout les délais et entraine une plus faible capacité de mouvement.
+- Comportement Soin : permet de redonner des PV à un allier.

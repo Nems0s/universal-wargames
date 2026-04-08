@@ -29,7 +29,7 @@ public:
     int mov_per_laps() const;
     void setMov_per_laps(int newMov_per_laps);
 
-    virtual bool EstCaseValide(Case const& actuel, Case const& cible) = 0;
+    virtual bool EstCaseValide(Coord const& actuel, Coord const& cible) = 0;
     virtual NatureMouv Nature()const=0;
 };
 
@@ -41,7 +41,6 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool EstCaseValide(Case const& actuel, Case const& cible) override;
     NatureMouv Nature() const override;
 };
 
@@ -53,7 +52,6 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool EstCaseValide(Case const& actuel, Case const& cible) override;
     NatureMouv Nature() const override;
 };
 
@@ -65,7 +63,6 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool EstCaseValide(Case const& actuel, Case const& cible) override;
     NatureMouv Nature() const override;
 };
 
@@ -86,7 +83,7 @@ public:
     int portee() const;
     void setPortee(int newPortee);
 
-    virtual bool PeuxAttaquer(Unite const& attaquante, Unite const& cible)=0;
+    virtual bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const=0;
 };
 
 class CompAttMelee : public CompAtt
@@ -97,7 +94,7 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
+    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
 
 class CompAttDistance : public CompAtt
@@ -116,7 +113,7 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
+    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
 
 class CompAttIndirect : public CompAtt
@@ -144,7 +141,7 @@ public:
     void affiche() const override;
     void update(Unite& proprietaire) override;
 
-    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) override;
+    bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
     void AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible);
     void RetireCibleAtteinte(infecter const& I);
 };
@@ -193,6 +190,71 @@ public:
 };
 
 //===================================================================
+//                   Comportement Soin
+//===================================================================
+class CompSoin: public IComportement
+{
+protected:
+    int _healing_point;
+    int _portee;
+public:
+    CompSoin(int healing_point, int portee);
+
+    int healing_point() const;
+    void setHealing_point(int newHealing_point);
+    int portee() const;
+    void setPortee(int newPortee);
+
+    virtual bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const =0;
+};
+
+class CompSoinDirect: public CompSoin
+{
+private:
+    int _rayon;
+public:
+    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2);
+
+    int rayon() const;
+    void setRayon(int newRayon);
+
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
+
+    bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
+};
+
+class CompSoinIndirect: public CompSoin
+{
+private:
+    struct soigner
+    {
+        std::weak_ptr<Unite> cible;
+        int tour_soin;
+
+        bool operator==(const soigner& other) const {
+            bool memeCible = !cible.owner_before(other.cible) && !other.cible.owner_before(cible);
+            return memeCible && (tour_soin == other.tour_soin);
+        }
+    };
+
+    int _nombre_de_tour_regeneration;
+    std::list<soigner> _liste_soigner;
+public:
+    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2);
+
+    void setNombreDeTourRegen(int newNombreDeTourRegen);
+    int nombredetourregen() const;
+
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
+
+    bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
+    void AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible);
+    void RetireCibleAtteinte(soigner const& I);
+};
+
+//===================================================================
 //                   Comportement Spéciaux
 //===================================================================
 class CompTransport : public IComportement
@@ -215,27 +277,29 @@ public:
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };
 
+class CompFurtif : public IComportement
+{
+private:
+    bool _camoufler;
+    int _nb_tour_cammouflage;
+    int _tour_cooldown;
 
-// class CompSoin: public IComportement
-// {
-// private:
-//     int _healing_point;
-//     int _portee;
-//     int _rayon;
-// public:
-//     CompSoin(int healing_point = 10, int portee = 2, int rayon = 1);
+    int _nb_max_cammouflage;
+    int _cooldown;
+public:
+    CompFurtif(int nb_tour_cammouflage = 3, int cooldown = 2);
 
-//     int healing_point() const;
-//     void setHealing_point(int newHealing_point);
-//     int portee() const;
-//     void setPortee(int newPortee);
-//     int rayon() const;
-//     void setRayon(int newRayon);
+    bool camoufler() const;
+    void setCamoufler(bool newCamoufler);
+    int nb_tour_cammouflage() const;
+    void setNb_tour_cammouflage(int newNb_tour_cammouflage);
+    int cooldown() const;
+    void setCooldown(int newCooldown);
 
-//     void affiche() const override;
-//     void update(Unite& proprietaire) override;
+    void affiche() const override;
+    void update(Unite& proprietaire) override;
 
-//     bool PeuxSoigner(Unite const& attaquante, Unite const& cible);
-
-// };
+    void ActiveCammouflage();
+    void DesactiveCammouflage();
+};
 

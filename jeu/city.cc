@@ -1,5 +1,14 @@
 #include "city.hh"
 
+//===================================================================
+//                          City
+//===================================================================
+City::City(int max, bool capitale, int level):
+    _level(level),
+    _nbBatiments(max),
+    _estCapitale(capitale)
+{}
+
 bool City::peutAjouterBatiment() const {
     return _batiments.size() < _nbBatiments;
 }

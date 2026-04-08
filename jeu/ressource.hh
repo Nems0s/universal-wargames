@@ -1,5 +1,5 @@
 #pragma once
-#include <iostream>
+#include <string>
 #include <map>
 #include <fstream>
 
@@ -7,12 +7,10 @@ class Ressource {
     private:
         std::string _name;
         std::string _symbole;
-    
     public:
-        Ressource(std::string n, std::string s) : _name(n), _symbole(s) {}
-        std::string getName() const { return _name; }
-        std::string getSymbole() const { return _symbole; }
-
+        Ressource(std::string n, std::string s);
+        std::string getName() const;
+        std::string getSymbole() const;
 };
 
 

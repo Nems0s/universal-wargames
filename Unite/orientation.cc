@@ -13,30 +13,30 @@ std::string directionToString(direction dir) {
     }
 }
 
-std::list<Case> Case_visible(Case const& c, direction dir)
+std::list<Coord> Case_visible(Coord const& c, direction dir)
 {
-    std::list<Case> liste_adjascence;
+    std::list<Coord> liste_adjascence;
 
-    bool estPair = (c.y % 2 == 0);
+    bool estPair = (c.second % 2 == 0);
 
-    Case c_est   = {c.x + 1, c.y};
-    Case c_ouest = {c.x - 1, c.y};
+    Coord c_est   = {c.first + 1, c.second};
+    Coord c_ouest = {c.first - 1, c.second};
 
-    Case c_nord_est, c_nord_ouest, c_sud_est, c_sud_ouest;
+    Coord c_nord_est, c_nord_ouest, c_sud_est, c_sud_ouest;
 
     if (estPair)
     {
-        c_nord_est   = {c.x, c.y + 1};
-        c_nord_ouest = {c.x - 1, c.y + 1};
-        c_sud_est   = {c.x, c.y - 1};
-        c_sud_ouest = {c.x - 1, c.y - 1};
+        c_nord_est   = {c.first, c.second + 1};
+        c_nord_ouest = {c.first - 1, c.second + 1};
+        c_sud_est   = {c.first, c.second - 1};
+        c_sud_ouest = {c.first - 1, c.second - 1};
     }
     else
     {
-        c_nord_est   = {c.x + 1, c.y + 1};
-        c_nord_ouest = {c.x, c.y + 1};
-        c_sud_est   = {c.x + 1, c.y - 1};
-        c_sud_ouest = {c.x, c.y - 1};
+        c_nord_est   = {c.first + 1, c.second + 1};
+        c_nord_ouest = {c.first, c.second + 1};
+        c_sud_est   = {c.first + 1, c.second - 1};
+        c_sud_ouest = {c.first, c.second - 1};
     }
 
     switch (dir)
@@ -81,12 +81,12 @@ std::list<Case> Case_visible(Case const& c, direction dir)
     return liste_adjascence;
 }
 
-bool avantage_attaque(Case const& attaquant, Case const& defensseur, direction dir_defense)
+bool avantage_attaque(Coord const& attaquant, Coord const& defensseur, direction dir_defense)
 {
     auto liste = Case_visible(defensseur, dir_defense);
     for(auto c : liste)
     {
-        if((attaquant.x == c.x)&&(attaquant.y == c.y))
+        if((attaquant.first == c.first)&&(attaquant.second == c.second))
         {
             return false;
         }
@@ -95,30 +95,30 @@ bool avantage_attaque(Case const& attaquant, Case const& defensseur, direction d
 }
 
 
-std::list<Case> Voisins(Case const& c)
+std::list<Coord> Voisins(Coord const& c)
 {
-    std::list<Case> liste_voisins;
+    std::list<Coord> liste_voisins;
 
-    bool estPair = (c.y % 2 == 0);
+    bool estPair = (c.second % 2 == 0);
 
-    Case c_est   = {c.x + 1, c.y};
-    Case c_ouest = {c.x - 1, c.y};
+    Coord c_est   = {c.first + 1, c.second};
+    Coord c_ouest = {c.first - 1, c.second};
 
-    Case c_nord_est, c_nord_ouest, c_sud_est, c_sud_ouest;
+    Coord c_nord_est, c_nord_ouest, c_sud_est, c_sud_ouest;
 
     if (estPair)
     {
-        c_nord_est   = {c.x, c.y + 1};
-        c_nord_ouest = {c.x - 1, c.y + 1};
-        c_sud_est   = {c.x, c.y - 1};
-        c_sud_ouest = {c.x - 1, c.y - 1};
+        c_nord_est   = {c.first, c.second + 1};
+        c_nord_ouest = {c.first - 1, c.second + 1};
+        c_sud_est   = {c.first, c.second - 1};
+        c_sud_ouest = {c.first - 1, c.second - 1};
     }
     else
     {
-        c_nord_est   = {c.x + 1, c.y + 1};
-        c_nord_ouest = {c.x, c.y + 1};
-        c_sud_est   = {c.x + 1, c.y - 1};
-        c_sud_ouest = {c.x, c.y - 1};
+        c_nord_est   = {c.first + 1, c.second + 1};
+        c_nord_ouest = {c.first, c.second + 1};
+        c_sud_est   = {c.first + 1, c.second - 1};
+        c_sud_ouest = {c.first, c.second - 1};
     }
 
     liste_voisins.push_back(c_est);
@@ -131,15 +131,15 @@ std::list<Case> Voisins(Case const& c)
     return liste_voisins;
 }
 
-std::set<Case> case_adjascentes(Case const& c, int rayon)
+std::set<Coord> case_adjascentes(Coord const& c, int rayon)
 {
     if(rayon == 0)
     {
-        std::set<Case> liste_vide;
+        std::set<Coord> liste_vide;
         return liste_vide;
     }
 
-    std::set<Case> liste_ajacence;
+    std::set<Coord> liste_ajacence;
     for(auto const& elt : Voisins(c))
     {
         liste_ajacence.insert(elt);
@@ -153,7 +153,7 @@ std::set<Case> case_adjascentes(Case const& c, int rayon)
     {
         for(int i = 1; i<rayon; ++i)
         {
-            std::set<Case> new_voisins;
+            std::set<Coord> new_voisins;
             for (auto& case_visite : liste_ajacence)
             {
                 for(auto const& elt : Voisins(case_visite))
@@ -166,6 +166,7 @@ std::set<Case> case_adjascentes(Case const& c, int rayon)
     }
     return liste_ajacence;
 }
+
 
 
 

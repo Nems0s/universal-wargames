@@ -1,12 +1,61 @@
 #include "batiment.hh"
 #include "../joueur/joueur.hh"
 
-void BatimentRessource::action(Joueur & j) {
+//===================================================================
+//                          Batiment
+//===================================================================
+Batiment::Batiment(std::string n, std::map<Ressource*, int> c, int level) :
+    _name(n),
+    _cout(c),
+    _level(level)
+{}
+
+std::string Batiment::getName() const
+{
+    return _name;
+}
+const std::map<Ressource*, int> & Batiment::getResourceConstr() const
+{
+    return _cout;
+}
+
+Ressource* Batiment::getRessourceRequired() const
+{
+    return nullptr;
+}
+
+
+//===================================================================
+//                      Batiment à Ressource
+//===================================================================
+BatimentRessource::BatimentRessource(std::string n, std::map<Ressource*, int> c, Ressource* p, int q, Ressource* sol, int l):
+    Batiment(n,c,l),
+    _produit(p),
+    _quantite(q),
+    _ressourceSolRequise(sol)
+{}
+
+std::unique_ptr<Batiment> BatimentRessource::clone() const
+{
+    return std::make_unique<BatimentRessource>(*this);
+}
+
+Ressource* BatimentRessource::getRessourceRequired() const
+{
+    return _ressourceSolRequise;
+}
+
+void BatimentRessource::action(Joueur & j)
+{
     if (_produit != nullptr) {
         j.ajouterRessource(_produit, _quantite);
     }
 }
 
+
+//===================================================================
+//                      Factory/Config
+//===================================================================
 void TxtBatimentReader::load(const std::string& chemin, 
                 std::map<std::string, std::unique_ptr<Batiment>>& catalogue,
                 const std::map<std::string, Ressource*>& ressourcesDispo) {
@@ -52,4 +101,19 @@ void TxtBatimentReader::load(const std::string& chemin,
             throw std::runtime_error("Erreur dans le fichier batiment : " + std::string(e.what()));
         }
     }
+}
+
+
+void BatimentFactory::chargerConfiguration(const std::string& chemin, BatimentConfigReader& lecteur, const std::map<std::string, Ressource*>& ressourcesDispo)
+{
+    lecteur.load(chemin, _catalogue, ressourcesDispo);
+}
+
+std::unique_ptr<Batiment> BatimentFactory::create(std::string type)
+{
+    if (_catalogue.count(type))
+    {
+        return _catalogue[type]->clone();
+    }
+    return nullptr;
 }

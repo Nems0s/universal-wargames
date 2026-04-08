@@ -1,10 +1,57 @@
 #include "jeu.hh"
+#include "comportement.hh"
+
+//===================================================================
+//                     Tuile Configurable
+//===================================================================
+TuileConfigurable::TuileConfigurable(const TuileData* data) : _d(data) {}
+
+std::string TuileConfigurable::getType() const
+{
+    return _d->nom;
+}
+
+char TuileConfigurable::getSymbole() const
+{
+    return _d->symbole;
+}
+
+int TuileConfigurable::getCoutDeplacement() const
+{
+    return _d->cout;
+}
+
+std::vector<Ressource *> TuileConfigurable::getRessource() const
+{
+    return _d->ressourceSpeciale;
+}
 
 
-bool TuileConfigurable::estFranchissable(const Unite& u) const {
-    if (_d->mouv.marche && u.peutMarcher()) return true;
-    if (_d->mouv.nage && u.peutNager()) return true;
-    if (_d->mouv.aerien && u.peutVoler()) return true;
+bool TuileConfigurable::estFranchissable(const Unite& u) const
+{
+    bool peutnager = false;
+    bool peutvoler = false;
+    bool peutmarcher = false;
+
+    for (auto* mov : u.Mobilite())
+    {
+        switch(mov->Nature())
+        {
+        case NatureMouv::TERRE:
+            peutmarcher = true;
+            break;
+        case NatureMouv::MER:
+            peutnager = true;
+            break;
+        case NatureMouv::AIR:
+            peutvoler = true;
+            break;
+        }
+    }
+
+    if (_d->mouv.marche && peutmarcher) return true;
+    if (_d->mouv.nage && peutnager) return true;
+    if (_d->mouv.aerien && peutvoler) return true;
     return false;
 }
 
@@ -39,8 +86,57 @@ void TuileConfigurable::constrBatimentSpeciale(std::unique_ptr<Batiment> b) {
     }
 }
 
+City * TuileConfigurable::getCity() const
+{
+    return _city.get();
+}
 
-// BOARD //
+float TuileConfigurable::getStat(const std::string & key) const
+{
+    auto itLocal = _localStats.find(key);
+    if (itLocal != _localStats.end()) return itLocal->second;
+
+    auto itBase = _d->properties.find(key);
+    if (itBase != _d->properties.end()) return itBase->second;
+
+    return 0;
+}
+
+void TuileConfigurable::setStat(const std::string & key, float val)
+{
+    _localStats[key] = val;
+}
+//===================================================================
+//===================================================================
+//===================================================================
+
+//===================================================================
+//                              Board
+//===================================================================
+board::board(int size, WorldFactory & world):_size(size)
+{
+    for (int i = 0; i < size; ++i) {
+        std::vector<std::unique_ptr<hexa>> ligne;
+        for (int j = 0; j < size; ++j) {
+            if (i == 0 || i == size - 1 || j == 0 || j == size - 1)
+            {
+                ligne.push_back(world.createTile('#'));
+            }
+            else
+            {
+                ligne.push_back(world.createRandomTile());
+            }
+        }
+        _matrix.push_back(std::move(ligne));
+    }
+    world.postGeneration(_matrix, _size);
+}
+
+const hexa* board::getCell(int i, int j) const
+{
+    return _matrix[i][j].get();
+}
+
 void board::affichage() const {
     for (int i = 0; i < _size; ++i) {
         if (i%2 == 0) {
@@ -58,7 +154,6 @@ void board::placerUnite(int x, int y, std::unique_ptr<Unite> u) {
         _unites[{x, y}] = std::move(u);
     }
 }
-
 Unite * board::getUnite(int x, int y) const {
     auto it = _unites.find({x, y});
     if (it != _unites.end()) {
@@ -67,14 +162,32 @@ Unite * board::getUnite(int x, int y) const {
     return nullptr;
 }
 
-bool board::deplacerUnite(int xSrc, int ySrc, int xDest, int yDest) {
+bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
+    int xSrc = u.location().first;
+    int ySrc = u.location().second;
+
+    //Unite selectionner aux Coord
     auto it = _unites.find({xSrc, ySrc});
     if (it == _unites.end()) return false;
 
+    //Test cible valide, avec la portée
+    for(auto const& mouv : u.Mobilite())
+    {
+        if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
+        {
+            return false;
+        }
+    }
+
+    //Coord dans la carte
     if (xDest < 0 || xDest >= _size || yDest < 0 || yDest >= _size) return false;
+
+    //Personne aux Coord
     if (_unites.count({xDest, yDest})) return false;
 
-    if (!_matrix[xDest][yDest]->estFranchissable(*(it->second))) {
+    //Test de franchissement
+    if (!_matrix[xDest][yDest]->estFranchissable(*(it->second)))
+    {
         return false;
     }
 
@@ -108,8 +221,80 @@ void board::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur
     }
 }
 
+//===================================================================
+//===================================================================
+//===================================================================
 
-// FILEFACTORY //
+//===================================================================
+//                          Factory/Config
+//===================================================================
+void WorldFactory::ajouterAuCatalogue(char symbole, const TuileData& data)
+{
+    _catalogue[symbole] = data;
+}
+
+std::unique_ptr<hexa> WorldFactory::createTile(char symbole) {
+    auto it = _catalogue.find(symbole);
+    if (it != _catalogue.end()) {
+        return std::make_unique<TuileConfigurable>(&(it->second));
+    } else {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<hexa> WorldFactory::createRandomTile() {
+    if (_catalogue.empty()) return nullptr;
+
+    int poidsTotal = 0;
+    for (auto const& [symb, data] : _catalogue) {
+        poidsTotal += data.gen.poids;
+    }
+
+    // tuile au hasard si poidstotal à 0
+    if (poidsTotal == 0) {
+        auto it = _catalogue.begin();
+        std::advance(it, rand() % _catalogue.size());
+        return std::make_unique<TuileConfigurable>(&(it->second));
+    } else {
+        // par rapport aux poids
+        int tirage = rand() % poidsTotal;
+        int seuil = 0;
+        for (auto & [symb, data] : _catalogue) {
+            seuil += data.gen.poids;
+            if (tirage < seuil) {
+                return std::make_unique<TuileConfigurable>(&data);
+            }
+        }
+    }
+    return std::make_unique<TuileConfigurable>(&(_catalogue.begin()->second));
+}
+
+void WorldFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size) {
+    std::map<char, int> compteurs;
+
+    for (auto & ligne : matrix) {
+        for (auto & tuile : ligne) {
+            compteurs[tuile->getSymbole()]++;
+        }
+    }
+
+    for (auto const & [symb, data] : _catalogue) {
+        while (compteurs[symb] < data.gen.nbMin) {
+            int x = rand() % (size - 2) + 1;
+            int y = rand() % (size - 2) + 1;
+
+            if (matrix[x][y]->getSymbole() != '#' && matrix[x][y]->getSymbole() != symb) {
+                matrix[x][y] = std::make_unique<TuileConfigurable>(&(_catalogue.at(symb)));
+                compteurs[symb]++;
+            }
+        }
+    }
+}
+
+bool WorldFactory::estVide() const
+{
+    return _catalogue.empty();
+}
 
 void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
     std::ifstream fichier(chemin);
@@ -172,60 +357,4 @@ void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::strin
     }
 }
 
-std::unique_ptr<hexa> WorldFactory::createTile(char symbole) {
-    auto it = _catalogue.find(symbole);
-    if (it != _catalogue.end()) {
-        return std::make_unique<TuileConfigurable>(&(it->second));
-    } else {
-        return nullptr;
-    }
-}
 
-std::unique_ptr<hexa> WorldFactory::createRandomTile() {
-    if (_catalogue.empty()) return nullptr;
-
-    int poidsTotal = 0;
-    for (auto const& [symb, data] : _catalogue) {
-        poidsTotal += data.gen.poids;
-    }
-
-    // tuile au hasard si poidstotal à 0
-    if (poidsTotal == 0) {
-        auto it = _catalogue.begin();
-        std::advance(it, rand() % _catalogue.size());
-        return std::make_unique<TuileConfigurable>(&(it->second));
-    } else {
-        // par rapport aux poids
-        int tirage = rand() % poidsTotal;
-        int seuil = 0;
-        for (auto & [symb, data] : _catalogue) {
-            seuil += data.gen.poids;
-            if (tirage < seuil) {
-                return std::make_unique<TuileConfigurable>(&data);
-            }
-        }
-    }
-    return std::make_unique<TuileConfigurable>(&(_catalogue.begin()->second));
-}
-
-void WorldFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size) {
-    std::map<char, int> compteurs;
-    
-    for (auto & ligne : matrix) {
-        for (auto & tuile : ligne) {
-            compteurs[tuile->getSymbole()]++;
-        }
-    }
-
-    for (auto const & [symb, data] : _catalogue) {
-        while (compteurs[symb] < data.gen.nbMin) {
-            int x = rand() % (size - 2) + 1;
-            int y = rand() % (size - 2) + 1;
-
-            if (matrix[x][y]->getSymbole() != '#' && matrix[x][y]->getSymbole() != symb) {
-                matrix[x][y] = std::make_unique<TuileConfigurable>(&(_catalogue.at(symb)));
-                compteurs[symb]++;
-            }
-        }
-    }
-}

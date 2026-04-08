@@ -18,6 +18,17 @@ void CompMouv::setMov_per_laps(int newMov_per_laps)
     _mov_per_laps = newMov_per_laps;
 }
 
+bool CompMouv::EstCaseValide(Coord const& actuel, Coord const& cible)
+{
+    // Le Test de franchisemant est fait dans board
+    //Ici on test la porte
+    if((std::abs(actuel.first - cible.first) <= mov_per_laps()) && ((std::abs(actuel.second - cible.second) <= mov_per_laps()))) //std::abs = valeur absolue
+    {
+        return true;
+    }
+    else return false;
+}
+
 //===================================================================
 //                         Mouvement Volant
 //===================================================================
@@ -33,19 +44,6 @@ void CompMouvVolant::update(Unite& proprietaire)
 
 }
 
-bool CompMouvVolant::EstCaseValide(Case const& actuel, Case const& cible)
-{
-    // Finir Quand le plateau sera prêt
-    //if(case != inffranchissable)
-    //{
-    if((std::abs(actuel.x - cible.x) <= mov_per_laps()) && ((std::abs(actuel.y - cible.y) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
-    //}
-    //else return false;
-}
 
 NatureMouv CompMouvVolant::Nature() const
 {
@@ -68,19 +66,6 @@ void CompMouvMarin::update(Unite& proprietaire)
 
 }
 
-bool CompMouvMarin::EstCaseValide(Case const& actuel, Case const& cible)
-{
-    // Finir Quand le plateau sera prêt
-    //if(case != inffranchissable)
-    //{
-    if((std::abs(actuel.x - cible.x) <= mov_per_laps()) && ((std::abs(actuel.y - cible.y) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
-    //}
-    //else return false;
-}
 
 NatureMouv CompMouvMarin::Nature() const
 {
@@ -100,20 +85,6 @@ void CompMouvTerrestre::affiche() const
 void CompMouvTerrestre::update(Unite& proprietaire)
 {
 
-}
-
-bool CompMouvTerrestre::EstCaseValide(Case const& actuel, Case const& cible)
-{
-    // Finir Quand le plateau sera prêt
-    //if(case != inffranchissable)
-    //{
-    if((std::abs(actuel.x - cible.x) <= mov_per_laps()) && ((std::abs(actuel.y - cible.y) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
-    //}
-    //else return false;
 }
 
 NatureMouv CompMouvTerrestre::Nature() const
@@ -168,7 +139,7 @@ void CompAttMelee::update(Unite& proprietaire)
 
 }
 
-bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
+bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
     auto cases_possibles = Voisins(attaquante.location());
 
@@ -194,6 +165,7 @@ bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
                 if (natureA == NatureMouv::MER && natureC == NatureMouv::TERRE) return true;
             }
         }
+        return false;
     }
     else return false;
 }
@@ -234,7 +206,7 @@ void CompAttDistance::update(Unite& proprietaire)
 
 }
 
-bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
+bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
     if(_munitions<=0) return false;
     auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
@@ -270,10 +242,26 @@ void CompAttIndirect::affiche() const
 }
 void CompAttIndirect::update(Unite& proprietaire)
 {
+    std::list<infecter> _liste_final;
 
+    for(auto & infect : _liste_infecter)
+    {
+        auto c = infect.cible.lock();
+        if(c != nullptr)
+        {
+            c->setHealth_point(c->health_point() - _damage_point);
+            infect.tour_infection -= 1;
+
+            if(infect.tour_infection > 0 && c->health_point() > 0)
+            {
+                _liste_final.push_back(infect);
+            }
+        }
+    }
+    _liste_infecter = _liste_final; //
 }
 
-bool CompAttIndirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible)
+bool CompAttIndirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible) const
 {
     auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
 
@@ -328,7 +316,7 @@ void CompDefArmure::update(Unite& proprietaire)
 
 int CompDefArmure::ReductionDegats(int degat_subit)
 {
-    return std::abs(degat_subit - _armure);
+    return std::max(0, degat_subit - _armure);
 }
 
 //===================================================================
@@ -352,9 +340,8 @@ void CompDefBouclier::affiche() const
 }
 void CompDefBouclier::update(Unite& proprietaire)
 {
-
+    _nombre_bouclier += 1;
 }
-
 
 int CompDefBouclier::ReductionDegats(int degat_subit)
 {
@@ -374,6 +361,144 @@ int CompDefBouclier::ReductionDegats(int degat_subit)
 //====================================================================================================
 //====================================================================================================
 
+//====================================================================================================
+//                                              Soin
+//====================================================================================================
+CompSoin::CompSoin(int healing_point, int portee):
+    _healing_point(healing_point),
+    _portee(portee)
+{}
+
+int CompSoin::portee() const
+{
+    return _portee;
+}
+
+void CompSoin::setPortee(int newPortee)
+{
+    _portee = newPortee;
+}
+
+
+int CompSoin::healing_point() const
+{
+    return _healing_point;
+}
+
+void CompSoin::setHealing_point(int newHealing_point)
+{
+    _healing_point = newHealing_point;
+}
+
+//===================================================================
+//                        Direct
+//===================================================================
+CompSoinDirect::CompSoinDirect(int healing_point, int portee, int rayon):
+    CompSoin(healing_point, portee),
+    _rayon(rayon)
+{}
+
+int CompSoinDirect::rayon() const
+{
+    return _rayon;
+}
+
+void CompSoinDirect::setRayon(int newRayon)
+{
+    _rayon = newRayon;
+}
+
+void CompSoinDirect::affiche() const
+{
+    std::cout << "[Soin] Direct : " << _healing_point << ", r=" << _rayon << std::endl;
+}
+
+void CompSoinDirect::update(Unite& proprietaire)
+{
+}
+
+bool CompSoinDirect::PeuxSoigner(Unite const& attaquante, Unite const& cible) const
+{
+    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
+
+    if(cases_possibles.count(cible.location()) > 0)
+    {
+        return true;
+    }
+    else return false;
+}
+
+//===================================================================
+//                        Indirect
+//===================================================================
+CompSoinIndirect::CompSoinIndirect(int healing_point, int portee, int nombre_de_tour_regeneration):
+    CompSoin(healing_point, portee),
+    _nombre_de_tour_regeneration(nombre_de_tour_regeneration)
+{}
+
+void CompSoinIndirect::setNombreDeTourRegen(int newNombreDeTourRegen)
+{
+    _nombre_de_tour_regeneration = newNombreDeTourRegen;
+}
+int CompSoinIndirect::nombredetourregen() const
+{
+    return _nombre_de_tour_regeneration;
+}
+
+void CompSoinIndirect::affiche() const
+{
+    std::cout << "[Soin] Indirect : " << _healing_point << "/" << _portee << "/" << _nombre_de_tour_regeneration << std::endl;
+}
+void CompSoinIndirect::update(Unite& proprietaire)
+{
+    std::list<soigner> _liste_final;
+
+    for(auto & soin : _liste_soigner)
+    {
+        auto c = soin.cible.lock();
+        if(c != nullptr)
+        {
+            if(c->health_point() + _healing_point <= c->health_point_max())
+            {
+                c->setHealth_point(c->health_point() + _healing_point);
+                soin.tour_soin -= 1;
+            }
+            else
+            {
+                soin.tour_soin -= 1;
+            }
+            if(soin.tour_soin > 0 && c->health_point() > 0)
+            {
+                _liste_final.push_back(soin);
+            }
+        }
+    }
+    _liste_soigner = _liste_final;
+}
+
+bool CompSoinIndirect::PeuxSoigner(Unite const& attaquante, Unite const& cible) const
+{
+    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
+
+    if(cases_possibles.count(cible.location()) > 0)
+    {
+        return true;
+    }
+    else return false;
+}
+void CompSoinIndirect::AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible)
+{
+    _liste_soigner.push_back(soigner{cible, _nombre_de_tour_regeneration});
+}
+void CompSoinIndirect::RetireCibleAtteinte(soigner const& I)
+{
+    _liste_soigner.remove(I);
+}
+
+//====================================================================================================
+//====================================================================================================
+//====================================================================================================
+//====================================================================================================
 
 //====================================================================================================
 //                                              Spéciaux
@@ -412,7 +537,6 @@ void CompTransport::update(Unite& proprietaire)
 {
 
 }
-
 
 bool CompTransport::MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur)
 {
@@ -458,56 +582,84 @@ bool CompTransport::DescenteUniteUnite(Unite const& Transport, std::shared_ptr<U
     else return false;
 }
 
-
 //===================================================================
-//                        Soin
+//                        Furtivité
 //===================================================================
-// CompSoin::CompSoin(int healing_point, int portee, int rayon):
-//     _healing_point(healing_point),
-//     _portee(portee),
-//     _rayon(rayon)
-// {}
+CompFurtif::CompFurtif(int nb_tour_cammouflage, int cooldown):
+    _nb_max_cammouflage(nb_tour_cammouflage),
+    _nb_tour_cammouflage(nb_tour_cammouflage),
+    _cooldown(cooldown),
+    _tour_cooldown(cooldown)
+{}
 
-// int CompSoin::portee() const
-// {
-//     return _portee;
-// }
+bool CompFurtif::camoufler() const
+{
+    return _camoufler;
+}
 
-// void CompSoin::setPortee(int newPortee)
-// {
-//     _portee = newPortee;
-// }
+void CompFurtif::setCamoufler(bool newCamoufler)
+{
+    _camoufler = newCamoufler;
+}
 
-// int CompSoin::rayon() const
-// {
-//     return _rayon;
-// }
+int CompFurtif::nb_tour_cammouflage() const
+{
+    return _nb_tour_cammouflage;
+}
 
-// void CompSoin::setRayon(int newRayon)
-// {
-//     _rayon = newRayon;
-// }
+void CompFurtif::setNb_tour_cammouflage(int newNb_tour_cammouflage)
+{
+    _nb_tour_cammouflage = newNb_tour_cammouflage;
+}
 
-// int CompSoin::healing_point() const
-// {
-//     return _healing_point;
-// }
+int CompFurtif::cooldown() const
+{
+    return _cooldown;
+}
 
-// void CompSoin::setHealing_point(int newHealing_point)
-// {
-//     _healing_point = newHealing_point;
-// }
+void CompFurtif::setCooldown(int newCooldown)
+{
+    _cooldown = newCooldown;
+}
 
-// void CompSoin::affiche() const
-// {
-//     std::cout << "[Special] Soin : " << _healing_point << std::endl;
-// }
-// void CompSoin::update(Unite& proprietaire)
-// {
+void CompFurtif::affiche() const
+{
+    std::cout << "[Special] Camouflage : " << _nb_tour_cammouflage<<"|"<< _cooldown << std::endl;
+}
+void CompFurtif::update(Unite& proprietaire)
+{
+    if(_camoufler == true)
+    {
+        _nb_tour_cammouflage -= 1;
+        if(_nb_tour_cammouflage <= 0)
+        {
+            _camoufler = false;
+            _nb_tour_cammouflage = _nb_max_cammouflage;
+        }
+    }
+    else
+    {
+        _tour_cooldown -= 1;
+        if(_tour_cooldown <= 0)
+        {
+            _tour_cooldown = 0;
+        }
+    }
 
-// }
+}
+void CompFurtif::ActiveCammouflage()
+{
+    if(_tour_cooldown == 0)
+    {
+        _camoufler = true;
+        _nb_tour_cammouflage = _nb_max_cammouflage;
+        _tour_cooldown = _cooldown;
+    }
+}
 
-// bool CompSoin::PeuxSoigner(Unite const& attaquante, Unite const& cible)
-// {
-
-// }
+void CompFurtif::DesactiveCammouflage()
+{
+    _camoufler = false;
+    _nb_tour_cammouflage = _nb_max_cammouflage;
+    _tour_cooldown = _cooldown;
+}

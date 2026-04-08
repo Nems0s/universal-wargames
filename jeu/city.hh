@@ -10,7 +10,8 @@ class City {
         std::vector<std::unique_ptr<Batiment>> _batiments;
 
     public:
-        City(int level=1, int max=5, bool capitale=false) : _level(level), _nbBatiments(max), _estCapitale(capitale) {}
+        City(int max=5, bool capitale=false, int level=1);
+        //level à la fin car comme ça pas besoin de le mettre lors de la création
 
         bool peutAjouterBatiment() const;
         void creeBatiment(std::unique_ptr<Batiment> b);

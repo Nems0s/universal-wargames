@@ -8,12 +8,12 @@ class Combat
 {
 public:
     static bool fight(Unite & attaquant,CompAtt* const& TypeAttaque, Unite & defenseur);
-    static bool heal(Unite const& healer, Unite const& cible);
+    static bool heal(Unite& healer, CompSoin* const& TypeSoin, Unite& cible);
 };
 
-void BuffCommandant(Unite & u, bool & aSoin);
+void BuffCommandant(Unite & u, bool & aSoin, int degatsArme=0);
 void SoinDuCommandant(Unite & u);
 
 void AugmentationMoral(Unite & u, int x_point);
 void DiminussionMoral(Unite & u, int x_point);
-void EffetMoral(Unite & u); // Renvoie un multiplicateur lié à la moral
+void EffetMoral(Unite & u, int degatsArme=0); // Renvoie un multiplicateur lié à la moral
