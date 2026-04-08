@@ -2,6 +2,7 @@
 #include "unite.hh"
 #include "orientation.hh"
 #include <algorithm>
+#include <algorithm>
 
 //====================================================================================================
 //                                              Mouvement
@@ -587,10 +588,11 @@ bool CompTransport::DescenteUniteUnite(Unite const& Transport, std::shared_ptr<U
 //                        Furtivité
 //===================================================================
 CompFurtif::CompFurtif(int nb_tour_cammouflage, int cooldown):
-    _nb_max_cammouflage(nb_tour_cammouflage),
+    _camoufler(false),
     _nb_tour_cammouflage(nb_tour_cammouflage),
-    _cooldown(cooldown),
-    _tour_cooldown(cooldown)
+    _tour_cooldown(0),
+    _nb_max_cammouflage(nb_tour_cammouflage),
+    _cooldown(cooldown)
 {}
 
 bool CompFurtif::camoufler() const

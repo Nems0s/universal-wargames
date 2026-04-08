@@ -207,4 +207,3 @@ void Unite::resetTemporary_stats()
     _temporary_damage = 0;
     _temporary_health = 0;
 }
-
