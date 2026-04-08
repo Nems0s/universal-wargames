@@ -464,14 +464,11 @@ void CompSoinIndirect::update(Unite& proprietaire)
                 c->setHealth_point(c->health_point() + _healing_point);
                 soin.tour_soin -= 1;
             }
-            else
-            {
-                soin.tour_soin -= 1;
-            }
-            if(soin.tour_soin > 0 && c->health_point() > 0)
+            else if(soin.tour_soin > 0 && c->health_point() > 0)
             {
                 _liste_final.push_back(soin);
             }
+
         }
     }
     _liste_soigner = _liste_final;
