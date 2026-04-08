@@ -210,17 +210,3 @@ void Unite::resetTemporary_stats()
     _temporary_damage = 0;
     _temporary_health = 0;
 }
-
-// void Unite::movement(Case const& c) {
-//     for(auto const& elt : _liste_comportements)
-//     {
-//         if(auto TypeMouv = std::dynamic_pointer_cast<CompMouv>(elt))
-//         {
-//             if(TypeMouv->EstCaseValide(_location, c))
-//             {
-//                 _location = c;
-//                 return;
-//             }
-//         }
-//     }
-// }

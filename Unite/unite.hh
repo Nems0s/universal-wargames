@@ -74,5 +74,4 @@ public:
     CompFurtif* Cammouflage() const;
 
     void resetTemporary_stats();
-    int damage_point_start() const;
 };
