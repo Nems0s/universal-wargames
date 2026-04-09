@@ -40,33 +40,26 @@ void testPlateau() {
   std::map<std::string, Ressource *> ressources;
   WorldFactory world;
 
-  TxtRessourceReader resReader;
+  JsonRessourceReader resReader;
   try {
-    resReader.load(cfgDir + "/config_ressources.txt", ressources);
+    resReader.load(cfgDir + "/config_ressources.json", ressources);
   } catch (const std::exception &e) {
     throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
   }
 
   BatimentFactory batFactory;
-  TxtBatimentReader batReader;
+  JsonBatimentReader batReader;
   try {
-    batFactory.chargerConfiguration(cfgDir + "/config_batiments.txt", batReader,
+    batFactory.chargerConfiguration(cfgDir + "/config_batiments.json", batReader,
                                     ressources);
   } catch (const std::exception &e) {
     throw std::runtime_error("Erreur batiments : " + std::string(e.what()));
   }
 
-  TxtWorldReader worldReader;
+  JsonWorldReader worldReader;
   try {
-    worldReader.chargerConfig(cfgDir + "/config_espace.txt", ressources, world);
-    TuileData limite;
-    limite.nom = "Limite";
-    limite.symbole = '#';
-    limite.cout = -1;
-    limite.constructible = false;
-    limite.gen = {0, 0};
-    limite.mouv = {false, false, false};
-    world.ajouterAuCatalogue('#', limite);
+    worldReader.chargerConfig(cfgDir + "/config_espace.json", ressources, world);
+    world.initialiserBords();
   } catch (const std::exception &e) {
     throw std::runtime_error("Erreur monde : " + std::string(e.what()));
   }
@@ -74,207 +67,115 @@ void testPlateau() {
   board jeuSpace(10, world);
   std::cout << "Plateau de jeu genere avec succes." << std::endl;
   jeuSpace.affichage();
+
+  for (auto const& [nom, res] : ressources) {
+    delete res;
+  }
+  ressources.clear();
+
   std::cout << "========== FIN TEST PLATEAU ==========" << std::endl;
 }
 
 // ============================================================
-//                    TEST 2 : COMBAT & INFECTION
+//                   TEST 2 : COMBAT & INFECTION
 // ============================================================
-void testCombat() {
-  std::cout << "\n========== TEST 2 : MECANIQUES DE COMBAT AVANCEES =========="
-            << std::endl;
+UniteFactory preparerFactory() 
+{
+  UniteFactory uFactory;
+  JsonUniteReader uReader;
+  uFactory.chargerConfiguration("configs/config_unite.json", uReader);
+  return uFactory;
+}
 
-  // 1. Mise en place de la hiérarchie et des bonus
-  auto rankCmd = std::make_shared<Rank_Commandant>();
-  rankCmd->ajout_bonus(
-      std::make_shared<BonusDegat>(15)); // Un chef qui motive l'attaque
-  rankCmd->ajout_bonus(
-      std::make_shared<BonusDefense>(10)); // Un chef qui renforce la survie
+void testCombat() 
+{
+  std::cout << "\n--- TEST 2 : COMBAT ESPACE ---" << std::endl;
+  auto uFactory = preparerFactory();
 
-  auto rankRegulier = std::make_shared<Rank_Regulier>();
-  auto rankEnnemi = std::make_shared<Rank_Regulier>();
+  auto soldat = uFactory.create("Infanterie d'Elite");
+  auto tank = uFactory.create("Tank de Garde");
 
-  // 2. Création des Unités
-  // Unité alliée liée à un commandant pour recevoir les buffs de proximité
-  auto general = std::make_shared<Unite>(
-      "Commandant Allie", 150, Poids::Moyen, direction::est, Coord{5, 5},
-      rankCmd, std::list<std::shared_ptr<IComportement>>());
-  auto soldat = std::make_shared<Unite>(
-      "Infanterie d'Elite", 100, Poids::Moyen, direction::est, Coord{1, 1},
-      rankRegulier, std::list<std::shared_ptr<IComportement>>());
-  rankRegulier->setCommandant(general);
+  if (soldat && tank) {
+    // PLACEMENT : Le soldat en (1,1) et le tank en (2,1) -> Distance = 1
+    soldat->setLocation({1, 1});
+    tank->setLocation({2, 1});
+    tank->setRegarde(direction::est); // Dos au soldat
 
-  // Unité ennemie avec une forte armure
-  auto tank = std::make_shared<Unite>(
-      "Tank de Garde", 200, Poids::Lourd, direction::ouest, Coord{2, 1},
-      rankEnnemi, std::list<std::shared_ptr<IComportement>>());
-  tank->ajouterComportement(std::make_shared<CompDefArmure>(15));
+    std::cout << "[INFO] " << soldat->name() << " est en " << soldat->location().first << "," << soldat->location().second << std::endl;
 
-  // 3. Attribution des équipements d'attaque
-  auto lame = std::make_shared<CompAttMelee>(40);
-  auto fusil = std::make_shared<CompAttDistance>(
-      30, 4, 5, 1); // 30 dmg, portée 4, 5 munitions
-  auto poison =
-      std::make_shared<CompAttIndirect>(5, 1, 3); // Infection corrosive
-
-  soldat->ajouterComportement(lame);
-  soldat->ajouterComportement(fusil);
-  soldat->ajouterComportement(poison);
-
-  std::cout << "\n--- Phase 1 : Buffs et Hierarchie ---" << std::endl;
-  std::cout << "Le " << soldat->name() << " est sous l'influence du "
-            << general->name() << "." << std::endl;
-
-  std::cout
-      << "\n--- Phase 2 : Attaque avec Avantage d'Orientation (Backstab) ---"
-      << std::endl;
-  // On oriente le tank à l'Est pour que le soldat (en {1,1}) l'attaque par
-  // l'arrière
-  tank->setRegarde(direction::est);
-  std::cout
-      << "[TACTIQUE] Le soldat contourne l'ennemi pour frapper par derriere !"
-      << std::endl;
-
-  int hpAvant = tank->health_point();
-  if (Combat::fight(*soldat, lame.get(), *tank)) {
-    int degatsReels = hpAvant - tank->health_point();
-    std::cout << "[COMBAT] Impact reussi ! Degats : " << degatsReels
-              << " (Reduits par l'armure de 15)" << std::endl;
-    std::cout << "HP Cible : " << hpAvant << " -> " << tank->health_point()
-              << " (Bonus orientation x1.5 applique)" << std::endl;
+    auto offensive = soldat->Offensive();
+    if (!offensive.empty()) 
+    {
+      int hpAvant = tank->health_point();
+      if (Combat::fight(*soldat, offensive.front(), *tank)) 
+      {
+        std::cout << "[SUCCES] Attaque reussie. HP Tank: " << hpAvant << " -> " << tank->health_point() << std::endl;
+      } 
+      else 
+      {
+        std::cout << "[ECHEC] Le moteur de combat a refuse l'attaque." << std::endl;
+      }
+    }
   }
-
-  std::cout << "\n--- Phase 3 : Etat Mental et Stress de Combat ---"
-            << std::endl;
-  // L'attaque a baissé le moral de la cible
-  std::cout << "Moral actuel du " << tank->name() << " : "
-            << tank->moral_point() << std::endl;
-  EffetMoral(*tank, 0); // Analyse l'état mental (Peur, Panique...)
-
-  std::cout << "\n--- Phase 4 : Attaque a Distance et Munitions ---"
-            << std::endl;
-  std::cout << "Munitions avant tir : " << fusil->munitions() << std::endl;
-  if (Combat::fight(*soldat, fusil.get(), *tank)) {
-    std::cout << "Tir effectue. Munitions restantes : " << fusil->munitions()
-              << std::endl;
-  }
-
-  std::cout << "\n--- Phase 5 : Infection et Guerre d'Usure ---" << std::endl;
-  if (Combat::fight(*soldat, poison.get(), *tank)) {
-    std::cout << "[INFO] Le tank est infecté. Début de la dégradation."
-              << std::endl;
-  }
-  for (int i = 1; i <= 2; ++i) {
-    soldat->update();
-    std::cout << "Tour " << i
-              << " d'infection - HP Tank : " << tank->health_point()
-              << std::endl;
-  }
-
-  std::cout << "\n--- Phase 6 : Effondrement du Moral (Fuite) ---" << std::endl;
-  // Simulation d'une chute de moral poussant à la fuite
-  DiminussionMoral(*tank, 25);
-  EffetMoral(*tank, 0);
-  if (tank->health_point() <= 0) {
-    std::cout << "[ALERTE] Le moral a craqua ! Le Tank a fuy le champ de "
-                 "bataille (HP à 0)."
-              << std::endl;
-  }
-
-  std::cout << "========== FIN TEST COMBAT AMELIORE ==========" << std::endl;
 }
 
 // ============================================================
-//                    TEST 3 : CAMOUFLAGE
+//                   TEST 3 : EMBUSCADE
 // ============================================================
-void testCamouflage() {
-  std::cout << "\n========== TEST 3 : CAMOUFLAGE (Furtivite) =========="
-            << std::endl;
+void testCamouflage() 
+{
+  std::cout << "\n--- TEST 3 : SNIPER EN EMBUSCADE ---" << std::endl;
+  auto uFactory = preparerFactory();
 
-  auto sniper =
-      std::make_shared<Unite>("Sniper", 80, Poids::Leger, direction::est,
-                              Coord{0, 0}, std::make_shared<Rank_Regulier>(),
-                              std::list<std::shared_ptr<IComportement>>());
-  auto tank =
-      std::make_shared<Unite>("Gros Tank", 200, Poids::Lourd, direction::ouest,
-                              Coord{1, 0}, std::make_shared<Rank_Regulier>(),
-                              std::list<std::shared_ptr<IComportement>>());
+  auto sniper = uFactory.create("Sniper");
+  auto tank = uFactory.create("Gros Tank");
 
-  auto furtif =
-      std::make_shared<CompFurtif>(2, 2); // 2 tours d'effet, 2 tours cooldown
-  auto attSniper = std::make_shared<CompAttMelee>(30);
-  sniper->ajouterComportement(furtif);
-  sniper->ajouterComportement(attSniper);
+  if (sniper && tank) 
+  {
+    // Le Sniper est loin (portée de 6 dans le JSON)
+    sniper->setLocation({0, 0});
+    tank->setLocation({4, 0}); // Distance de 4, parfait pour un sniper
 
-  std::cout << "Activation du Camouflage..." << std::endl;
-  furtif->ActiveCammouflage();
-
-  // Test Embuscade (Bonus x1.5)
-  int hpAvant = tank->health_point();
-  if (Combat::fight(*sniper, attSniper.get(), *tank)) {
-    std::cout << "Attaque surprise ! HP Tank : " << hpAvant << " -> "
-              << tank->health_point() << std::endl;
-    if (!furtif->camoufler())
-      std::cout << "Camouflage brise par l'attaque." << std::endl;
+    if (auto* furtif = sniper->Cammouflage()) 
+    {
+      furtif->ActiveCammouflage();
+      auto offensive = sniper->Offensive();
+      if (!offensive.empty()) 
+      {
+        int hpAvant = tank->health_point();
+        Combat::fight(*sniper, offensive.front(), *tank);
+        std::cout << "[EMBUSCADE] HP Gros Tank apres tir furtif : " << hpAvant << " -> " << tank->health_point() << std::endl;
+      }
+    }
   }
-
-  std::cout << "========== FIN TEST CAMOUFLAGE ==========" << std::endl;
 }
 
 // ============================================================
-//                    TEST 4 : SYSTEMES DE SOIN
+//                   TEST 4 : INFIRMERIE
 // ============================================================
-void testSoin() {
-  std::cout << "\n========== TEST 4 : SYSTEMES DE SOIN ==========" << std::endl;
+void testSoin() 
+{
+  std::cout << "\n--- TEST 4 : INFIRMERIE ---" << std::endl;
+  auto uFactory = preparerFactory();
 
-  // 1. Creation des Unites
-  auto medic =
-      std::make_shared<Unite>("Medecin", 100, Poids::Moyen, direction::est,
-                              Coord{0, 0}, std::make_shared<Rank_Regulier>(),
-                              std::list<std::shared_ptr<IComportement>>());
-  auto blesse = std::make_shared<Unite>(
-      "Soldat Blesse", 100, Poids::Moyen, direction::est, Coord{1, 0},
-      std::make_shared<Rank_Regulier>(),
-      std::list<std::shared_ptr<IComportement>>());
+  auto medic = uFactory.create("Medecin");
+  auto blesse = uFactory.create("Soldat Blesse");
 
-  // On blesse l'unite manuellement
-  blesse->setHealth_point(30);
-  blesse->setMoral_point(0);
-  std::cout << "Etat initial : HP " << blesse->name() << " = "
-            << blesse->health_point() << " / Moral = " << blesse->moral_point()
-            << std::endl;
+  if (medic && blesse) 
+  {
+    medic->setLocation({5, 5});
+    blesse->setLocation({5, 6}); // Juste à côté
+    blesse->setHealth_point(10); // Presque mort
 
-  // 2. Test Soin Direct
-  auto soinDirect =
-      std::make_shared<CompSoinDirect>(20, 2, 1); // 20 HP, portee 2
-  medic->ajouterComportement(soinDirect);
-
-  std::cout << "\n[ACTION] Tentative de soin direct..." << std::endl;
-  if (Combat::heal(*medic, soinDirect.get(), *blesse)) {
-    std::cout << "[SUCCES] HP apres soin direct : " << blesse->health_point()
-              << std::endl;
-    std::cout << "[SUCCES] Moral apres soin : " << blesse->moral_point()
-              << " (Augmente par le soin)" << std::endl;
+    auto soins = medic->Soin();
+    if (!soins.empty()) 
+    {
+      int hpAvant = blesse->health_point();
+      Combat::heal(*medic, soins.front(), *blesse);
+      std::cout << "[MEDIC] " << blesse->name() <<". Soin ! HP: " << hpAvant << " -> " <<blesse->health_point() << std::endl;
+        
+    }
   }
-
-  // 3. Test Soin Indirect (Regeneration sur le temps)
-  auto regen =
-      std::make_shared<CompSoinIndirect>(10, 2, 3); // 10 HP par tour, 3 tours
-  medic->ajouterComportement(regen);
-
-  std::cout << "\n[ACTION] Application d'un kit de regeneration..."
-            << std::endl;
-  if (Combat::heal(*medic, regen.get(), *blesse)) {
-    std::cout << "[KIT] Regeneration activee pour 3 tours." << std::endl;
-  }
-
-  for (int i = 1; i <= 3; ++i) {
-    medic->update();
-    std::cout << "Tour " << i << " de regen - HP " << blesse->name() << " : "
-              << blesse->health_point() << std::endl;
-  }
-
-  std::cout << "========== FIN TEST SOIN ==========" << std::endl;
 }
 
 // ============================================================

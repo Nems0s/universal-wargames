@@ -48,7 +48,6 @@ class BonusVie : public IBonus {
 public:
     BonusVie(int s);
     std::string nom() const override;
-    int appliquer_soin(int valeur, Unite& u);
     int appliquer(int valeur_initiale) override;
 };
 

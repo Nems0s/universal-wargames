@@ -1,6 +1,9 @@
 #include "jeu.hh"
 #include "comportement.hh"
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 //===================================================================
 //                     Tuile Configurable
 //===================================================================
@@ -60,18 +63,28 @@ bool TuileConfigurable::peutConstrVille() const {
 }
 
 bool TuileConfigurable::peutConstrBatiment(const Batiment & b) const {
-    return (b.getRessourceRequired() == nullptr);
+    return b.getRessourcesSolRequired().empty();
 }
 
 bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
-    Ressource* required = b.getRessourceRequired();
-    if (required == nullptr) return false;
+    const BatimentRessource* br = dynamic_cast<const BatimentRessource*>(&b);
+    if (!br) return false;
 
-    for (Ressource* r : _d->ressourceSpeciale) {
-        if (r == required) return true;
+    const auto& requis = br->getRessourcesSolRequired();
+    if (requis.empty()) return true;
+
+    for (Ressource* req : requis) {
+        bool trouve = false;
+        for (Ressource* rTuile : _d->ressourceSpeciale) {
+            if (rTuile == req) {
+                trouve = true;
+                break;
+            }
+        }
+        if (!trouve) return false;
     }
 
-    return false;
+    return true;
 }
 
 void TuileConfigurable::constrVille(int max, bool capitale) {
@@ -203,7 +216,9 @@ void board::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur
     if (!tuile) return;
 
     if (_matrix[x][y]->getSymbole() != '#') {
-        if (b->getRessourceRequired() != nullptr) {
+        const auto& requis = b->getRessourcesSolRequired();
+
+        if (!requis.empty()) {
             if (tuile->peutConstrBatimentSpecial(*b)) {
                 if (j.peutPayer(b->getResourceConstr())) {
                     j.payer(b->getResourceConstr());
@@ -240,6 +255,20 @@ std::unique_ptr<hexa> WorldFactory::createTile(char symbole) {
     } else {
         return nullptr;
     }
+}
+
+void WorldFactory::initialiserBords() {
+    TuileData limite;
+    limite.nom = "Limite";
+    limite.symbole = '#';
+    limite.cout = -1;
+    limite.constructible = false;
+    
+    limite.mouv = {false, false, false};
+    limite.gen = {0, 0};
+    limite.env = {0.0f, 0.0f, 0.0f};
+    
+    this->ajouterAuCatalogue('#', limite);
 }
 
 std::unique_ptr<hexa> WorldFactory::createRandomTile() {
@@ -357,4 +386,53 @@ void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::strin
     }
 }
 
+void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
+    std::ifstream fichier(chemin);
+    if (!fichier.is_open()) {
+        throw std::runtime_error("Impossible d'ouvrir le fichier JSON : " + chemin);
+    }
+
+    json data;
+    fichier >> data;
+
+    for (auto& t : data["tiles"]) {
+        TuileData d;
+        d.nom = t["nom"];
+        // Le symbole est un string en JSON, on prend le premier caractère
+        std::string s = t["symbole"];
+        d.symbole = s[0]; 
+        d.cout = t["cout"];
+        d.constructible = t["constructible"];
+
+        // Bloc MOUV
+        d.mouv.marche = t["mouv"]["marche"];
+        d.mouv.nage = t["mouv"]["nage"];
+        d.mouv.aerien = t["mouv"]["aerien"];
+
+        // Bloc GEN
+        d.gen.poids = t["gen"]["poids"];
+        d.gen.nbMin = t["gen"]["nbMin"];
+
+        // Bloc ENV
+        d.env.temperature = t["env"]["temperature"];
+        d.env.radiation = t["env"]["radiation"];
+        d.env.gravite = t["env"]["gravite"];
+
+        // Bloc RES (Ressources multiples)
+        for (std::string resNom : t["ressources"]) {
+            if (resDispo.count(resNom)) {
+                d.ressourceSpeciale.push_back(resDispo.at(resNom));
+            }
+        }
+
+        // Bloc DATA (Properties)
+        if (t.contains("properties")) {
+            for (auto& el : t["properties"].items()) {
+                d.properties[el.key()] = el.value();
+            }
+        }
+
+        factory.ajouterAuCatalogue(d.symbole, d);
+    }
+}
 

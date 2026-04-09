@@ -1,14 +1,12 @@
 #include "batiment.hh"
 #include "../joueur/joueur.hh"
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 //===================================================================
 //                          Batiment
 //===================================================================
-Batiment::Batiment(std::string n, std::map<Ressource*, int> c, int level) :
-    _name(n),
-    _cout(c),
-    _level(level)
-{}
 
 std::string Batiment::getName() const
 {
@@ -19,38 +17,32 @@ const std::map<Ressource*, int> & Batiment::getResourceConstr() const
     return _cout;
 }
 
-Ressource* Batiment::getRessourceRequired() const
+
+const std::vector<Ressource*>& Batiment::getRessourcesSolRequired() const
 {
-    return nullptr;
-}
+    static const std::vector<Ressource*> vide;
+    return vide;
+};
 
 
 //===================================================================
 //                      Batiment à Ressource
 //===================================================================
-BatimentRessource::BatimentRessource(std::string n, std::map<Ressource*, int> c, Ressource* p, int q, Ressource* sol, int l):
-    Batiment(n,c,l),
-    _produit(p),
-    _quantite(q),
-    _ressourceSolRequise(sol)
-{}
-
 std::unique_ptr<Batiment> BatimentRessource::clone() const
 {
     return std::make_unique<BatimentRessource>(*this);
 }
 
-Ressource* BatimentRessource::getRessourceRequired() const
+const std::vector<Ressource*>& BatimentRessource::getRessourcesSolRequired() const
 {
-    return _ressourceSolRequise;
+    return _ressourcesSolRequises; 
 }
 
-void BatimentRessource::action(Joueur & j)
-{
-    if (_produit != nullptr) {
-        j.ajouterRessource(_produit, _quantite);
+void BatimentRessource::action(Joueur & j) {
+    for (auto const& [res, qte] : _produits) {
+        j.ajouterRessource(res, qte);
     }
-}
+}   
 
 
 //===================================================================
@@ -74,32 +66,62 @@ void TxtBatimentReader::load(const std::string& chemin,
 
         if (!(ss >> nomBat >> symbBat >> nomResCout >> qCout)) continue;
 
-        try {
-            if (ressourcesDispo.find(nomResCout) == ressourcesDispo.end()) {
-                throw std::runtime_error("Ressource inconnue : " + nomResCout + " pour le batiment : " + nomBat);
-            }
-            Ressource* resCout = ressourcesDispo.at(nomResCout);
+        if (ressourcesDispo.count(nomResCout) == 0) continue;
 
-            std::map<Ressource*, int> coutMap;
-            coutMap[resCout] = qCout;
-
-            if (ss >> nomResProd >> qProd) {
-                if (ressourcesDispo.find(nomResProd) == ressourcesDispo.end()) {
-                    throw std::runtime_error("Ressource Produite inconnue : " + nomResProd + " pour le batiment : " + nomBat);
-                }
-                
-                Ressource* resProd = ressourcesDispo.at(nomResProd);
-                catalogue[nomBat] = std::make_unique<BatimentRessource>(
-                    nomBat, coutMap, resProd, qProd, resProd
-                );
-            } else {
-                catalogue[nomBat] = std::make_unique<BatimentRessource>(
-                    nomBat, coutMap, nullptr, 0, nullptr
-                );
+        std::map<Ressource*, int> coutMap;
+        coutMap[ressourcesDispo.at(nomResCout)] = qCout;
+        
+        std::map<Ressource*, int> prodMap;
+        std::vector<Ressource*> solReq;
+    
+        if (ss >> nomResProd >> qProd) {
+            if (ressourcesDispo.count(nomResProd)) {
+                Ressource* res = ressourcesDispo.at(nomResProd);
+                prodMap[res] = qProd;
+                solReq.push_back(res);
             }
-        } catch(const std::exception& e) {
-            throw std::runtime_error("Erreur dans le fichier batiment : " + std::string(e.what()));
         }
+            
+        catalogue[nomBat] = std::make_unique<BatimentRessource>(
+            nomBat, coutMap, prodMap, solReq
+        );
+    }
+}
+
+void JsonBatimentReader::load(const std::string& chemin, 
+                std::map<std::string, std::unique_ptr<Batiment>>& catalogue,
+                const std::map<std::string, Ressource*>& ressourcesDispo) {
+    
+    std::ifstream fichier(chemin);
+    json data;
+    fichier >> data;
+
+    for (auto& item : data["batiments"]) {
+        std::string nom = item["nom"];
+        
+        std::map<Ressource*, int> coutMap;
+        for (auto& it : item["cout"].items()) {
+            if (ressourcesDispo.count(it.key())) {
+                coutMap[ressourcesDispo.at(it.key())] = it.value();
+            }
+        }
+
+        std::map<Ressource*, int> prodMap;
+        for (auto& prodItem : item["production"]) {
+            std::string rNom = prodItem["ressource"];
+            if (ressourcesDispo.count(rNom)) {
+                prodMap[ressourcesDispo.at(rNom)] = prodItem["quantite"];
+            }
+        }
+
+        std::vector<Ressource*> solsRequis;
+        for (std::string sNom : item["ressources_sol_requises"]) {
+            if (ressourcesDispo.count(sNom)) {
+                solsRequis.push_back(ressourcesDispo.at(sNom));
+            }
+        }
+
+        catalogue[nom] = std::make_unique<BatimentRessource>(nom, coutMap, prodMap, solsRequis);
     }
 }
 

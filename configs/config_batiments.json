@@ -1,0 +1,26 @@
+{
+    "batiments": [
+        {
+            "nom": "ExtracteurEtoile",
+            "symbole": "L",
+            "cout": {
+                "Or": 10,
+                "Fer": 5
+            },
+            "production": [
+                { "ressource": "poussiereDEtoile", "quantite": 10 },
+                { "ressource": "Energie", "quantite": 2 }
+            ],
+            "ressources_sol_requises": ["poussiereDEtoile", "Gaz"]
+        },
+        {
+            "nom": "Muraille",
+            "symbole": "M",
+            "cout": { 
+                "Or": 15 
+            },
+            "production": [],
+            "ressources_sol_requises": []
+        }
+    ]
+}

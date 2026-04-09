@@ -2,6 +2,7 @@
 #include "unite.hh"
 #include "orientation.hh"
 #include <algorithm>
+#include <algorithm>
 
 //====================================================================================================
 //                                              Mouvement
@@ -40,12 +41,6 @@ void CompMouvVolant::affiche() const
     std::cout << "[Mouvement] Vol : " << mov_per_laps() << std::endl;
 }
 
-void CompMouvVolant::update(Unite& proprietaire)
-{
-
-}
-
-
 NatureMouv CompMouvVolant::Nature() const
 {
     return NatureMouv::AIR;
@@ -62,12 +57,6 @@ void CompMouvMarin::affiche() const
     std::cout << "[Mouvement] Mer : " << mov_per_laps() << std::endl;
 }
 
-void CompMouvMarin::update(Unite& proprietaire)
-{
-
-}
-
-
 NatureMouv CompMouvMarin::Nature() const
 {
     return NatureMouv::MER;
@@ -81,11 +70,6 @@ CompMouvTerrestre::CompMouvTerrestre(int mouvement_par_tour): CompMouv(mouvement
 void CompMouvTerrestre::affiche() const
 {
     std::cout << "[Mouvement] Terrestre : " << mov_per_laps() << std::endl;
-}
-
-void CompMouvTerrestre::update(Unite& proprietaire)
-{
-
 }
 
 NatureMouv CompMouvTerrestre::Nature() const
@@ -135,10 +119,6 @@ void CompAttMelee::affiche() const
     std::cout << "[Attaque] Melee : " << damage_point() << "/" << portee() << std::endl;
 }
 
-void CompAttMelee::update(Unite& proprietaire)
-{
-
-}
 
 bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
@@ -202,10 +182,7 @@ void CompAttDistance::affiche()const
 {
     std::cout << "[Attaque] Distance : " << damage_point() << "/(" << portee() << "|" << _portee_mini<< ")/"  << _munitions << std::endl;
 }
-void CompAttDistance::update(Unite& proprietaire)
-{
 
-}
 
 bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
@@ -241,7 +218,7 @@ void CompAttIndirect::affiche() const
 {
     std::cout << "[Attaque] Indirect : " << damage_point() << "/" << portee() << "/" << _nombre_de_tour_infection << std::endl;
 }
-void CompAttIndirect::update(Unite& proprietaire)
+void CompAttIndirect::update()
 {
     std::list<infecter> _liste_final;
 
@@ -310,10 +287,6 @@ void CompDefArmure::affiche() const
 {
     std::cout << "[Defense] Armure : " << _armure << std::endl;
 }
-void CompDefArmure::update(Unite& proprietaire)
-{
-
-}
 
 int CompDefArmure::ReductionDegats(int degat_subit)
 {
@@ -339,7 +312,7 @@ void CompDefBouclier::affiche() const
 {
     std::cout << "[Defense] Bouclier : " << _nombre_bouclier << std::endl;
 }
-void CompDefBouclier::update(Unite& proprietaire)
+void CompDefBouclier::update()
 {
     _nombre_bouclier += 1;
 }
@@ -414,10 +387,6 @@ void CompSoinDirect::affiche() const
     std::cout << "[Soin] Direct : " << _healing_point << ", r=" << _rayon << std::endl;
 }
 
-void CompSoinDirect::update(Unite& proprietaire)
-{
-}
-
 bool CompSoinDirect::PeuxSoigner(Unite const& attaquante, Unite const& cible) const
 {
     auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
@@ -450,7 +419,7 @@ void CompSoinIndirect::affiche() const
 {
     std::cout << "[Soin] Indirect : " << _healing_point << "/" << _portee << "/" << _nombre_de_tour_regeneration << std::endl;
 }
-void CompSoinIndirect::update(Unite& proprietaire)
+void CompSoinIndirect::update()
 {
     std::list<soigner> _liste_final;
 
@@ -530,10 +499,6 @@ void CompTransport::setMax_unite_transporter(int newMax_unite_transporter)
 void CompTransport::affiche() const
 {
     std::cout << "[Special] Transport : " << _liste_unite_transporter.size()<<"/"<< _max_unite_transporter << std::endl;
-}
-void CompTransport::update(Unite& proprietaire)
-{
-
 }
 
 bool CompTransport::MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur)
@@ -625,7 +590,7 @@ void CompFurtif::affiche() const
 {
     std::cout << "[Special] Camouflage : " << _nb_tour_cammouflage<<"|"<< _cooldown << std::endl;
 }
-void CompFurtif::update(Unite& proprietaire)
+void CompFurtif::update()
 {
     if(_camoufler == true)
     {

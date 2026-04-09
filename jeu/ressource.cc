@@ -27,3 +27,21 @@ void TxtRessourceReader::load(const std::string& chemin, std::map<std::string, R
         catalogue[nom] = new Ressource(nom, symb);
     }
 }
+
+void JsonRessourceReader::load(const std::string& chemin, std::map<std::string, Ressource*>& catalogue) {
+    std::ifstream fichier(chemin);
+    if (!fichier.is_open()) {
+        throw std::runtime_error("Impossible d'ouvrir le fichier ressource : " + chemin);
+    }
+
+    json data;
+    fichier >> data;
+
+    for (auto& item : data["ressouces"]) {
+        std::string nom = item["nom"];
+        std::string symb = item["symbole"];
+
+        catalogue[nom] = new Ressource(nom, symb);
+    }
+}
+

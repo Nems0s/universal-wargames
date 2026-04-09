@@ -3,6 +3,9 @@
 #include <map>
 #include <fstream>
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 class Ressource {
     private:
         std::string _name;
@@ -22,6 +25,11 @@ public:
 
 
 class TxtRessourceReader : public RessourceConfigReader {
+public:
+    void load(const std::string& chemin, std::map<std::string, Ressource*>& catalogue);
+};
+
+class JsonRessourceReader : public RessourceConfigReader {
 public:
     void load(const std::string& chemin, std::map<std::string, Ressource*>& catalogue);
 };

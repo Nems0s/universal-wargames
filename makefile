@@ -1,6 +1,6 @@
 CXX = g++
 # On ajoute les dossiers au path d'inclusion (-I) pour que les #include "fichier.hh" fonctionnent
-CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat
+CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib
 
 BUILD_DIR = build
 BIN_DIR = bin
@@ -30,7 +30,7 @@ $(EXEC): $(OBJ)
 
 $(BUILD_DIR)/%.o: %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
-	
+
 # Règle générique pour compiler les fichiers de jeu/
 $(BUILD_DIR)/%.o: jeu/%.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@

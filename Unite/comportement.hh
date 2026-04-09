@@ -13,7 +13,14 @@ class IComportement
 public:
     virtual ~IComportement() = default;
     virtual void affiche() const = 0;
-    virtual void update(Unite& proprietaire) = 0;
+};
+
+/*Donne la fonction update à tout comportement qui change de tour en tour*/
+class IComportementEvolutif
+{
+public:
+    virtual ~IComportementEvolutif() = default;
+    virtual void update() = 0;
 };
 
 //===================================================================
@@ -29,7 +36,7 @@ public:
     int mov_per_laps() const;
     void setMov_per_laps(int newMov_per_laps);
 
-    virtual bool EstCaseValide(Coord const& actuel, Coord const& cible) = 0;
+    bool EstCaseValide(Coord const& actuel, Coord const& cible);
     virtual NatureMouv Nature()const=0;
 };
 
@@ -39,7 +46,6 @@ public:
     CompMouvVolant(int mouvement_par_tour = 2);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     NatureMouv Nature() const override;
 };
@@ -50,7 +56,6 @@ public:
     CompMouvMarin(int mouvement_par_tour = 1);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     NatureMouv Nature() const override;
 };
@@ -61,7 +66,6 @@ public:
     CompMouvTerrestre(int mouvement_par_tour = 1);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     NatureMouv Nature() const override;
 };
@@ -92,7 +96,6 @@ public:
     CompAttMelee(int damage_point);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
@@ -111,12 +114,11 @@ public:
     void setPortee_mini(int newPortee_mini);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
 
-class CompAttIndirect : public CompAtt
+class CompAttIndirect : public CompAtt, public IComportementEvolutif
 {
 private:
     struct infecter
@@ -139,7 +141,7 @@ public:
     int nombredetourinfection() const;
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
     void AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible);
@@ -168,12 +170,11 @@ public:
     void setArmure(int newArmure);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     int ReductionDegats(int degat_subit) override;
 };
 
-class CompDefBouclier : public CompDef
+class CompDefBouclier : public CompDef, public IComportementEvolutif
 {
 private:
     int _nombre_bouclier;
@@ -184,7 +185,7 @@ public:
     void setNombre_bouclier(int newNombre_bouclier);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     int ReductionDegats(int degat_subit) override;
 };
@@ -219,12 +220,11 @@ public:
     void setRayon(int newRayon);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
 };
 
-class CompSoinIndirect: public CompSoin
+class CompSoinIndirect: public CompSoin, public IComportementEvolutif
 {
 private:
     struct soigner
@@ -247,7 +247,7 @@ public:
     int nombredetourregen() const;
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
     void AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible);
@@ -271,13 +271,12 @@ public:
     void setMax_unite_transporter(int newMax_unite_transporter);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     bool MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };
 
-class CompFurtif : public IComportement
+class CompFurtif : public IComportement, public IComportementEvolutif
 {
 private:
     bool _camoufler;
@@ -297,7 +296,7 @@ public:
     void setCooldown(int newCooldown);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     void ActiveCammouflage();
     void DesactiveCammouflage();

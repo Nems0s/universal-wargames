@@ -1,5 +1,10 @@
+#include <algorithm>
 #include "unite.hh"
 #include "comportement.hh"
+#include "rank.hh"
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 Unite::Unite(const std::string &name, int hp,Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements)
     :_name(name),
@@ -116,7 +121,11 @@ void Unite::update()
 {
     for(auto const& elt : _liste_comportements)
     {
-        elt->update(*this);
+        auto evolutif = dynamic_cast<IComportementEvolutif*>(elt.get()); 
+        if(evolutif)
+        {
+            evolutif->update();
+        }
     }
 }
 
@@ -206,4 +215,189 @@ void Unite::resetTemporary_stats()
 {
     _temporary_damage = 0;
     _temporary_health = 0;
+}
+
+std::shared_ptr<Unite> Unite::clone() const
+{
+    return std::make_shared<Unite>(*this);
+}
+
+
+
+
+// ==========================================
+//                  Config
+// ==========================================
+Poids stringToPoids(const std::string& s) 
+{
+    if (s == "Leger") return Poids::Leger;
+    if (s == "Lourd") return Poids::Lourd;
+    return Poids::Moyen;
+}
+
+std::shared_ptr<IRank> stringToRank(const std::string& s) {
+    if (s == "Commandant") return std::make_shared<Rank_Commandant>();
+    else return std::make_shared<Rank_Regulier>();
+}
+
+std::shared_ptr<IBonus> createBuff(const json& jBonus) 
+{
+    // Le deuxième champ de .value de la bibliothèque de nlohmann sert en valeur de défault si le premier champs ne renvoie rien
+    std::string type = jBonus.value("type", "");
+    if(type == "BonusDegat") return std::make_shared<BonusDegat>(jBonus.value("multiplicateur", 1.0));
+    if(type == "BonusVie") return std::make_shared<BonusVie>(jBonus.value("soin", 0));
+    if(type == "BonusDefense") return std::make_shared<BonusDefense>(jBonus.value("bouclier", 0));
+    else return nullptr;
+}
+
+std::shared_ptr<IComportement> createComp(const json& jComp) 
+{
+    std::string type = jComp.value("type", "");
+
+    //COMPORTEMENTS DE MOUVEMENT
+    if (type == "MouvementVolant")
+    {
+        return std::make_shared<CompMouvVolant>(jComp.value("mouvement_par_tour", 3));
+    }
+    if (type == "MouvementMarin")
+    {
+        return std::make_shared<CompMouvMarin>(jComp.value("mouvement_par_tour", 2));
+    }
+    if (type == "MouvementTerrestre")
+    {
+        return std::make_shared<CompMouvTerrestre>(jComp.value("mouvement_par_tour", 2));
+    }
+
+    //COMPORTEMENTS D'ATTAQUE
+    if (type == "AttaqueMelee")
+    {
+        return std::make_shared<CompAttMelee>(jComp.value("degats", 10));
+    }
+    if (type == "AttaqueDistance")
+    {
+        return std::make_shared<CompAttDistance>(jComp.value("degats", 10),jComp.value("portee", 3),jComp.value("munitions", 5),jComp.value("portee_mini", 2));
+    }
+    if (type == "AttaqueIndirect")
+    {
+        return std::make_shared<CompAttIndirect>(jComp.value("degats", 5), jComp.value("portee", 2), jComp.value("tour_infection", 3));
+    }
+
+    //COMPORTEMENTS DE DEFENSE
+    if (type == "DefenseArmure")
+    {
+        return std::make_shared<CompDefArmure>(jComp.value("reduction", 5));
+    }
+    if (type == "DefenseBouclier")
+    {
+        return std::make_shared<CompDefBouclier>(jComp.value("nombre_bouclier", 3));
+    }
+
+    //COMPORTEMENTS DE SOIN
+    if (type == "SoinDirect")
+    {
+        return std::make_shared<CompSoinDirect>(jComp.value("soin", 20), jComp.value("portee", 2), jComp.value("rayon", 2));
+    }
+    if (type == "SoinIndirect")
+    {
+        return std::make_shared<CompSoinIndirect>(jComp.value("soin", 15), jComp.value("portee", 4), jComp.value("tour_regeneration", 2));
+    }
+
+    //COMPORTEMENTS SPÉCIAUX 
+    if (type == "SpecialTransport")
+    {
+        return std::make_shared<CompTransport>(jComp.value("capacite", 2));
+    }
+    if (type == "SpecialFurtif")
+    {
+        return std::make_shared<CompFurtif>(jComp.value("duree", 2), jComp.value("cooldown", 3));
+    }
+
+    return nullptr;
+}
+
+void JsonUniteReader::load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue) 
+{
+    std::ifstream fichier(chemin);
+    if (!fichier.is_open()) {
+        std::cerr << "Impossible d'ouvrir le fichier : " << chemin << std::endl;
+        return; 
+    }
+
+    json data;
+    fichier >> data;
+
+    for (auto& item : data["unites"]) 
+    {
+        std::string nom = item.value("nom", "Erreur");
+        int hp = item.value("hp", 0);
+
+        Poids poids = Poids::Moyen;
+        if(item.contains("poids")) poids = stringToPoids(item["poids"]);
+
+        std::shared_ptr<IRank> rank = stringToRank("Regulier");
+        if(item.contains("rank"))
+        {
+            rank = stringToRank(item["rank"]);
+            if(item["rank"] == "Commandant")
+            {
+                if (item.contains("buff_commandant"))// Vérifie l'existance de la clé
+                {
+                    for (auto& bonus : item["buff_commandant"])
+                    {
+                        if (auto commandant = dynamic_cast<Rank_Commandant*>(rank.get()))
+                        {
+                            commandant->ajout_bonus(createBuff(bonus));
+                        }
+                    }
+                }
+            }
+        }
+
+        std::list<std::shared_ptr<IComportement>> listeComp;
+        if (item.contains("comportements")) 
+        {
+            for (auto& comp : item["comportements"]) 
+            {
+                auto ajout = createComp(comp);
+                if(ajout != nullptr) 
+                {
+                    listeComp.push_back(ajout);
+                }
+            }
+        }
+
+
+        if((nom == "Erreur") || (hp == 0)) 
+        {
+            std::cout<<"Erreur dans la génération de l'unité !"<<std::endl;
+        }
+        else
+        {
+            /*if (listeComp.empty()) 
+            {
+                std::cout << "Attention l'unite " << nom << " n'a aucun comportement." << std::endl;
+            }
+            else std::cout << "L'unite " << nom << ", avec " << listeComp.size()<< " comportements" << std::endl;*/
+            
+            catalogue[nom] = std::make_shared<Unite>(nom, hp, poids, direction::est, Coord{0,0}, rank, listeComp);
+        }
+    }   
+}
+
+
+// ==========================================
+//                 Factory
+// ==========================================
+void UniteFactory::chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur)
+{
+    lecteur.load(chemin, _catalogue);
+}
+
+std::shared_ptr<Unite> UniteFactory::create(std::string type) 
+{
+    if (_catalogue.count(type))
+    {
+        return _catalogue[type]->clone();
+    }
+    return nullptr;
 }

@@ -1,0 +1,12 @@
+{
+    "ressources": [
+        {
+            "nom": "poussiereDEtoile",
+            "symbole": "PE"
+        },
+        {
+            "nom": "Or",
+            "symbole": "Or"
+        }
+    ]
+}

@@ -1,8 +1,10 @@
 #pragma once
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <list>
 #include <memory>
+#include <map>
 #include "comportement.hh"
 #include "rank.hh"
 #include "orientation.hh"
@@ -71,4 +73,28 @@ public:
     CompFurtif* Cammouflage() const;
 
     void resetTemporary_stats();
+    std::shared_ptr<Unite> clone() const;
+};
+
+
+// ==========================================
+//              Config/Factory
+// ==========================================
+class UniteConfigReader {
+public:
+    virtual ~UniteConfigReader() = default;
+    virtual void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue) = 0;
+};
+
+class JsonUniteReader : public UniteConfigReader {
+public:
+    void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue) override;
+};
+
+class UniteFactory {
+private:
+    std::map<std::string, std::shared_ptr<Unite>> _catalogue;
+public:
+    void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur);
+    std::shared_ptr<Unite> create(std::string type);
 };
