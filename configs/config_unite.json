@@ -6,7 +6,7 @@
             "poids": "Moyen",
             "rank": "Commandant",
             "buff_commandant": [
-                { "type": "BonusDegat", "multiplicateur": 15.0 }
+                { "type": "BonusDegat", "multiplicateur": 15 }
             ],
             "comportements": [
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 2 }

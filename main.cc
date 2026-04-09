@@ -4,7 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
-
+#include <map> // Ajouté pour la gestion des ressources
 
 // Jeu / Plateau
 #include "jeu.hh"
@@ -15,7 +15,6 @@
 #include "orientation.hh"
 #include "rank.hh"
 #include "unite.hh"
-
 
 // ============================================================
 //               Recherche du dossier configs
@@ -31,11 +30,17 @@ std::string trouverConfigs() {
       "Dossier 'configs' introuvable ! Verifiez le repertoire de travail.");
 }
 
+// Helper pour afficher les stats d'une unité
+void afficherEtat(const Unite& u) {
+    std::cout << "[" << u.name() << "] HP: " << u.health_point() << "/" << u.health_point_max() 
+              << " | Moral: " << u.moral_point() << std::endl;
+}
+
 // ============================================================
-//                    TEST 1 : PLATEAU DE JEU
+//                    TEST 0 : PLATEAU DE JEU
 // ============================================================
 void testPlateau() {
-  std::cout << "\n========== TEST 1 : PLATEAU DE JEU ==========" << std::endl;
+  std::cout << "\n========== TEST 0 : PLATEAU DE JEU ==========" << std::endl;
   std::string cfgDir = trouverConfigs();
   std::map<std::string, Ressource *> ressources;
   WorldFactory world;
@@ -77,164 +82,209 @@ void testPlateau() {
 }
 
 // ============================================================
-//                   TEST 2 : COMBAT & INFECTION
+// FONCTIONS DE TESTS UNITES
 // ============================================================
-UniteFactory preparerFactory() 
-{
-  UniteFactory uFactory;
-  JsonUniteReader uReader;
-  uFactory.chargerConfiguration("configs/config_unite.json", uReader);
-  return uFactory;
+
+void testChargementJson(UniteFactory& factory) {
+    std::cout << "\n--- TEST 1 : CHARGEMENT & CATALOGUE ---" << std::endl;
+    auto u = factory.create("Infanterie d'Elite");
+    if(u) {
+        u->affiche();
+        std::cout << "[SUCCES] Unite chargee avec " << u->liste_comportements().size() << " comportements." << std::endl;
+    } else {
+        std::cout << "[ERREUR] Verifiez le nom 'Infanterie d'Elite' dans config_unite.json" << std::endl;
+    }
 }
 
-void testCombat() 
-{
-  std::cout << "\n--- TEST 2 : COMBAT ESPACE ---" << std::endl;
-  auto uFactory = preparerFactory();
+void testCombatTactique(UniteFactory& factory) {
+    std::cout << "\n--- TEST 2 : COMBAT, ORIENTATION & MORAL ---" << std::endl;
+    auto soldat = factory.create("Infanterie d'Elite");
+    auto tank = factory.create("Tank de Garde");
 
-  auto soldat = uFactory.create("Infanterie d'Elite");
-  auto tank = uFactory.create("Tank de Garde");
+    if(!soldat || !tank) return;
 
-  if (soldat && tank) {
-    // PLACEMENT : Le soldat en (1,1) et le tank en (2,1) -> Distance = 1
     soldat->setLocation({1, 1});
     tank->setLocation({2, 1});
-    tank->setRegarde(direction::est); // Dos au soldat
+    tank->setRegarde(direction::est); // Le tank tourne le dos au soldat (Backstab possible)
 
-    std::cout << "[INFO] " << soldat->name() << " est en " << soldat->location().first << "," << soldat->location().second << std::endl;
+    std::cout << "Avant attaque : " << std::endl;
+    afficherEtat(*tank);
 
-    auto offensive = soldat->Offensive();
-    if (!offensive.empty()) 
-    {
-      int hpAvant = tank->health_point();
-      if (Combat::fight(*soldat, offensive.front(), *tank)) 
-      {
-        std::cout << "[SUCCES] Attaque reussie. HP Tank: " << hpAvant << " -> " << tank->health_point() << std::endl;
-      } 
-      else 
-      {
-        std::cout << "[ECHEC] Le moteur de combat a refuse l'attaque." << std::endl;
-      }
+    auto attaques = soldat->Offensive();
+    if(!attaques.empty()) {
+        std::cout << "[ACTION] " << soldat->name() << " attaque " << tank->name() << " par derriere !" << std::endl;
+        Combat::fight(*soldat, attaques.front(), *tank);
+        afficherEtat(*tank);
+        std::cout << "Note : Les degats sont reduits par l'armure de 15 du Tank." << std::endl;
     }
-  }
 }
 
-// ============================================================
-//                   TEST 3 : EMBUSCADE
-// ============================================================
-void testCamouflage() 
-{
-  std::cout << "\n--- TEST 3 : SNIPER EN EMBUSCADE ---" << std::endl;
-  auto uFactory = preparerFactory();
+void testFurtivite(UniteFactory& factory) {
+    std::cout << "\n--- TEST 3 : FURTIVITE & EMBUSCADE ---" << std::endl;
+    auto sniper = factory.create("Sniper");
+    auto cible = factory.create("Gros Tank");
+    
+    if(!sniper || !cible) return;
 
-  auto sniper = uFactory.create("Sniper");
-  auto tank = uFactory.create("Gros Tank");
+    sniper->setLocation({0,0});
+    cible->setLocation({3,0}); // A portee de tir (portee 6 dans le JSON)
 
-  if (sniper && tank) 
-  {
-    // Le Sniper est loin (portée de 6 dans le JSON)
-    sniper->setLocation({0, 0});
-    tank->setLocation({4, 0}); // Distance de 4, parfait pour un sniper
-
-    if (auto* furtif = sniper->Cammouflage()) 
-    {
-      furtif->ActiveCammouflage();
-      auto offensive = sniper->Offensive();
-      if (!offensive.empty()) 
-      {
-        int hpAvant = tank->health_point();
-        Combat::fight(*sniper, offensive.front(), *tank);
-        std::cout << "[EMBUSCADE] HP Gros Tank apres tir furtif : " << hpAvant << " -> " << tank->health_point() << std::endl;
-      }
+    auto furtif = sniper->Cammouflage();
+    if(furtif) {
+        std::cout << "[ACTION] Activation du camouflage du Sniper." << std::endl;
+        furtif->ActiveCammouflage();
+        
+        auto tirs = sniper->Offensive();
+        if(!tirs.empty()){
+            std::cout << "[ACTION] Tir d'embuscade (Bonus x1.5) sur le Gros Tank !" << std::endl;
+            Combat::fight(*sniper, tirs.front(), *cible);
+            afficherEtat(*cible);
+            
+            if(!furtif->camoufler()) std::cout << "[INFO] Le camouflage a ete brise par l'attaque." << std::endl;
+        }
     }
-  }
 }
 
-// ============================================================
-//                   TEST 4 : INFIRMERIE
-// ============================================================
-void testSoin() 
-{
-  std::cout << "\n--- TEST 4 : INFIRMERIE ---" << std::endl;
-  auto uFactory = preparerFactory();
+void testInfection(UniteFactory& factory) {
+    std::cout << "\n--- TEST 4 : INFECTION (DEGATS SUR LE TEMPS) ---" << std::endl;
+    // Note: L'Infanterie d'Elite doit avoir un comportement AttaqueIndirect dans le JSON pour ce test
+    auto infecteur = factory.create("Infanterie d'Elite");
+    auto victime = factory.create("Tank de Garde");
+    
+    if(!infecteur || !victime) return;
 
-  auto medic = uFactory.create("Medecin");
-  auto blesse = uFactory.create("Soldat Blesse");
+    auto styleInfect = infecteur->Offensive(); 
+    CompAtt* poison = nullptr;
+    for(auto* a : styleInfect) {
+        if(dynamic_cast<CompAttIndirect*>(a)) poison = a;
+    }
 
-  if (medic && blesse) 
-  {
-    medic->setLocation({5, 5});
-    blesse->setLocation({5, 6}); // Juste à côté
-    blesse->setHealth_point(10); // Presque mort
+    if(poison) {
+        Combat::fight(*infecteur, poison, *victime);
+        std::cout << "Cible infectee. Passage de 3 tours (Appel de update())..." << std::endl;
+        for(int i = 1; i <= 3; ++i) {
+            infecteur->update(); // Met à jour les infections
+            std::cout << "Tour " << i << " : "; afficherEtat(*victime);
+        }
+    } else {
+        std::cout << "[INFO] L'Infanterie d'Elite n'a pas d'AttaqueIndirect dans le JSON actuel." << std::endl;
+    }
+}
+
+void testHierarchie(UniteFactory& factory) {
+    std::cout << "\n--- TEST 5 : COMMANDANT & BUFFS ---" << std::endl;
+    auto chef = factory.create("Commandant Allie");
+    auto recrue = factory.create("Infanterie d'Elite");
+
+    if(!chef || !recrue) return;
+
+    // Création du lien de hiérarchie
+    if(auto r = std::dynamic_pointer_cast<Rank_Regulier>(recrue->rank())) {
+        r->setCommandant(chef);
+        std::cout << "[INFO] " << recrue->name() << " est lie au " << chef->name() << "." << std::endl;
+    }
+
+    std::cout << "[ACTION] Verification des buffs (Inspiration) en combat..." << std::endl;
+    auto tank = factory.create("Tank de Garde");
+    auto att = recrue->Offensive();
+    if(!att.empty()) {
+        Combat::fight(*recrue, att.front(), *tank);
+        std::cout << "[INFO] Les degats ont ete augmentes par le BonusDegat (15) du Commandant." << std::endl;
+    }
+}
+
+void testSystemeSoin(UniteFactory& factory) {
+    std::cout << "\n--- TEST 6 : SOINS ET COOLDOWN ---" << std::endl;
+    auto medic = factory.create("Medecin");
+    auto blesse = factory.create("Soldat Blesse");
+    
+    if(!medic || !blesse) return;
+
+    blesse->setHealth_point(20);
+    medic->setLocation({0,0});
+    blesse->setLocation({1,0}); // A portee de soin
+    std::cout << "Etat initial : "; afficherEtat(*blesse);
 
     auto soins = medic->Soin();
-    if (!soins.empty()) 
-    {
-      int hpAvant = blesse->health_point();
-      Combat::heal(*medic, soins.front(), *blesse);
-      std::cout << "[MEDIC] " << blesse->name() <<". Soin ! HP: " << hpAvant << " -> " <<blesse->health_point() << std::endl;
+    if(!soins.empty()) {
+        std::cout << "[ACTION] Soin direct sur " << blesse->name() << " !" << std::endl;
+        Combat::heal(*medic, soins.front(), *blesse);
+        afficherEtat(*blesse);
         
+        std::cout << "[ACTION] Tentative de soin immediat (Attente echec Cooldown)..." << std::endl;
+        if(!Combat::heal(*medic, soins.front(), *blesse)) {
+            std::cout << "[SUCCES] Le cooldown a bien bloque le soin consecutif." << std::endl;
+        }
     }
-  }
 }
 
 // ============================================================
-//                           MENU
+// MAIN INTERACTIF
 // ============================================================
+
 int main() {
-  std::srand(std::time(nullptr));
-  int choix = -1;
-
-  while (choix != 0) {
-    std::cout << "\n========================================" << std::endl;
-    std::cout << "   SPACE WARGAMES - MENU COMPLET" << std::endl;
-    std::cout << "========================================" << std::endl;
-    std::cout << "  1. Test Plateau de Jeu (Config)" << std::endl;
-    std::cout << "  2. Test Combat & Infection" << std::endl;
-    std::cout << "  3. Test Camouflage (Furtivite)" << std::endl;
-    std::cout << "  4. Test Soins (Direct & Indirect)" << std::endl;
-    std::cout << "  5. Lancer TOUS les tests" << std::endl;
-    std::cout << "  0. Quitter" << std::endl;
-    std::cout << "========================================" << std::endl;
-    std::cout << "Choix : ";
-    std::cin >> choix;
-
-    if (std::cin.fail()) {
-      std::cin.clear();
-      std::cin.ignore(10000, '\n');
-      continue;
-    }
+    std::srand(std::time(nullptr));
+    
+    UniteFactory factory;
+    JsonUniteReader reader;
+    
+    std::string cfgDir = trouverConfigs();
 
     try {
-      switch (choix) {
-      case 1:
-        testPlateau();
-        break;
-      case 2:
-        testCombat();
-        break;
-      case 3:
-        testCamouflage();
-        break;
-      case 4:
-        testSoin();
-        break;
-      case 5:
-        testPlateau();
-        testCombat();
-        testCamouflage();
-        testSoin();
-        break;
-      case 0:
-        std::cout << "Fermeture du programme." << std::endl;
-        break;
-      default:
-        std::cout << "Choix invalide." << std::endl;
-        break;
-      }
-    } catch (const std::exception &e) {
-      std::cerr << "ERREUR CRITIQUE : " << e.what() << std::endl;
+        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader);
+    } catch (const std::exception& e) {
+        std::cerr << "Erreur critique : " << e.what() << std::endl;
+        return 1;
     }
-  }
-  return 0;
+
+    int choix = -1;
+    // Changement de la condition de boucle : 8 est Quitter
+    while(choix != 8) {
+        std::cout << "\n========================================" << std::endl;
+        std::cout << "       SPACE WARGAMES : TEST SUITE" << std::endl;
+        std::cout << "========================================" << std::endl;
+        std::cout << "0. Test Plateau de Jeu (Config)" << std::endl;
+        std::cout << "1. Test Chargement JSON & Catalogue" << std::endl;
+        std::cout << "2. Test Combat (Orientation/Armure/Moral)" << std::endl;
+        std::cout << "3. Test Furtivite & Embuscade" << std::endl;
+        std::cout << "4. Test Infection (Evolution/Tours)" << std::endl;
+        std::cout << "5. Test Hierarchie (Commandant/Buffs)" << std::endl;
+        std::cout << "6. Test Soins & Cooldowns" << std::endl;
+        std::cout << "7. Lancer TOUS les tests" << std::endl;
+        std::cout << "8. Quitter" << std::endl;
+        std::cout << "Choix : ";
+        
+        if (!(std::cin >> choix)) {
+            std::cin.clear();
+            std::cin.ignore(1000, '\n');
+            continue;
+        }
+
+        switch(choix) {
+            case 0: testPlateau(); break;
+            case 1: testChargementJson(factory); break;
+            case 2: testCombatTactique(factory); break;
+            case 3: testFurtivite(factory); break;
+            case 4: testInfection(factory); break;
+            case 5: testHierarchie(factory); break;
+            case 6: testSystemeSoin(factory); break;
+            case 7:
+                testPlateau();
+                testChargementJson(factory);
+                testCombatTactique(factory);
+                testFurtivite(factory);
+                testInfection(factory);
+                testHierarchie(factory);
+                testSystemeSoin(factory);
+                break;
+            case 8:
+                std::cout << "Fin du programme." << std::endl;
+                break;
+            default: 
+                std::cout << "Choix invalide." << std::endl;
+                break;
+        }
+    }
+
+    return 0;
 }

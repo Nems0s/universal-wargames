@@ -23,6 +23,24 @@ public:
     virtual void update() = 0;
 };
 
+class ComportementCooldown
+{
+protected:
+    int _cooldown;         
+    int _current_cooldown;
+
+public:
+    ComportementCooldown(int cooldown);
+
+    int current_cooldown() const;
+    void setCurrent_cooldown(int current_cooldown);
+    int cooldown() const;
+    void setCooldown(int newCooldown);
+
+    bool estPret()const;
+};
+
+
 //===================================================================
 //                     Comportement Mouvement
 //===================================================================
@@ -193,18 +211,19 @@ public:
 //===================================================================
 //                   Comportement Soin
 //===================================================================
-class CompSoin: public IComportement
+class CompSoin: public IComportement,  public IComportementEvolutif, public ComportementCooldown
 {
 protected:
     int _healing_point;
     int _portee;
 public:
-    CompSoin(int healing_point, int portee);
+    CompSoin(int healing_point, int portee, int cooldown);
 
     int healing_point() const;
     void setHealing_point(int newHealing_point);
     int portee() const;
     void setPortee(int newPortee);
+    
 
     virtual bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const =0;
 };
@@ -214,17 +233,18 @@ class CompSoinDirect: public CompSoin
 private:
     int _rayon;
 public:
-    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2);
+    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2, int cooldown=1);
 
     int rayon() const;
     void setRayon(int newRayon);
 
     void affiche() const override;
+    void update() override;
 
     bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
 };
 
-class CompSoinIndirect: public CompSoin, public IComportementEvolutif
+class CompSoinIndirect: public CompSoin
 {
 private:
     struct soigner
@@ -241,7 +261,7 @@ private:
     int _nombre_de_tour_regeneration;
     std::list<soigner> _liste_soigner;
 public:
-    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2);
+    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2, int cooldown=1);
 
     void setNombreDeTourRegen(int newNombreDeTourRegen);
     int nombredetourregen() const;
@@ -276,24 +296,17 @@ public:
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };
 
-class CompFurtif : public IComportement, public IComportementEvolutif
+class CompFurtif : public IComportement, public IComportementEvolutif, public ComportementCooldown
 {
 private:
     bool _camoufler;
-    int _nb_tour_cammouflage;
-    int _tour_cooldown;
+    int _duree_max_camouflage;
+    int _tours_restants;
 
-    int _nb_max_cammouflage;
-    int _cooldown;
 public:
-    CompFurtif(int nb_tour_cammouflage = 3, int cooldown = 2);
+    CompFurtif(int duree = 3, int cooldown = 2);
 
     bool camoufler() const;
-    void setCamoufler(bool newCamoufler);
-    int nb_tour_cammouflage() const;
-    void setNb_tour_cammouflage(int newNb_tour_cammouflage);
-    int cooldown() const;
-    void setCooldown(int newCooldown);
 
     void affiche() const override;
     void update() override;

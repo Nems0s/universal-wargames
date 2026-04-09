@@ -244,7 +244,7 @@ std::shared_ptr<IBonus> createBuff(const json& jBonus)
 {
     // Le deuxième champ de .value de la bibliothèque de nlohmann sert en valeur de défault si le premier champs ne renvoie rien
     std::string type = jBonus.value("type", "");
-    if(type == "BonusDegat") return std::make_shared<BonusDegat>(jBonus.value("multiplicateur", 1.0));
+    if(type == "BonusDegat") return std::make_shared<BonusDegat>(jBonus.value("multiplicateur", 1));
     if(type == "BonusVie") return std::make_shared<BonusVie>(jBonus.value("soin", 0));
     if(type == "BonusDefense") return std::make_shared<BonusDefense>(jBonus.value("bouclier", 0));
     else return nullptr;

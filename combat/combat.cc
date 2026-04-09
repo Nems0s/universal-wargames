@@ -198,6 +198,7 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
         return false;
     }
 
+    // Sert à eviter un test sur cammouflage alors que l'unite en à pas
     bool estCamoufle = false;
     auto furtifAtt = attaquant.Cammouflage();
     if(furtifAtt && furtifAtt->camoufler()) 
@@ -291,20 +292,27 @@ bool Combat::heal(Unite &healer, CompSoin* const& TypeSoin,Unite & cible)
         return false;
     }
 
-    if(auto* soin = dynamic_cast<CompSoinIndirect*>(*it))
+    if (TypeSoin->estPret() && TypeSoin->PeuxSoigner(healer, cible))
     {
-        if(soin)
+        if(auto* soin = dynamic_cast<CompSoinIndirect*>(*it))
         {
-            soin->AjoutCibleAtteinte(cible.shared_from_this());
+            if(soin)
+            {
+                soin->AjoutCibleAtteinte(cible.shared_from_this());
+                AugmentationMoral(healer, 1);
+                AugmentationMoral(cible, 1);
+            }
         }
+
+        if(cible.health_point() + TypeSoin->healing_point() <= cible.health_point_max())
+        {
+            cible.setHealth_point(cible.health_point() + TypeSoin->healing_point());
+            AugmentationMoral(healer, 1);
+            AugmentationMoral(cible, 2);
+        }
+        return true;
     }
 
-    if(cible.health_point() + TypeSoin->healing_point() <= cible.health_point_max())
-    {
-        cible.setHealth_point(cible.health_point() + TypeSoin->healing_point());
-        AugmentationMoral(healer, 1);
-        AugmentationMoral(cible, 2);
-    }
-    return true;
+    return false;
 }
 

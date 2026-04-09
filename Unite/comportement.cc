@@ -4,6 +4,40 @@
 #include <algorithm>
 #include <algorithm>
 
+
+//====================================================================================================
+//                                              Tools
+//====================================================================================================
+ComportementCooldown::ComportementCooldown(int cooldown):
+    _cooldown(cooldown),
+    _current_cooldown(0)
+{}
+
+int ComportementCooldown::current_cooldown() const
+{
+    return _current_cooldown;
+}
+
+void ComportementCooldown::setCurrent_cooldown(int newNb_tour_cammouflage)
+{
+    _current_cooldown = newNb_tour_cammouflage;
+}
+
+int ComportementCooldown::cooldown() const
+{
+    return _cooldown;
+}
+
+void ComportementCooldown::setCooldown(int newCooldown)
+{
+    _cooldown = newCooldown;
+}
+
+bool ComportementCooldown::estPret() const {
+    return _current_cooldown == 0;
+}
+
+
 //====================================================================================================
 //                                              Mouvement
 //====================================================================================================
@@ -338,7 +372,8 @@ int CompDefBouclier::ReductionDegats(int degat_subit)
 //====================================================================================================
 //                                              Soin
 //====================================================================================================
-CompSoin::CompSoin(int healing_point, int portee):
+CompSoin::CompSoin(int healing_point, int portee, int cooldown):
+    ComportementCooldown(cooldown),
     _healing_point(healing_point),
     _portee(portee)
 {}
@@ -353,7 +388,6 @@ void CompSoin::setPortee(int newPortee)
     _portee = newPortee;
 }
 
-
 int CompSoin::healing_point() const
 {
     return _healing_point;
@@ -364,11 +398,14 @@ void CompSoin::setHealing_point(int newHealing_point)
     _healing_point = newHealing_point;
 }
 
+
+
+
 //===================================================================
 //                        Direct
 //===================================================================
-CompSoinDirect::CompSoinDirect(int healing_point, int portee, int rayon):
-    CompSoin(healing_point, portee),
+CompSoinDirect::CompSoinDirect(int healing_point, int portee, int rayon, int cooldown):
+    CompSoin(healing_point, portee, cooldown),
     _rayon(rayon)
 {}
 
@@ -387,6 +424,14 @@ void CompSoinDirect::affiche() const
     std::cout << "[Soin] Direct : " << _healing_point << ", r=" << _rayon << std::endl;
 }
 
+void CompSoinDirect::update()
+{
+    if (_current_cooldown > 0) 
+    {
+        _current_cooldown--;
+    }
+}
+
 bool CompSoinDirect::PeuxSoigner(Unite const& attaquante, Unite const& cible) const
 {
     auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
@@ -401,8 +446,8 @@ bool CompSoinDirect::PeuxSoigner(Unite const& attaquante, Unite const& cible) co
 //===================================================================
 //                        Indirect
 //===================================================================
-CompSoinIndirect::CompSoinIndirect(int healing_point, int portee, int nombre_de_tour_regeneration):
-    CompSoin(healing_point, portee),
+CompSoinIndirect::CompSoinIndirect(int healing_point, int portee, int nombre_de_tour_regeneration, int cooldown):
+    CompSoin(healing_point, portee, cooldown),
     _nombre_de_tour_regeneration(nombre_de_tour_regeneration)
 {}
 
@@ -421,6 +466,11 @@ void CompSoinIndirect::affiche() const
 }
 void CompSoinIndirect::update()
 {
+    if (_current_cooldown > 0) 
+    {
+        _current_cooldown--;
+    }
+
     std::list<soigner> _liste_final;
 
     for(auto & soin : _liste_soigner)
@@ -548,12 +598,11 @@ bool CompTransport::DescenteUniteUnite(Unite const& Transport, std::shared_ptr<U
 //===================================================================
 //                        Furtivité
 //===================================================================
-CompFurtif::CompFurtif(int nb_tour_cammouflage, int cooldown):
+CompFurtif::CompFurtif(int duree, int cooldown):
+    ComportementCooldown(cooldown),
     _camoufler(false),
-    _nb_tour_cammouflage(nb_tour_cammouflage),
-    _tour_cooldown(0),
-    _nb_max_cammouflage(nb_tour_cammouflage),
-    _cooldown(cooldown)
+    _duree_max_camouflage(duree),
+    _tours_restants(0)
 {}
 
 bool CompFurtif::camoufler() const
@@ -561,69 +610,39 @@ bool CompFurtif::camoufler() const
     return _camoufler;
 }
 
-void CompFurtif::setCamoufler(bool newCamoufler)
-{
-    _camoufler = newCamoufler;
-}
-
-int CompFurtif::nb_tour_cammouflage() const
-{
-    return _nb_tour_cammouflage;
-}
-
-void CompFurtif::setNb_tour_cammouflage(int newNb_tour_cammouflage)
-{
-    _nb_tour_cammouflage = newNb_tour_cammouflage;
-}
-
-int CompFurtif::cooldown() const
-{
-    return _cooldown;
-}
-
-void CompFurtif::setCooldown(int newCooldown)
-{
-    _cooldown = newCooldown;
-}
-
 void CompFurtif::affiche() const
 {
-    std::cout << "[Special] Camouflage : " << _nb_tour_cammouflage<<"|"<< _cooldown << std::endl;
+    std::cout << "[Special] Camouflage : " << _duree_max_camouflage<<"|"<< _cooldown << std::endl;
 }
 void CompFurtif::update()
 {
-    if(_camoufler == true)
+    if(_camoufler) 
     {
-        _nb_tour_cammouflage -= 1;
-        if(_nb_tour_cammouflage <= 0)
+        _tours_restants--;
+        if (_tours_restants <= 0) 
         {
-            _camoufler = false;
-            _nb_tour_cammouflage = _nb_max_cammouflage;
+            DesactiveCammouflage();
         }
     }
-    else
+    
+    if (_current_cooldown > 0) 
     {
-        _tour_cooldown -= 1;
-        if(_tour_cooldown <= 0)
-        {
-            _tour_cooldown = 0;
-        }
+        _current_cooldown--;
     }
-
 }
+
 void CompFurtif::ActiveCammouflage()
 {
-    if(_tour_cooldown == 0)
+    if(estPret() && !_camoufler)
     {
         _camoufler = true;
-        _nb_tour_cammouflage = _nb_max_cammouflage;
-        _tour_cooldown = _cooldown;
+        _tours_restants = _duree_max_camouflage;
+        _current_cooldown = _cooldown; 
     }
 }
 
 void CompFurtif::DesactiveCammouflage()
 {
     _camoufler = false;
-    _nb_tour_cammouflage = _nb_max_cammouflage;
-    _tour_cooldown = _cooldown;
+    _tours_restants = 0;
 }
