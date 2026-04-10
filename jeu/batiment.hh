@@ -11,7 +11,8 @@ class Joueur;
 class Batiment
 {
     protected:
-        int _level;
+        int _level=1;
+        int _maxLevel;
         std::string _name;
         std::map<Ressource*, int> _cout;
 
@@ -28,6 +29,9 @@ class Batiment
         virtual const std::vector<Ressource*>& getRessourcesSolRequired() const;
 
         virtual void action(Joueur & j) = 0;
+
+        int getLevel() const { return _level; }
+        int getMaxLevel() const { return _maxLevel; }
 };
 
 class BatimentRessource : public Batiment

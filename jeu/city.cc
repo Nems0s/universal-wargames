@@ -3,10 +3,12 @@
 //===================================================================
 //                          City
 //===================================================================
-City::City(int max, bool capitale, int level):
+City::City(int max, bool capitale, int x, int y, int level):
     _level(level),
     _nbBatiments(max),
-    _estCapitale(capitale)
+    _estCapitale(capitale),
+    _x(x),
+    _y(y)
 {}
 
 bool City::peutAjouterBatiment() const {

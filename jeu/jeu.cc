@@ -87,9 +87,9 @@ bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
     return true;
 }
 
-void TuileConfigurable::constrVille(int max, bool capitale) {
+void TuileConfigurable::constrVille(int max, bool capitale, int x, int y) {
     if (peutConstrVille()) {
-        _city = std::make_unique<City>(max, capitale);
+        _city = std::make_unique<City>(max, capitale, x, y);
     }
 }
 
@@ -208,32 +208,6 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     _unites.erase(it);
     
     return true;
-}
-
-
-void board::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur & j) {
-    TuileConfigurable* tuile = dynamic_cast<TuileConfigurable*>(_matrix[x][y].get());
-    if (!tuile) return;
-
-    if (_matrix[x][y]->getSymbole() != '#') {
-        const auto& requis = b->getRessourcesSolRequired();
-
-        if (!requis.empty()) {
-            if (tuile->peutConstrBatimentSpecial(*b)) {
-                if (j.peutPayer(b->getResourceConstr())) {
-                    j.payer(b->getResourceConstr());
-                    tuile->constrBatimentSpeciale(std::move(b));
-                }
-            }
-        } else {
-            if (tuile->getCity() && tuile->getCity()->peutAjouterBatiment()) {
-                if (j.peutPayer(b->getResourceConstr())) {
-                    j.payer(b->getResourceConstr());
-                    tuile->getCity()->creeBatiment(std::move(b));
-                }
-            }
-        }
-    }
 }
 
 //===================================================================
