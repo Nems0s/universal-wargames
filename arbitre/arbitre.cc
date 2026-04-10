@@ -21,6 +21,65 @@ bool Arbitre::coordValid(int x, int y, const board & game) const {
     return true;
 }
 
+bool Arbitre::checkWin(const Joueur& j, const WinConditions & win) const {
+    switch (win.type) {
+        case WinType::RESOURCE: {
+            int qte = 0;
+            for (auto const& [res, val] : j.getInventaire()) {
+                if (res->getName() == win.resourceName) qte = val;
+            }
+            return qte >= win.targetAmount;
+        }
+
+        case WinType::CITY_COUNT:
+            return j.getNbVilles() >= win.targetAmount;
+
+        case WinType::CAPITAL_REQ:
+            for (City* v : j.getCities()) {
+                if (v->estCapitale()) return true;
+            }
+            return false;
+
+        case WinType::UNIT_COUNT:
+            return (int)j.getUnites().size() >= win.targetAmount;
+
+        default: return false;
+    }
+}
+
+bool Arbitre::verifierVictoire(const Joueur& j, const GameConfig & config) const {
+    const auto & wins = config.getVictorySets();
+
+    for (const auto & win : wins) {
+        bool winValide;
+
+        if (win.mode == WinMode::ALL) {
+            winValide = true;
+            for (const auto & cond : win.conditions) {
+                if (!checkWin(j,cond)) {
+                    winValide = false;
+                    break;
+                }
+            }
+        } else {
+            winValide = false;
+            for (const auto & cond : win.conditions) {
+                if (checkWin(j,cond)) {
+                    winValide = true;
+                    break;
+                }
+            }
+        }
+
+        if (winValide) {
+            std::cout << "Victoire par " << win.name << std::endl;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 
 
 
@@ -150,14 +209,14 @@ bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joue
     if (!peutPayer(cout, j)) return false;
 
     if (!requisSol.empty()) {
-        if (tuile->peutConstrBatimentSpecial(*b) && tuile->getCity() == nullptr) {
+        if (buildSpecialBuilding(j,game,*b,x,y)) {
             j.payer(cout);
             tuile->constrBatimentSpeciale(std::move(b));
             return true;
         }
     } else {
         City* ville = tuile->getCity();
-        if (ville && ville->peutAjouterBatiment()) {
+        if (buildCity(j,game,x,y)) {
             j.payer(cout);
             ville->creeBatiment(std::move(b));
             return true;

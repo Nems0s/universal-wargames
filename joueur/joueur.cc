@@ -18,3 +18,27 @@ void Joueur::payer(const std::map<Ressource*, int>& cout) {
         _inventaire[res] -= qte;
     }
 }
+
+void Joueur::ajouterVille(City* c) {
+    if (c) _cities.push_back(c);
+}
+
+void Joueur::ajouterBatiment(Batiment* b) {
+    if (b) _batiments.push_back(b);
+}
+
+void Joueur::ajouterUnite(Unite* u) {
+    if (u) _unites.push_back(u);
+}
+
+void Joueur::perdreVille(City* c) {
+    _cities.remove(c);
+}
+
+void Joueur::perdreBatiment(Batiment* b) {
+    _batiments.remove(b);
+}
+
+void Joueur::perdreUnite(Unite* u) {
+    _unites.remove(u);
+}

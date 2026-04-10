@@ -19,20 +19,31 @@ private:
 
 public:
 
+    // Faction 
     void setFaction(FactionParams* f) { _faction = f; }
     const FactionParams* getFaction() const { return _faction; }
 
-    int getNbVilles() const { return _cities.size(); }
-
+    // Ressources
     const std::map<Ressource*, int>& getInventaire() const { return _inventaire; }
-
     void ajouterRessource(Ressource* r, int n);
-
     bool consommerRessource(Ressource* r, int n);
-
     void payer(const std::map<Ressource*, int>& cout);
 
+    // Ajout objets
+    void ajouterVille(City* c);
+    void ajouterBatiment(Batiment* b);
+    void ajouterUnite(Unite* u);
+
+    // Action de plateau
+    void perdreVille(City* c);
+    void perdreBatiment(Batiment* b);
+    void perdreUnite(Unite* u);
+
+    // Accesseurs
+    std::string getName() { return _name; }
+    int getNbVilles() const { return _cities.size(); }
     const std::list<City*> & getCities() const { return _cities; }
     const std::list<Unite*> & getUnites() const { return _unites; }
     const std::list<Batiment*> & getBatiments() const { return _batiments; }
+
 };

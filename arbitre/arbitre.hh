@@ -14,6 +14,9 @@ public:
 
     bool coordValid(int x, int y, const board & game) const;
 
+    bool checkWin(const Joueur& j, const WinConditions & win) const;
+    bool verifierVictoire(const Joueur & j, const GameConfig & config) const;
+
 
 
     // --- ZONE PLATEAU & CONSTRUCTION (Toi) ---

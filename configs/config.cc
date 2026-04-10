@@ -1,7 +1,7 @@
 #include "config.hh"
 #include <iostream>
 
-void GameConfig::load(const std::string& chemin) {
+void GameConfig::loadRules(const std::string& chemin) {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {
         std::cerr << "Erreur : Impossible d'ouvrir " << chemin << std::endl;
@@ -32,6 +32,34 @@ void GameConfig::load(const std::string& chemin) {
             }
             _factions[fp.nom] = fp;
         }
+    }
+}
+
+void GameConfig::loadWins(const std::string & chemin) {
+    std::ifstream f(chemin);
+    json data = json::parse(f);
+
+    for (auto& setJson : data["victory_set"]) {
+        VictorySet vSet;
+        vSet.name = setJson["name"];
+        vSet.mode = (setJson["mode"] == "all") ? WinMode::ALL : WinMode::ANY;
+
+        for (auto& item : setJson["conditions"]) {
+            WinConditions cond;
+            std::string typeStr = item["type"];
+
+            if (typeStr == "ressource_thresold") cond.type = WinType::RESOURCE;
+            else if (typeStr == "city_count") cond.type = WinType::CITY_COUNT;
+            else if (typeStr == "unit_count") cond.type = WinType::UNIT_COUNT;
+            else if (typeStr == "require_capital") cond.type = WinType::CAPITAL_REQ;
+
+            cond.resourceName = item.value("target", "");
+            cond.targetAmount = item.value("amount", 0);
+            cond.required = item.value("value", true);
+
+            vSet.conditions.push_back(cond);
+        }
+        _victorySets.push_back(vSet);
     }
 }
 
