@@ -31,16 +31,20 @@ class GameConfig {
     private:
         int _coutBaseVille;
         float _multiplicateurVille;
+        int _distanceMinVilles;
+        int _pvMaxVille;
+        int _degatsVille;
+
         int _maxLevelVille;
         int _rayonBaseVille;
-        int _distanceMinVilles;
+
         std::vector<WinConditions> _winConds;
         std::vector<VictorySet> _victorySets;
 
         std::map<std::string, FactionParams> _factions;
 
     public:
-        GameConfig() : _coutBaseVille(100), _multiplicateurVille(1.5f), _distanceMinVilles(3) {}
+        GameConfig() : _coutBaseVille(100), _multiplicateurVille(1.5f), _distanceMinVilles(3), _pvMaxVille(200), _degatsVille(20) {}
 
         void loadRules(const std::string& chemin);
         void loadWins(const std::string& chemin);
@@ -50,7 +54,11 @@ class GameConfig {
 
         int getCoutBaseVille() const { return _coutBaseVille; }
         float getMultiplicateurVille() const { return _multiplicateurVille; }
+        int getPvMaxVille() const { return _pvMaxVille; }
+        int getDegatsVille() const { return _degatsVille; }
+        
         int getMaxLevelVille() const { return _maxLevelVille; }
+
         int getRayonBaseVille() const { return _rayonBaseVille; }
         int getDistanceMinVilles() const { return _distanceMinVilles; }
         

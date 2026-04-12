@@ -17,6 +17,8 @@ void GameConfig::loadRules(const std::string& chemin) {
         _coutBaseVille = v.value("cout_base_or", 100);
         _multiplicateurVille = v.value("multiplicateur_croissance", 1.5f);
         _distanceMinVilles = v.value("distance_min_entre_villes", 3);
+        _pvMaxVille = v.value("pv_max_base", 200);
+        _degatsVille = v.value("degats_base", 20);
     }
 
     // factions
