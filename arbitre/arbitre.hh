@@ -25,17 +25,17 @@ public:
 
 
     // --- ZONE UNITÉS & COMBAT ---
-    bool peutRecruterUnite();
-    bool validerAchatUnite();
-    bool peutAttaquer();
-    bool verifierPorteeAttaque();
-    bool peutSoigner();
-    bool peutActiverCamouflage();
-    bool peutTransporter();
-    bool peutRejoindreCommandant();
-    bool validerLienHierarchique();
-    bool peutEncoreAgir();
-    bool finaliserAction();
+    bool peutRecruterUnite()const;
+    bool validerAchatUnite()const;
+    bool peutAttaquer()const;
+    bool verifierPorteeAttaque()const;
+    bool peutSoigner()const;
+    bool peutActiverCamouflage()const;
+    bool peutTransporter()const;
+    bool peutRejoindreCommandant()const;
+    bool validerLienHierarchique()const;
+    bool peutEncoreAgir()const;
+    bool finaliserAction()const;
 
 
 };

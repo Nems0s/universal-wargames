@@ -80,7 +80,7 @@ bool Arbitre::validerLienHierarchique()const
 
 }
 
-bool Arbitre::eutEncoreAgir()const
+bool Arbitre::peutEncoreAgir()const
 {
 
 }
