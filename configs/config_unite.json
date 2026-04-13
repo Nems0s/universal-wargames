@@ -3,8 +3,14 @@
         {
             "nom": "Commandant Allie",
             "hp": 150,
+            "action": 2,
             "poids": "Moyen",
             "rank": "Commandant",
+            "max_unites": 5,
+            "cout": {
+                "Or": 100,
+                "Fer": 50
+            },
             "buff_commandant": [
                 { "type": "BonusDegat", "multiplicateur": 15 }
             ],
@@ -15,8 +21,12 @@
         {
             "nom": "Infanterie d'Elite",
             "hp": 100,
+            "action": 2,
             "poids": "Moyen",
             "rank": "Regulier",
+            "cout": {
+                "Or": 50
+            },
             "comportements": [
                 { "type": "AttaqueMelee", "degats": 40 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 3 }
@@ -25,8 +35,13 @@
         {
             "nom": "Tank de Garde",
             "hp": 200,
+            "action": 1,
             "poids": "Lourd",
             "rank": "Regulier",
+            "cout": {
+                "Or": 80,
+                "Fer": 100
+            },
             "comportements": [
                 { "type": "DefenseArmure", "reduction": 15 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 1 }
@@ -35,8 +50,13 @@
         {
             "nom": "Sniper",
             "hp": 80,
+            "action": 2,
             "poids": "Leger",
             "rank": "Regulier",
+            "cout": {
+                "Or": 70,
+                "Fer": 10
+            },
             "comportements": [
                 { "type": "SpecialFurtif", "duree": 2, "cooldown": 2 },
                 { "type": "AttaqueDistance", "degats": 30, "portee": 6, "munitions": 5, "portee_mini": 2 }
@@ -45,8 +65,13 @@
         {
             "nom": "Gros Tank",
             "hp": 250,
+            "action": 1,
             "poids": "Lourd",
             "rank": "Regulier",
+            "cout": {
+                "Or": 150,
+                "Fer": 200
+            },
             "comportements": [
                 { "type": "DefenseBouclier", "nombre_bouclier": 3 }
             ]
@@ -54,8 +79,12 @@
         {
             "nom": "Medecin",
             "hp": 100,
+            "action": 3,
             "poids": "Moyen",
             "rank": "Regulier",
+            "cout": {
+                "Or": 60
+            },
             "comportements": [
                 { "type": "SoinDirect", "soin": 25, "portee": 2, "rayon": 1 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 4 }
@@ -64,8 +93,12 @@
         {
             "nom": "Soldat Blesse",
             "hp": 100,
+            "action": 1,
             "poids": "Moyen",
             "rank": "Regulier",
+            "cout": {
+                "Or": 10
+            },
             "comportements": []
         }
     ]

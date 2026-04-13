@@ -71,7 +71,7 @@ public:
     bool peutConstrBatiment(const Batiment & b) const;
     bool peutConstrBatimentSpecial(const Batiment & b) const;
 
-    void constrVille(int max, bool capitale);
+    void constrVille(const GameConfig& config, int x, int y, int max, bool capitale);
     void constrBatimentSpeciale(std::unique_ptr<Batiment> b);
 
     City * getCity() const;
@@ -140,7 +140,8 @@ public:
     bool deplacerUnite(Unite& u, int xDest, int yDest);
     Unite * getUnite(int x, int y) const;
 
-    void tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur & j);
+    int getRows() const { return _matrix.size(); }
+    int getCols() const { return _matrix.empty() ? 0 : _matrix[0].size(); }
 
 private:
     int _size;

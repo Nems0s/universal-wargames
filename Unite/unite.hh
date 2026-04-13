@@ -8,6 +8,7 @@
 #include "comportement.hh"
 #include "rank.hh"
 #include "orientation.hh"
+#include "ressource.hh"
 
 enum class Poids{Leger, Moyen, Lourd};
 class IComportement;
@@ -26,17 +27,20 @@ private:
     int _health_point;
     int _health_point_max; //Qui servira à savoir les points de vie de l'unité initialiser
     int _moral_point;
+    int _point_action;
+    int _point_action_max;
 
     Poids _poids;
     direction _regarde;
     Coord _location;
     std::shared_ptr<IRank> _rank;
     std::list<std::shared_ptr<IComportement>> _liste_comportements;
+    std::map<Ressource*, int> _cout;
 
     int _temporary_health;
     int _temporary_damage;
 public:
-    Unite(const std::string &name, int hp,Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements);
+    Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout);
     virtual ~Unite() = default;
 
     /*Setters*/
@@ -53,11 +57,14 @@ public:
     int health_point() const;
     int health_point_max() const;
     int moral_point() const;
+    int point_action() const;
+    int point_action_max() const;
     Poids poids() const;
     direction regarde() const;
     Coord location() const;
     std::shared_ptr<IRank> rank() const;
     std::list<std::shared_ptr<IComportement>> liste_comportements() const;
+    std::map<Ressource*, int> cout() const;
     int temporary_health() const;
     int temporary_damage() const;
 
@@ -66,11 +73,13 @@ public:
     void affiche() const;
     void ajouterComportement(std::shared_ptr<IComportement> comp);
     void update();
+
     std::list<CompMouv*> Mobilite() const;
     std::list<CompAtt*> Offensive() const;
     std::list<CompDef*> Defensif() const;
     std::list<CompSoin*> Soin() const;
     CompFurtif* Cammouflage() const;
+    CompTransport* Transport() const;
 
     void resetTemporary_stats();
     std::shared_ptr<Unite> clone() const;
@@ -83,18 +92,18 @@ public:
 class UniteConfigReader {
 public:
     virtual ~UniteConfigReader() = default;
-    virtual void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue) = 0;
+    virtual void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue,const std::map<std::string, Ressource*>& ressources) = 0;
 };
 
 class JsonUniteReader : public UniteConfigReader {
 public:
-    void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue) override;
+    void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue,const std::map<std::string, Ressource*>& ressources) override;
 };
 
 class UniteFactory {
 private:
     std::map<std::string, std::shared_ptr<Unite>> _catalogue;
 public:
-    void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur);
+    void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur,const std::map<std::string, Ressource*>& ressources);
     std::shared_ptr<Unite> create(std::string type);
 };
