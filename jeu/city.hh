@@ -1,22 +1,25 @@
 #pragma once
 #include <vector>
 #include "batiment.hh"
+#include "config.hh"
 
 class City {
     private:
-        int _level;
+        int _x, _y;
+        const GameConfig & _config;
         int _maxLevel;
+        bool _estCapitale;
+        int _level;
+
         float _pvCurrent;
         float _pvMax;
         float _damage;
         size_t _nbBatiments;
-        bool _estCapitale;
+        
         std::vector<std::unique_ptr<Batiment>> _batiments;
-        int _x, _y;
-
+        
     public:
-        City(int max=5, bool capitale=false, int x, int y, const GameConfig & config, int level=1);
-        //level à la fin car comme ça pas besoin de le mettre lors de la création
+        City(int x, int y, const GameConfig& config, int max=5, bool capitale=false, int level=1);
 
         bool peutAjouterBatiment() const;
         void creeBatiment(std::unique_ptr<Batiment> b);

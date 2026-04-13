@@ -3,6 +3,8 @@ bin/
 ue5/
 .vscode/
 .qtcreator/
+UI/imgui/
+UI/imgui-sfml/
 
 # Prerequisites
 *.d

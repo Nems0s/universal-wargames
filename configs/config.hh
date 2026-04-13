@@ -1,5 +1,7 @@
+#pragma once
 #include <string>
 #include <map>
+#include <vector>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -29,6 +31,9 @@ struct VictorySet {
 
 class GameConfig {
     private:
+        int _plateauX;
+        int _plateauY;
+
         int _coutBaseVille;
         float _multiplicateurVille;
         int _distanceMinVilles;
@@ -44,13 +49,16 @@ class GameConfig {
         std::map<std::string, FactionParams> _factions;
 
     public:
-        GameConfig() : _coutBaseVille(100), _multiplicateurVille(1.5f), _distanceMinVilles(3), _pvMaxVille(200), _degatsVille(20) {}
+        GameConfig() : _plateauX(10), _plateauY(10), _coutBaseVille(100), _multiplicateurVille(1.5f), _distanceMinVilles(3), _pvMaxVille(200), _degatsVille(20), _maxLevelVille(5), _rayonBaseVille(2) {}
 
         void loadRules(const std::string& chemin);
         void loadWins(const std::string& chemin);
 
         const std::vector<WinConditions>& getWinConditions() const { return _winConds; }
         const std::vector<VictorySet>& getVictorySets() const { return _victorySets; }
+
+        int getPlateauX() const { return _plateauX; }
+        int getPlateauY() const { return _plateauY; }
 
         int getCoutBaseVille() const { return _coutBaseVille; }
         float getMultiplicateurVille() const { return _multiplicateurVille; }
