@@ -3,8 +3,10 @@
 // ==========================================================
 // LOGIQUE COMMUNE
 // ==========================================================
-bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const {
-    for (auto const& [res, qte] : cout) {
+bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const 
+{
+    for (auto const& [res, qte] : cout) 
+    {
         auto it = j.getInventaire().find(res);
         if (it == j.getInventaire().end() || it->second < qte) return false;
     }
@@ -133,6 +135,14 @@ bool Arbitre::moveUnite(const Joueur & j, const board & game, const Unite & u, i
 
     if (!tuile->estFranchissable(u)) return false;
 
+    for(auto mov : u.Mobilite())
+    {
+        if(!mov->EstCaseValide(u.location(),Coord(xDest,yDest)))
+        {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -235,12 +245,145 @@ bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joue
 
 
 // ==========================================================
-// ZONE UNITÉS - Travail de [NOM COLLÈGUE]
+// ZONE UNITÉS
 // ==========================================================
 // (Lui écrira tout son code ici, bien plus bas dans le fichier)
 
+bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
+{
+    auto unites_joueur = j.getUnites();
+    if(std::find(unites_joueur.begin(), unites_joueur.end(), &unite) != unites_joueur.end())
+    {
+        return true;
+    }
+    else return false;
+}
 
+bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>& cout, const Unite& invocation) const 
+{
+    if (!peutPayer(cout, j)) {
+        return false;
+    }
+    if (invocation.health_point() <= 0) {
+        return false;
+    }
+    return true;
+}
 
+bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const
+{
+    if(attaque.point_action() <= 0)
+    {
+        return false;
+    }
+    if(appartientJoueur(j,attaque)==false || appartientJoueur(j,cible)==true)
+    {
+        return false;
+    }
+
+    auto styles_attaque = attaque.Offensive();
+    auto it = std::find(styles_attaque.begin(), styles_attaque.end(), TypeAttaque);
+
+    if (it != styles_attaque.end() || (*it)->PeuxAttaquer(attaque, cible))
+    {
+        return true;
+    }
+    else return false;
+
+}
+
+bool Arbitre::peutSoigner(const Joueur& j, const Unite& healer, const Unite& cible, CompSoin* const& TypeSoin)const
+{
+    if(healer.point_action() <= 0)
+    {
+        return false;
+    }
+    if(appartientJoueur(j,healer)==false || appartientJoueur(j,cible)==true)
+    {
+        return false;
+    }
+    auto styles_healer = healer.Soin();
+    auto it = std::find(styles_healer.begin(), styles_healer.end(), TypeSoin);
+
+    if (it != styles_healer.end() || (*it)->PeuxSoigner(healer, cible))
+    {
+        if((*it)->estPret())
+        {
+            return true;
+        }
+        else return false;
+        return true;
+    }
+    else return false;
+}
+
+bool Arbitre::peutActiverCamouflage(const Joueur& j, const Unite& unite)const
+{
+    if(unite.point_action() <= 0)
+    {
+        return false;
+    }
+    if(appartientJoueur(j,unite)==false)
+    {
+        return false;
+    }
+    auto cammouflage = unite.Cammouflage();
+    if(cammouflage)
+    {
+        if(cammouflage->estPret() && cammouflage->camoufler() == false)
+        {
+            return true;
+        }
+        else return false;
+    }
+    else return false;
+}
+
+bool Arbitre::peutTransporter(const Joueur& j, const Unite& unite)const
+{
+    if(unite.point_action() <= 0)
+    {
+        return false;
+    }
+    if(appartientJoueur(j,unite)==false)
+    {
+        return false;
+    }
+    auto transport = unite.Transport();
+    if(transport)
+    {
+        if(transport->nb_unite_actuelle() < transport->max_unite_transporter())
+        {
+            return true;
+        }
+        else return false;
+    }
+    else return false;
+}
+
+bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const
+{
+    if(commandant.point_action() <= 0)
+    {
+        return false;
+    }
+    if(appartientJoueur(j,commandant)==false || appartientJoueur(j,unite)==false)
+    {
+        return false;
+    }
+
+    auto r = commandant.rank();
+    auto com = std::dynamic_pointer_cast<Rank_Commandant>(r);
+    if (com) 
+    {
+        if(com->liste_unites().size() < com->get_max_unite())
+        {
+            return true;
+        }
+        else return false;
+    }
+    else return false;
+}
 
 
 

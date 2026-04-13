@@ -87,12 +87,12 @@ bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
     return true;
 }
 
-void TuileConfigurable::constrVille(int max, bool capitale, int x, int y) {
-    if (peutConstrVille()) {
-        _city = std::make_unique<City>(max, capitale, x, y);
+void TuileConfigurable::constrVille(const GameConfig& config, int x, int y, int max, bool capitale) {
+    if (peutConstrVille()) 
+    {
+        _city = std::make_unique<City>(x, y, config, max, capitale);
     }
 }
-
 void TuileConfigurable::constrBatimentSpeciale(std::unique_ptr<Batiment> b) {
     if (peutConstrBatimentSpecial(*b)) {
         _batimentSpecial = std::move(b);

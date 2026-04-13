@@ -1,15 +1,15 @@
 #include "city.hh"
-#include "config.hh"
 
 //===================================================================
 //                          City
 //===================================================================
-City::City(int max, bool capitale, int x, int y, const GameConfig & config, int level):
-    _level(level),
-    _nbBatiments(max),
-    _estCapitale(capitale),
+City::City(int x, int y, const GameConfig & config, int max, bool capitale,int level):
     _x(x),
-    _y(y)
+    _y(y),
+    _config(config),
+    _maxLevel(max),
+    _estCapitale(capitale),
+    _level(level)
 {
     _pvMax = config.getPvMaxVille() * level;
     _pvCurrent = _pvMax;

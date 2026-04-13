@@ -71,7 +71,7 @@ public:
     bool peutConstrBatiment(const Batiment & b) const;
     bool peutConstrBatimentSpecial(const Batiment & b) const;
 
-    void constrVille(int max, bool capitale, int x, int y);
+    void constrVille(const GameConfig& config, int x, int y, int max, bool capitale);
     void constrBatimentSpeciale(std::unique_ptr<Batiment> b);
 
     City * getCity() const;

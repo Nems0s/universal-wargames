@@ -1,6 +1,6 @@
 CXX = g++
 # On ajoute les dossiers au path d'inclusion (-I) pour que les #include "fichier.hh" fonctionnent
-CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib
+CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./arbitre -I./configs
 
 BUILD_DIR = build
 BIN_DIR = bin
@@ -10,7 +10,8 @@ SRC_JEU = $(wildcard jeu/*.cc)
 SRC_JOUEUR = $(wildcard joueur/*.cc)
 SRC_UNITE = $(wildcard unite/*.cc)
 SRC_COMBAT = $(wildcard combat/*.cc)
-SRC = main.cc $(SRC_JEU) $(SRC_JOUEUR) $(SRC_UNITE) $(SRC_COMBAT)
+SRC_ARBITRE = $(wildcard arbitre/*.cc)
+SRC = main.cc $(SRC_JEU) $(SRC_JOUEUR) $(SRC_UNITE) $(SRC_COMBAT) $(SRC_ARBITRE)
 
 # On transforme "jeu/main.cc" en "build/main.o"
 OBJ = $(patsubst %.cc, $(BUILD_DIR)/%.o, $(notdir $(SRC)))
@@ -45,6 +46,9 @@ $(BUILD_DIR)/%.o: unite/%.cc
 
 # Règle générique pour compiler les fichiers de combat/
 $(BUILD_DIR)/%.o: combat/%.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%.o: arbitre/%.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:

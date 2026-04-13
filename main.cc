@@ -227,11 +227,18 @@ int main() {
     
     UniteFactory factory;
     JsonUniteReader reader;
-    
+
     std::string cfgDir = trouverConfigs();
+    JsonRessourceReader resReader;
+    std::map<std::string, Ressource*> ressources;
+    try {
+    resReader.load(cfgDir + "/config_ressources.json", ressources);
+    } catch (const std::exception &e) {
+    throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
+    }
 
     try {
-        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader);
+        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader, ressources);
     } catch (const std::exception& e) {
         std::cerr << "Erreur critique : " << e.what() << std::endl;
         return 1;

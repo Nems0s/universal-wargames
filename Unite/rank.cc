@@ -28,9 +28,16 @@ bool Rank_Regulier::PossedeCommandant() const
 // ==========================================
 //                     Commandant
 // ==========================================
+Rank_Commandant::Rank_Commandant(int max_unites): _max_unites(max_unites){}
+
 void Rank_Commandant::get_role()const
 {
     std::cout<<"Commandant";
+}
+
+int Rank_Commandant::get_max_unite()const
+{
+    return _max_unites;
 }
 
 std::list<std::shared_ptr<Unite>> Rank_Commandant::liste_unites() const
