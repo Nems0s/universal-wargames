@@ -31,10 +31,64 @@ bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) 
 
 
 // ==========================================================
-// ZONE UNITÉS - Travail de [NOM COLLÈGUE]
+// ZONE UNITÉS
 // ==========================================================
 // (Lui écrira tout son code ici, bien plus bas dans le fichier)
 
+bool Arbitre::peutRecruterUnite()const
+{
+
+}
+
+bool Arbitre::validerAchatUnite()const
+{
+    
+}
+
+bool Arbitre::peutAttaquer()const
+{
+
+}
+
+bool Arbitre::verifierPorteeAttaque()const
+{
+
+}
+
+bool Arbitre::peutSoigner()const
+{
+
+}
+
+bool Arbitre::peutActiverCamouflage()const
+{
+
+}
+
+bool Arbitre::peutTransporter()const
+{
+
+}
+
+bool Arbitre::peutRejoindreCommandant()const
+{
+
+}
+
+bool Arbitre::validerLienHierarchique()const
+{
+
+}
+
+bool Arbitre::eutEncoreAgir()const
+{
+
+}
+
+bool Arbitre::finaliserAction()const
+{
+
+}
 
 
 

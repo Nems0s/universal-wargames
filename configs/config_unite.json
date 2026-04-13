@@ -1,0 +1,72 @@
+{
+    "unites": [
+        {
+            "nom": "Commandant Allie",
+            "hp": 150,
+            "poids": "Moyen",
+            "rank": "Commandant",
+            "buff_commandant": [
+                { "type": "BonusDegat", "multiplicateur": 15 }
+            ],
+            "comportements": [
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 2 }
+            ]
+        },
+        {
+            "nom": "Infanterie d'Elite",
+            "hp": 100,
+            "poids": "Moyen",
+            "rank": "Regulier",
+            "comportements": [
+                { "type": "AttaqueMelee", "degats": 40 },
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 }
+            ]
+        },
+        {
+            "nom": "Tank de Garde",
+            "hp": 200,
+            "poids": "Lourd",
+            "rank": "Regulier",
+            "comportements": [
+                { "type": "DefenseArmure", "reduction": 15 },
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 1 }
+            ]
+        },
+        {
+            "nom": "Sniper",
+            "hp": 80,
+            "poids": "Leger",
+            "rank": "Regulier",
+            "comportements": [
+                { "type": "SpecialFurtif", "duree": 2, "cooldown": 2 },
+                { "type": "AttaqueDistance", "degats": 30, "portee": 6, "munitions": 5, "portee_mini": 2 }
+            ]
+        },
+        {
+            "nom": "Gros Tank",
+            "hp": 250,
+            "poids": "Lourd",
+            "rank": "Regulier",
+            "comportements": [
+                { "type": "DefenseBouclier", "nombre_bouclier": 3 }
+            ]
+        },
+        {
+            "nom": "Medecin",
+            "hp": 100,
+            "poids": "Moyen",
+            "rank": "Regulier",
+            "comportements": [
+                { "type": "SoinDirect", "soin": 25, "portee": 2, "rayon": 1 },
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 }
+            ]
+        },
+        {
+            "nom": "Soldat Blesse",
+            "hp": 100,
+            "poids": "Moyen",
+            "rank": "Regulier",
+            "comportements": []
+        }
+    ]
+}

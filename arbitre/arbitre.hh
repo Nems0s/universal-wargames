@@ -24,11 +24,18 @@ public:
 
 
 
-    // --- ZONE UNITÉS & COMBAT (Ton collègue) ---
-
-
-
-    
+    // --- ZONE UNITÉS & COMBAT ---
+    bool peutRecruterUnite();
+    bool validerAchatUnite();
+    bool peutAttaquer();
+    bool verifierPorteeAttaque();
+    bool peutSoigner();
+    bool peutActiverCamouflage();
+    bool peutTransporter();
+    bool peutRejoindreCommandant();
+    bool validerLienHierarchique();
+    bool peutEncoreAgir();
+    bool finaliserAction();
 
 
 };

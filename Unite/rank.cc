@@ -90,19 +90,10 @@ std::string BonusVie::nom() const
     return "Aide";
 }
 
-int BonusVie::appliquer_soin(int valeur, Unite &u)
-{
-    if(valeur + _soin <= u.health_point_max())
-    {
-        return valeur + _soin;
-    }
-    else return u.health_point_max();
-}
 
 int BonusVie::appliquer(int valeur)
 {
-    //ICI pour l'héritage
-    return 0;
+    return valeur + _soin;
 }
 
 

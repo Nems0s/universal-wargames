@@ -13,8 +13,33 @@ class IComportement
 public:
     virtual ~IComportement() = default;
     virtual void affiche() const = 0;
-    virtual void update(Unite& proprietaire) = 0;
 };
+
+/*Donne la fonction update à tout comportement qui change de tour en tour*/
+class IComportementEvolutif
+{
+public:
+    virtual ~IComportementEvolutif() = default;
+    virtual void update() = 0;
+};
+
+class ComportementCooldown
+{
+protected:
+    int _cooldown;         
+    int _current_cooldown;
+
+public:
+    ComportementCooldown(int cooldown);
+
+    int current_cooldown() const;
+    void setCurrent_cooldown(int current_cooldown);
+    int cooldown() const;
+    void setCooldown(int newCooldown);
+
+    bool estPret()const;
+};
+
 
 //===================================================================
 //                     Comportement Mouvement
@@ -29,7 +54,7 @@ public:
     int mov_per_laps() const;
     void setMov_per_laps(int newMov_per_laps);
 
-    virtual bool EstCaseValide(Coord const& actuel, Coord const& cible) = 0;
+    bool EstCaseValide(Coord const& actuel, Coord const& cible);
     virtual NatureMouv Nature()const=0;
 };
 
@@ -39,7 +64,6 @@ public:
     CompMouvVolant(int mouvement_par_tour = 2);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     NatureMouv Nature() const override;
 };
@@ -50,7 +74,6 @@ public:
     CompMouvMarin(int mouvement_par_tour = 1);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     NatureMouv Nature() const override;
 };
@@ -61,7 +84,6 @@ public:
     CompMouvTerrestre(int mouvement_par_tour = 1);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     NatureMouv Nature() const override;
 };
@@ -92,7 +114,6 @@ public:
     CompAttMelee(int damage_point);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
@@ -111,12 +132,11 @@ public:
     void setPortee_mini(int newPortee_mini);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
 
-class CompAttIndirect : public CompAtt
+class CompAttIndirect : public CompAtt, public IComportementEvolutif
 {
 private:
     struct infecter
@@ -139,7 +159,7 @@ public:
     int nombredetourinfection() const;
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
     void AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible);
@@ -168,12 +188,11 @@ public:
     void setArmure(int newArmure);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     int ReductionDegats(int degat_subit) override;
 };
 
-class CompDefBouclier : public CompDef
+class CompDefBouclier : public CompDef, public IComportementEvolutif
 {
 private:
     int _nombre_bouclier;
@@ -184,7 +203,7 @@ public:
     void setNombre_bouclier(int newNombre_bouclier);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     int ReductionDegats(int degat_subit) override;
 };
@@ -192,18 +211,19 @@ public:
 //===================================================================
 //                   Comportement Soin
 //===================================================================
-class CompSoin: public IComportement
+class CompSoin: public IComportement,  public IComportementEvolutif, public ComportementCooldown
 {
 protected:
     int _healing_point;
     int _portee;
 public:
-    CompSoin(int healing_point, int portee);
+    CompSoin(int healing_point, int portee, int cooldown);
 
     int healing_point() const;
     void setHealing_point(int newHealing_point);
     int portee() const;
     void setPortee(int newPortee);
+    
 
     virtual bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const =0;
 };
@@ -213,13 +233,13 @@ class CompSoinDirect: public CompSoin
 private:
     int _rayon;
 public:
-    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2);
+    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2, int cooldown=1);
 
     int rayon() const;
     void setRayon(int newRayon);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
 };
@@ -241,13 +261,13 @@ private:
     int _nombre_de_tour_regeneration;
     std::list<soigner> _liste_soigner;
 public:
-    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2);
+    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2, int cooldown=1);
 
     void setNombreDeTourRegen(int newNombreDeTourRegen);
     int nombredetourregen() const;
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
     void AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible);
@@ -271,33 +291,25 @@ public:
     void setMax_unite_transporter(int newMax_unite_transporter);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
 
     bool MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };
 
-class CompFurtif : public IComportement
+class CompFurtif : public IComportement, public IComportementEvolutif, public ComportementCooldown
 {
 private:
     bool _camoufler;
-    int _nb_tour_cammouflage;
-    int _tour_cooldown;
+    int _duree_max_camouflage;
+    int _tours_restants;
 
-    int _nb_max_cammouflage;
-    int _cooldown;
 public:
-    CompFurtif(int nb_tour_cammouflage = 3, int cooldown = 2);
+    CompFurtif(int duree = 3, int cooldown = 2);
 
     bool camoufler() const;
-    void setCamoufler(bool newCamoufler);
-    int nb_tour_cammouflage() const;
-    void setNb_tour_cammouflage(int newNb_tour_cammouflage);
-    int cooldown() const;
-    void setCooldown(int newCooldown);
 
     void affiche() const override;
-    void update(Unite& proprietaire) override;
+    void update() override;
 
     void ActiveCammouflage();
     void DesactiveCammouflage();

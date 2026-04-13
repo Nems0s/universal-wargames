@@ -50,7 +50,10 @@ void SoinDuCommandant(Unite & u)
             {
                 if(auto soin = std::dynamic_pointer_cast<BonusVie>(buff))
                 {
-                    u.setHealth_point(soin->appliquer_soin(u.health_point(), u));
+                    if(soin->appliquer(u.health_point()) <= u.health_point_max())
+                    {
+                        u.setHealth_point(soin->appliquer(u.health_point()));
+                    }
                 }
             }
         }
@@ -194,9 +197,13 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     {
         return false;
     }
-    if(attaquant.Cammouflage()==nullptr)
+
+    // Sert à eviter un test sur cammouflage alors que l'unite en à pas
+    bool estCamoufle = false;
+    auto furtifAtt = attaquant.Cammouflage();
+    if(furtifAtt && furtifAtt->camoufler()) 
     {
-        return false;
+        estCamoufle = true;
     }
 
     EffetMoral(attaquant, TypeAttaque->damage_point());
@@ -213,12 +220,12 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     int newmoralAtt = 0;
     int newmoralDef = 0;
 
-    if((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) || (attaquant.Cammouflage()->camoufler() == true))
+    if((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) || estCamoufle == true)
     {
         degats_finals = puissance_attaque * 1.5;
         newmoralDef = 2;
         newmoralAtt = 2;
-        if(attaquant.Cammouflage()->camoufler() == true)
+        if(estCamoufle == true)
         {
             attaquant.Cammouflage()->DesactiveCammouflage();
         }
@@ -285,20 +292,27 @@ bool Combat::heal(Unite &healer, CompSoin* const& TypeSoin,Unite & cible)
         return false;
     }
 
-    if(auto* soin = dynamic_cast<CompSoinIndirect*>(*it))
+    if (TypeSoin->estPret() && TypeSoin->PeuxSoigner(healer, cible))
     {
-        if(soin)
+        if(auto* soin = dynamic_cast<CompSoinIndirect*>(*it))
         {
-            soin->AjoutCibleAtteinte(cible.shared_from_this());
+            if(soin)
+            {
+                soin->AjoutCibleAtteinte(cible.shared_from_this());
+                AugmentationMoral(healer, 1);
+                AugmentationMoral(cible, 1);
+            }
         }
+
+        if(cible.health_point() + TypeSoin->healing_point() <= cible.health_point_max())
+        {
+            cible.setHealth_point(cible.health_point() + TypeSoin->healing_point());
+            AugmentationMoral(healer, 1);
+            AugmentationMoral(cible, 2);
+        }
+        return true;
     }
 
-    if(cible.health_point() + TypeSoin->healing_point() <= cible.health_point_max())
-    {
-        cible.setHealth_point(cible.health_point() + TypeSoin->healing_point());
-        AugmentationMoral(healer, 1);
-        AugmentationMoral(cible, 2);
-    }
-    return true;
+    return false;
 }
 
