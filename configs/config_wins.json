@@ -1,0 +1,20 @@
+{
+  "victory_set": [
+    {
+      "name": "Victoire économique",
+      "mode": "all",
+      "conditions": [
+        { "type": "resource_threshold", "target": "Or", "amount": 10000 },
+        { "type": "city_count", "amount": 1 }
+      ]
+    },
+    {
+      "name": "Victoire militaire",
+      "mode": "any",
+      "conditions": [
+        { "type": "city_count", "amount": 10 },
+        { "type": "unit_count", "amount": 50 }
+      ]
+    }
+  ]
+}

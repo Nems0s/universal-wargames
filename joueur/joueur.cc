@@ -13,16 +13,32 @@ bool Joueur::consommerRessource(Ressource* r, int n) {
     }
 }
 
-bool Joueur::peutPayer(const std::map<Ressource*, int>& cout) const {
-    for (auto const& [res, qte] : cout) {
-        auto it = _inventaire.find(res);
-        if (it == _inventaire.end() || it->second < qte) return false;
-    }
-    return true;
-}
-
 void Joueur::payer(const std::map<Ressource*, int>& cout) {
     for (auto const& [res, qte] : cout) {
         _inventaire[res] -= qte;
     }
+}
+
+void Joueur::ajouterVille(City* c) {
+    if (c) _cities.push_back(c);
+}
+
+void Joueur::ajouterBatiment(Batiment* b) {
+    if (b) _batiments.push_back(b);
+}
+
+void Joueur::ajouterUnite(Unite* u) {
+    if (u) _unites.push_back(u);
+}
+
+void Joueur::perdreVille(City* c) {
+    _cities.remove(c);
+}
+
+void Joueur::perdreBatiment(Batiment* b) {
+    _batiments.remove(b);
+}
+
+void Joueur::perdreUnite(Unite* u) {
+    _unites.remove(u);
 }
