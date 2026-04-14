@@ -19,6 +19,9 @@ private:
     std::list<Batiment*> _batiments;
 
 public:
+    Joueur(std::string name) : _name(name), _faction(nullptr) {}
+
+    void debutTour();
 
     // Faction 
     void setFaction(FactionParams* f) { _faction = f; }
@@ -45,6 +48,6 @@ public:
     int getNbVilles() const { return _cities.size(); }
     const std::list<City*> & getCities() const { return _cities; }
     const std::list<Unite*> & getUnites() const { return _unites; }
-    const std::list<Batiment*> & getBatiments() const { return _batiments; }
+    const std::list<Batiment*> & getBatiments() const { return _batiments;}
 
 };

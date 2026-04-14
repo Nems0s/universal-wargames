@@ -1,5 +1,15 @@
 #include "joueur.hh"
 
+void Joueur::debutTour()
+{
+    for(auto uni : _unites)
+    {
+        uni->setPoint_action(uni->point_action_max());
+    }
+
+    //Ajouter la recupération de ressources
+}
+
 void Joueur::ajouterRessource(Ressource* r, int n) {
     _inventaire[r] += n;
 }

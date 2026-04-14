@@ -18,7 +18,8 @@ Unite::Unite(const std::string &name, int hp, int point_action, Poids poids, dir
     _location(loc),
     _rank(r),
     _liste_comportements(liste_comportements),
-    _cout(cout) // Initialisation correcte
+    _cout(cout),
+    _defensif(false)
 {}
 
 std::string Unite::name() const
@@ -49,6 +50,10 @@ int Unite::moral_point() const
 int Unite::point_action() const
 {
     return _point_action;
+}
+void Unite::setPoint_action(int newPoint_action)
+{
+    _point_action = newPoint_action;
 }
 
 int Unite::point_action_max() const
@@ -125,6 +130,11 @@ int Unite::temporary_damage() const
 void Unite::setTemporary_damage(int newTemporary_damage)
 {
     _temporary_damage = newTemporary_damage;
+}
+
+bool Unite::defensif() const
+{
+    return _defensif;
 }
 
 void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
@@ -239,6 +249,12 @@ void Unite::affiche() const
     {
         comp->affiche();
     }
+}
+
+void Unite::changerDefense()
+{
+    if(_defensif == false) _defensif = true;
+    else _defensif = false;
 }
 
 void Unite::resetTemporary_stats()

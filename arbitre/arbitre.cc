@@ -131,19 +131,26 @@ bool Arbitre::moveUnite(const Joueur & j, const board & game, const Unite & u, i
     if (game.getUnite(xDest, yDest) != nullptr) return false;
 
     const hexa* cell = game.getCell(xDest,yDest);
+    if(cell == nullptr) return false;
+    
     const TuileConfigurable* tuile = dynamic_cast<const TuileConfigurable*>(cell);
-
-    if (!tuile->estFranchissable(u)) return false;
-
-    for(auto mov : u.Mobilite())
+    if (tuile && !tuile->estFranchissable(u)) 
     {
-        if(!mov->EstCaseValide(u.location(),Coord(xDest,yDest)))
+        return false;
+    }
+
+    auto mobilites = u.Mobilite();
+    bool deplacementPossible = false;
+    for(auto mov : mobilites)
+    {
+        if(mov->EstCaseValide(u.location(),Coord(xDest,yDest)))
         {
-            return false;
+            deplacementPossible = true;
+            break;
         }
     }
 
-    return true;
+    return deplacementPossible;
 }
 
 bool Arbitre::validPayRessource(Joueur & j, const Batiment & b) {
@@ -272,10 +279,8 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>
 
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const
 {
-    if(attaque.point_action() <= 0)
-    {
-        return false;
-    }
+    if(attaque.point_action() <= 0) return false;
+
     if(appartientJoueur(j,attaque)==false || appartientJoueur(j,cible)==true)
     {
         return false;
@@ -284,7 +289,7 @@ bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& c
     auto styles_attaque = attaque.Offensive();
     auto it = std::find(styles_attaque.begin(), styles_attaque.end(), TypeAttaque);
 
-    if (it != styles_attaque.end() || (*it)->PeuxAttaquer(attaque, cible))
+    if (it != styles_attaque.end() && (*it)->PeuxAttaquer(attaque, cible))
     {
         return true;
     }
@@ -298,21 +303,20 @@ bool Arbitre::peutSoigner(const Joueur& j, const Unite& healer, const Unite& cib
     {
         return false;
     }
-    if(appartientJoueur(j,healer)==false || appartientJoueur(j,cible)==true)
+    if(appartientJoueur(j,healer)==false || appartientJoueur(j,cible)==false)
     {
         return false;
     }
     auto styles_healer = healer.Soin();
     auto it = std::find(styles_healer.begin(), styles_healer.end(), TypeSoin);
 
-    if (it != styles_healer.end() || (*it)->PeuxSoigner(healer, cible))
+    if(it != styles_healer.end() && (*it)->PeuxSoigner(healer, cible))
     {
         if((*it)->estPret())
         {
             return true;
         }
         else return false;
-        return true;
     }
     else return false;
 }
@@ -385,5 +389,47 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
     else return false;
 }
 
+bool Arbitre::peutDechargerTransport(const Joueur& j, const Unite& transporteur, const Unite& transporter, int xDest, int yDest) const
+{
+    if(!appartientJoueur(j, transporteur)) return false;
+    
+    auto transport = transporteur.Transport();
+    if(!transport || transport->nb_unite_actuelle() <= 0) return false;
+
+    bool estPresent = false;
+    auto liste = transport->liste_unite_transporter();
+    for(const auto& unite : liste) 
+    {
+        if(unite.get() == &transporter) 
+        {
+            estPresent = true;
+            break;
+        }
+    }
+    if(!estPresent) return false;
+
+    Coord cible = {xDest, yDest};
+    auto voisins = Voisins(transporteur.location());
+    
+    auto it = std::find(voisins.begin(), voisins.end(), cible);
+    if(it == voisins.end()) 
+    {
+        return false;
+    }
+
+    bool mouvementPossible = false;
+    for(auto* mouv : transporter.Mobilite()) 
+    {
+        if(mouv->EstCaseValide(transporteur.location(), cible)) 
+        {
+            mouvementPossible = true;
+            break;
+        }
+    }
+
+    if(!mouvementPossible) return false;
+    
+    return true;
+}
 
 

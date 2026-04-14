@@ -188,7 +188,7 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     {
         if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
         {
-            return false;
+            return true;
         }
     }
 
