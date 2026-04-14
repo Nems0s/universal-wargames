@@ -390,15 +390,18 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
             {
                 std::string nomRes = it.key();
                 int quantite = it.value();
-
-                // On vérifie que la ressource existe dans la config globale (ressources)
                 if (ressources.count(nomRes)) 
                 {
                     coutUnite[ressources.at(nomRes)] = quantite;
-                }
+                } 
                 else 
                 {
-                    std::cout << "ERREUR CONFIG : La ressource n'existe pas " << std::endl;
+                    std::cout << "ERREUR : Ressource '" << nomRes << "' absente. Ressources connues : ";
+                    for(auto const& [cle, val] : ressources) 
+                    {
+                        std::cout << cle << " ";
+                    }
+                    std::cout << std::endl;
                     toutesRessourcesExistantes = false;
                 }
             }
@@ -444,7 +447,6 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         }
         else
         {
-            // CORRECTION : Ajout de 'nb_action' pour correspondre au constructeur de unite.hh
             catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite);
         }
     }   

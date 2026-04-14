@@ -37,7 +37,7 @@ void JsonRessourceReader::load(const std::string& chemin, std::map<std::string, 
     json data;
     fichier >> data;
 
-    for (auto& item : data["ressouces"]) {
+    for (auto& item : data["ressources"]) {
         std::string nom = item["nom"];
         std::string symb = item["symbole"];
 
