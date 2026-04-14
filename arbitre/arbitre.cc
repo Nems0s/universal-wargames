@@ -124,6 +124,7 @@ bool Arbitre::buildSpecialBuilding(const Joueur & j, const board & game, const B
 bool Arbitre::moveUnite(const Joueur & j, const board & game, const Unite & u, int xDest, int yDest) const {
     if (!coordValid(xDest,yDest,game)) return false;
     if (game.getUnite(xDest, yDest) != nullptr) return false;
+    if(u.point_action() <= 0) return false;
 
     const hexa* cell = game.getCell(xDest,yDest);
     if(cell == nullptr) return false;
@@ -359,6 +360,14 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
         return false;
     }
     if(appartientJoueur(j,commandant)==false || appartientJoueur(j,unite)==false)
+    {
+        return false;
+    }
+
+    Coord cible = unite.location();
+    auto voisins = Voisins(commandant.location());
+    auto it = std::find(voisins.begin(), voisins.end(), cible);
+    if(it == voisins.end()) 
     {
         return false;
     }
