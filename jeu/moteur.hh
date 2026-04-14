@@ -1,3 +1,4 @@
+#pragma once
 #include "arbitre.hh"
 #include "jeu.hh"
 #include <vector>

@@ -1,24 +1,53 @@
 CXX = g++
-# On ajoute les dossiers au path d'inclusion (-I) pour que les #include "fichier.hh" fonctionnent
-CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./arbitre -I./configs
+# Ajout de -I./UI pour tes headers de rendu et ImGui
+CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./UI -I./UI/imgui -I./UI/imgui-sfml -I./configs -I./arbitre
+
+# Bibliothèques à lier (SFML et OpenGL)
+LIBS = -lsfml-graphics -lsfml-window -lsfml-system -lGL
 
 BUILD_DIR = build
 BIN_DIR = bin
 
-# On cherche tous les .cc dans les sous-dossiers
-SRC_JEU = $(wildcard jeu/*.cc)
-SRC_JOUEUR = $(wildcard joueur/*.cc)
-SRC_UNITE = $(wildcard unite/*.cc)
-SRC_COMBAT = $(wildcard combat/*.cc)
-SRC_ARBITRE = $(wildcard arbitre/*.cc)
-SRC = main.cc $(SRC_JEU) $(SRC_JOUEUR) $(SRC_UNITE) $(SRC_COMBAT) $(SRC_ARBITRE)
+# On cherche tous les .cc et les .cpp (pour ImGui)
+SRC_CC = 	$(wildcard jeu/*.cc) $(wildcard joueur/*.cc) \
+        	$(wildcard unite/*.cc) $(wildcard combat/*.cc) \
+            $(wildcard configs/*.cc) $(wildcard arbitre/*.cc) \
+            $(wildcard UI/*.cc)
+SRC_CPP = 	$(wildcard UI/imgui/*.cpp) $(wildcard UI/imgui-sfml/*.cpp)
 
-# On transforme "jeu/main.cc" en "build/main.o"
-OBJ = $(patsubst %.cc, $(BUILD_DIR)/%.o, $(notdir $(SRC)))
+# Transformation en fichiers .o
+OBJ = $(patsubst %.cc, $(BUILD_DIR)/%.o, $(SRC_CC))
+OBJ += $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SRC_CPP))
 
-EXEC = $(BIN_DIR)/main
+# Les 2 executables (terminal et gui)
+EXEC_CLI = $(BIN_DIR)/wargame_cli
+EXEC_GUI = $(BIN_DIR)/wargame_gui
 
-all: $(BUILD_DIR) $(BIN_DIR) $(EXEC)
+
+# -- Raccourcis -- #
+
+# par défaut : utiliser "make" pour tout compiler
+all: $(BUILD_DIR) $(BIN_DIR) $(EXEC_CLI) $(EXEC_GUI)
+
+# "make cli" pour compiler la version console
+cli: $(EXEC_CLI)
+
+# "make gui" pour compiler la version graphique
+gui: $(EXEC_GUI)
+
+
+# -- règles des builds -- #
+
+# Règle pour la version Terminal
+$(EXEC_CLI): $(OBJ) $(BUILD_DIR)/main_console.o | $(BIN_DIR)
+	$(CXX) $(OBJ) $(BUILD_DIR)/main_console.o -o $(EXEC_CLI) $(LIBS)
+
+# Règle pour la version Graphique
+$(EXEC_GUI): $(OBJ) $(BUILD_DIR)/main_gui.o | $(BIN_DIR)
+	$(CXX) $(OBJ) $(BUILD_DIR)/main_gui.o -o $(EXEC_GUI) $(LIBS)
+
+
+# --- règles génériques --- #
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -26,32 +55,17 @@ $(BUILD_DIR):
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-$(EXEC): $(OBJ)
-	$(CXX) $(OBJ) -o $(EXEC)
-
-$(BUILD_DIR)/%.o: %.cc
+# Compilation des fichiers .cc (ton code)
+$(BUILD_DIR)/%.o: %.cc | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Règle générique pour compiler les fichiers de jeu/
-$(BUILD_DIR)/%.o: jeu/%.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Règle générique pour compiler les fichiers de joueur/
-$(BUILD_DIR)/%.o: joueur/%.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Règle générique pour compiler les fichiers de unite/
-$(BUILD_DIR)/%.o: unite/%.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Règle générique pour compiler les fichiers de combat/
-$(BUILD_DIR)/%.o: combat/%.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/%.o: arbitre/%.cc
+# Règle spéciale pour les fichiers .cpp imgui
+$(BUILD_DIR)/%.o: %.cpp | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean
+.PHONY: all clean cli gui

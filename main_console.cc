@@ -8,6 +8,7 @@
 
 // Jeu / Plateau
 #include "jeu.hh"
+#include "config.hh"
 
 // Unite / Combat
 #include "combat.hh"
@@ -69,7 +70,10 @@ void testPlateau() {
     throw std::runtime_error("Erreur monde : " + std::string(e.what()));
   }
 
-  board jeuSpace(10, world);
+  GameConfig config;
+  config.loadRules("configs/config_rules.json");
+
+  board jeuSpace(world, config);
   std::cout << "Plateau de jeu genere avec succes." << std::endl;
   jeuSpace.affichage();
 
@@ -225,16 +229,17 @@ void testSystemeSoin(UniteFactory& factory) {
 int main() {
     std::srand(std::time(nullptr));
     
+    std::map<std::string, Ressource*> ressources;
     UniteFactory factory;
     JsonUniteReader reader;
-
+    
     std::string cfgDir = trouverConfigs();
+
     JsonRessourceReader resReader;
-    std::map<std::string, Ressource*> ressources;
     try {
-    resReader.load(cfgDir + "/config_ressources.json", ressources);
+        resReader.load(cfgDir + "/config_ressources.json", ressources);
     } catch (const std::exception &e) {
-    throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
+        throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
     }
 
     try {

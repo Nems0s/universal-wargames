@@ -3,8 +3,7 @@
 // ==========================================================
 // LOGIQUE COMMUNE
 // ==========================================================
-bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const 
-{
+bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const {
     for (auto const& [res, qte] : cout) 
     {
         auto it = j.getInventaire().find(res);
@@ -81,10 +80,6 @@ bool Arbitre::verifierVictoire(const Joueur& j, const GameConfig & config) const
 
     return false;
 }
-
-
-
-
 
 
 // ==========================================================
@@ -244,17 +239,9 @@ bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joue
 }
 
 
-
-
-
-
-
-
-
 // ==========================================================
 // ZONE UNITÉS
 // ==========================================================
-// (Lui écrira tout son code ici, bien plus bas dans le fichier)
 
 bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
 {
