@@ -6,7 +6,8 @@
 #include "batiment.hh"
 #include "city.hh"
 #include "unite.hh"
-#include "../joueur/joueur.hh"
+#include "joueur.hh"
+#include "config.hh"
 
 //===================================================================
 //                              Tools
@@ -71,7 +72,7 @@ public:
     bool peutConstrBatiment(const Batiment & b) const;
     bool peutConstrBatimentSpecial(const Batiment & b) const;
 
-    void constrVille(const GameConfig& config, int x, int y, int max, bool capitale);
+    void constrVille(int x, int y, const GameConfig& config, int max, bool capitale);
     void constrBatimentSpeciale(std::unique_ptr<Batiment> b);
 
     City * getCity() const;
@@ -101,7 +102,7 @@ class WorldFactory {
         std::unique_ptr<hexa> createTile(char symbole);
         std::unique_ptr<hexa> createRandomTile();
 
-        void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int size);
+        void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int width, int height);
 
         bool estVide() const;
 };
@@ -131,7 +132,7 @@ public:
 
 class board {
 public:
-    board(int size, WorldFactory & world);
+    board(WorldFactory & world, const GameConfig& c);
 
     const hexa* getCell(int i, int j) const;
     void affichage() const;
@@ -144,7 +145,9 @@ public:
     int getCols() const { return _matrix.empty() ? 0 : _matrix[0].size(); }
 
 private:
-    int _size;
+    int _width;
+    int _height;
+    const GameConfig& _config;
     std::vector<std::vector<std::unique_ptr<hexa>>> _matrix;
     std::map<std::pair<int, int>, std::unique_ptr<Unite>> _unites;
 };

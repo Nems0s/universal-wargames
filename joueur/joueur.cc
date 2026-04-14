@@ -1,4 +1,5 @@
 #include "joueur.hh"
+#include "combat.hh"
 
 void Joueur::debutTour()
 {
@@ -51,4 +52,76 @@ void Joueur::perdreBatiment(Batiment* b) {
 
 void Joueur::perdreUnite(Unite* u) {
     _unites.remove(u);
+}
+
+void Joueur::Attaquer(Unite& attaque, Unite& cible, CompAtt* const& TypeAttaque) 
+{
+
+    bool succes = Combat::fight(attaque, TypeAttaque, cible); 
+    if (succes) 
+    {
+        attaque.setPoint_action(attaque.point_action() - 1);
+    }
+}
+
+void Joueur::Soigner(Unite& healer, Unite& cible, CompSoin* const& TypeSoin) 
+{
+    bool succes = Combat::heal(healer, TypeSoin, cible);
+    
+    if (succes) 
+    {
+        healer.setPoint_action(healer.point_action() - 1);
+    }
+}
+
+void Joueur::ActiverCamouflage(Unite& unite) 
+{
+    auto furtif = unite.Cammouflage();
+    if (furtif) 
+    {
+        furtif->ActiveCammouflage();
+        unite.setPoint_action(unite.point_action() - 1);
+    }
+}
+
+void Joueur::Transporter(Unite& transporteur, Unite& passager) 
+{
+    auto transport = transporteur.Transport();
+    if (transport) 
+    {
+        transport->MonterUnite(transporteur, passager.shared_from_this());
+        transporteur.setPoint_action(transporteur.point_action() - 1);
+    }
+}
+
+void Joueur::RejoindreCommandant(Unite& commandant, Unite& unite) 
+{
+    auto rankCom = std::dynamic_pointer_cast<Rank_Commandant>(commandant.rank());
+    auto rankReg = std::dynamic_pointer_cast<Rank_Regulier>(unite.rank());
+
+    if (rankCom && rankReg)
+    {
+        rankCom->ajout_unite(unite.shared_from_this()); 
+        rankReg->setCommandant(commandant.shared_from_this());
+        
+        commandant.setPoint_action(commandant.point_action() - 1);
+    }
+}
+
+void Joueur::DechargerTransport(Unite& transporteur, Unite& passager, int xDest, int yDest) 
+{
+    auto transport = transporteur.Transport();
+    if (transport) 
+    {
+        transport->DescenteUniteUnite(transporteur, passager.shared_from_this());
+        passager.setLocation({xDest, yDest});
+        transporteur.setPoint_action(transporteur.point_action() - 1);
+    }
+}
+
+
+void Joueur::ChangerPositionDefensive(Unite& unite)
+{
+    unite.changerDefense();
+    unite.setPoint_action(0);
 }

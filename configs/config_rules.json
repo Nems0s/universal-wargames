@@ -1,27 +1,31 @@
 {
-    "regles_villes": {
-        "cout_base": 100,
-        "multiplicateur": 1.5,
-        "distance_min_entre_villes": 3,
-        "pv_max_base": 200,
-        "degats_base": 20
+    "taille_plateau": {
+        "x": 100,
+        "y": 100
     },
     "factions": [
         {
             "nom": "Humains",
             "specifications": {
-                "radiation": 0.2,
                 "gravite": 1,
+                "radiation": 0.2,
                 "temperature": 40
             }
         },
         {
             "nom": "Extraterrestres",
             "specifications": {
-                "radiation": 0.8,
                 "gravite": 2,
+                "radiation": 0.8,
                 "temperature": 120
             }
         }
-    ]
+    ],
+    "regles_villes": {
+        "cout_base": 100,
+        "degats_base": 20,
+        "distance_min_entre_villes": 3,
+        "multiplicateur": 1.5,
+        "pv_max_base": 200
+    }
 }

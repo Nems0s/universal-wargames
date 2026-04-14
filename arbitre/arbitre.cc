@@ -3,8 +3,7 @@
 // ==========================================================
 // LOGIQUE COMMUNE
 // ==========================================================
-bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const 
-{
+bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const {
     for (auto const& [res, qte] : cout) 
     {
         auto it = j.getInventaire().find(res);
@@ -83,10 +82,6 @@ bool Arbitre::verifierVictoire(const Joueur& j, const GameConfig & config) const
 }
 
 
-
-
-
-
 // ==========================================================
 // ZONE PLATEAU
 // ==========================================================
@@ -129,6 +124,7 @@ bool Arbitre::buildSpecialBuilding(const Joueur & j, const board & game, const B
 bool Arbitre::moveUnite(const Joueur & j, const board & game, const Unite & u, int xDest, int yDest) const {
     if (!coordValid(xDest,yDest,game)) return false;
     if (game.getUnite(xDest, yDest) != nullptr) return false;
+    if(u.point_action() <= 0) return false;
 
     const hexa* cell = game.getCell(xDest,yDest);
     if(cell == nullptr) return false;
@@ -244,17 +240,9 @@ bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joue
 }
 
 
-
-
-
-
-
-
-
 // ==========================================================
 // ZONE UNITÉS
 // ==========================================================
-// (Lui écrira tout son code ici, bien plus bas dans le fichier)
 
 bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
 {
@@ -372,6 +360,14 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
         return false;
     }
     if(appartientJoueur(j,commandant)==false || appartientJoueur(j,unite)==false)
+    {
+        return false;
+    }
+
+    Coord cible = unite.location();
+    auto voisins = Voisins(commandant.location());
+    auto it = std::find(voisins.begin(), voisins.end(), cible);
+    if(it == voisins.end()) 
     {
         return false;
     }
