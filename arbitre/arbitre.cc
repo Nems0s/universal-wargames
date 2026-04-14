@@ -125,6 +125,7 @@ bool Arbitre::moveUnite(const Joueur & j, const board & game, const Unite & u, i
     if (!coordValid(xDest,yDest,game)) return false;
     if (game.getUnite(xDest, yDest) != nullptr) return false;
     if(u.point_action() <= 0) return false;
+    if(appartientJoueur(j,u)==false) return false;
 
     const hexa* cell = game.getCell(xDest,yDest);
     if(cell == nullptr) return false;
@@ -376,7 +377,7 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
     auto com = std::dynamic_pointer_cast<Rank_Commandant>(r);
     if (com) 
     {
-        if(com->liste_unites().size() < com->get_max_unite())
+        if(com->liste_unites().size() < static_cast<std::size_t>(com->get_max_unite())) // Obliger de retyper pour eviter le warning
         {
             return true;
         }

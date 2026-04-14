@@ -230,7 +230,7 @@ void testSystemeSoin(UniteFactory& factory) {
 int main() {
     std::srand(std::time(nullptr));
     
-    std::map<std::string, Ressource*> ressources;
+    std::map<std::string, Ressource*> liste_ressources;
     UniteFactory factory;
     JsonUniteReader reader;
     
@@ -238,13 +238,13 @@ int main() {
 
     JsonRessourceReader resReader;
     try {
-        resReader.load(cfgDir + "/config_ressources.json", ressources);
+        resReader.load(cfgDir + "/config_ressources.json", liste_ressources);
     } catch (const std::exception &e) {
         throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
     }
 
     try {
-        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader, ressources);
+        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader, liste_ressources);
     } catch (const std::exception& e) {
         std::cerr << "Erreur critique : " << e.what() << std::endl;
         return 1;
