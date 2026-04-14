@@ -37,8 +37,10 @@ private:
     std::list<std::shared_ptr<IComportement>> _liste_comportements;
     std::map<Ressource*, int> _cout;
 
+    bool _defensif;
     int _temporary_health;
     int _temporary_damage;
+
 public:
     Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout);
     virtual ~Unite() = default;
@@ -46,6 +48,7 @@ public:
     /*Setters*/
     void setHealth_point(int newHealth_point);
     void setMoral_point(int newMoral_point);
+    void setPoint_action(int newPoint_action);
     void setPoids(Poids newPoids);
     void setRegarde(direction newRegarde);
     void setLocation(const Coord &newLocation);
@@ -67,6 +70,7 @@ public:
     std::map<Ressource*, int> cout() const;
     int temporary_health() const;
     int temporary_damage() const;
+    bool defensif() const;
 
     /*Méthodes*/
     // void movement(Case const& c);
@@ -81,6 +85,7 @@ public:
     CompFurtif* Cammouflage() const;
     CompTransport* Transport() const;
 
+    void changerDefense();
     void resetTemporary_stats();
     std::shared_ptr<Unite> clone() const;
 };

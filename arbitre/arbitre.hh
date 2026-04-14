@@ -50,5 +50,6 @@ public:
     bool peutActiverCamouflage(const Joueur& j, const Unite& unite)const;
     bool peutTransporter(const Joueur& j, const Unite& unite)const;
     bool peutRejoindreCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const;
+    bool peutDechargerTransport(const Joueur& j, const Unite& transporteur,const Unite& transporter, int xDest, int yDest) const;
 
 };

@@ -172,6 +172,8 @@ void EffetMoral(Unite & u, int degatsArme)
 //==============================================================================
 bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defenseur)
 {
+    if(attaquant.defensif()) return false;
+
     auto styles_attaque = attaquant.Offensive();
     auto it = std::find(styles_attaque.begin(), styles_attaque.end(), TypeAttaque);
 
@@ -220,7 +222,7 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     int newmoralAtt = 0;
     int newmoralDef = 0;
 
-    if((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) || estCamoufle == true)
+    if(((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) && (defenseur.defensif() == false))|| estCamoufle == true )
     {
         degats_finals = puissance_attaque * 1.5;
         newmoralDef = 2;
