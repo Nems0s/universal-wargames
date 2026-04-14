@@ -2,6 +2,7 @@
 #include <vector>
 #include "batiment.hh"
 #include "config.hh"
+#include "config.hh"
 
 class City {
     private:
@@ -17,7 +18,8 @@ class City {
         size_t _nbBatiments;
         
         std::vector<std::unique_ptr<Batiment>> _batiments;
-        
+
+
     public:
         City(int x, int y, const GameConfig& config, int max=5, bool capitale=false, int level=1);
 

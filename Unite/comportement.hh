@@ -292,6 +292,8 @@ public:
 
     void affiche() const override;
 
+    int nb_unite_actuelle()const;
+
     bool MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };

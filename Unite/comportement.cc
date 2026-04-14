@@ -551,6 +551,11 @@ void CompTransport::affiche() const
     std::cout << "[Special] Transport : " << _liste_unite_transporter.size()<<"/"<< _max_unite_transporter << std::endl;
 }
 
+int CompTransport::nb_unite_actuelle()const
+{
+    return _liste_unite_transporter.size();
+}
+
 bool CompTransport::MonterUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur)
 {
     auto cases_possibles = Voisins(Voyageur->location());

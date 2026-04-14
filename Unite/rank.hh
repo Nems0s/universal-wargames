@@ -77,9 +77,12 @@ class Rank_Commandant : public IRank
 private:
     std::list<std::shared_ptr<Unite>> _liste_unites;
     std::list<std::shared_ptr<IBonus>> _liste_bonus;
+    int _max_unites;
 public:
+    Rank_Commandant(int max_unites);
 
     void get_role()const override;
+    int get_max_unite()const;
 
     std::list<std::shared_ptr<Unite>> liste_unites() const;
     std::list<std::shared_ptr<IBonus> > liste_bonus() const;

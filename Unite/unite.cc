@@ -6,16 +6,19 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-Unite::Unite(const std::string &name, int hp,Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements)
+Unite::Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
     _moral_point(0),
+    _point_action(point_action),
+    _point_action_max(point_action),
     _poids(poids),
     _regarde(dir),
     _location(loc),
     _rank(r),
-    _liste_comportements(liste_comportements)
+    _liste_comportements(liste_comportements),
+    _cout(cout) // Initialisation correcte
 {}
 
 std::string Unite::name() const
@@ -41,6 +44,16 @@ int Unite::health_point_max() const
 int Unite::moral_point() const
 {
     return _moral_point;
+}
+
+int Unite::point_action() const
+{
+    return _point_action;
+}
+
+int Unite::point_action_max() const
+{
+    return _point_action_max;
 }
 
 void Unite::setMoral_point(int newMoral_point)
@@ -87,6 +100,11 @@ std::shared_ptr<IRank> Unite::rank() const
 std::list<std::shared_ptr<IComportement> > Unite::liste_comportements() const
 {
     return _liste_comportements;
+}
+
+std::map<Ressource*, int> Unite::cout() const
+{
+    return _cout;
 }
 
 int Unite::temporary_health() const
@@ -196,6 +214,18 @@ CompFurtif* Unite::Cammouflage() const
     return nullptr;
 }
 
+CompTransport* Unite::Transport() const
+{
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* transport = dynamic_cast<CompTransport*>(comp_ptr.get()))
+        {
+            return transport;
+        }
+    }
+    return nullptr;
+}
+
 void Unite::affiche() const
 {
     std::cout << "=== [" << _name << "] ===" << std::endl;
@@ -235,8 +265,8 @@ Poids stringToPoids(const std::string& s)
     return Poids::Moyen;
 }
 
-std::shared_ptr<IRank> stringToRank(const std::string& s) {
-    if (s == "Commandant") return std::make_shared<Rank_Commandant>();
+std::shared_ptr<IRank> stringToRank(const std::string& s, int max_unite=0) {
+    if (s == "Commandant") return std::make_shared<Rank_Commandant>(max_unite);
     else return std::make_shared<Rank_Regulier>();
 }
 
@@ -315,7 +345,7 @@ std::shared_ptr<IComportement> createComp(const json& jComp)
     return nullptr;
 }
 
-void JsonUniteReader::load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue) 
+void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std::shared_ptr<Unite>>& catalogue, const std::map<std::string, Ressource*>& ressources)
 {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {
@@ -330,17 +360,41 @@ void JsonUniteReader::load(const std::string& chemin,std::map<std::string, std::
     {
         std::string nom = item.value("nom", "Erreur");
         int hp = item.value("hp", 0);
+        int nb_action = item.value("action", 0); //
 
         Poids poids = Poids::Moyen;
         if(item.contains("poids")) poids = stringToPoids(item["poids"]);
 
+        std::map<Ressource*, int> coutUnite;
+        bool toutesRessourcesExistantes = true;
+
+        if (item.contains("cout")) 
+        {
+            for (auto it = item["cout"].begin(); it != item["cout"].end(); ++it) 
+            {
+                std::string nomRes = it.key();
+                int quantite = it.value();
+
+                // On vérifie que la ressource existe dans la config globale (ressources)
+                if (ressources.count(nomRes)) 
+                {
+                    coutUnite[ressources.at(nomRes)] = quantite;
+                }
+                else 
+                {
+                    std::cout << "ERREUR CONFIG : La ressource n'existe pas " << std::endl;
+                    toutesRessourcesExistantes = false;
+                }
+            }
+        }
+
         std::shared_ptr<IRank> rank = stringToRank("Regulier");
         if(item.contains("rank"))
         {
-            rank = stringToRank(item["rank"]);
-            if(item["rank"] == "Commandant")
+            if(item["rank"] == "Commandant" && item.contains("max_unites"))
             {
-                if (item.contains("buff_commandant"))// Vérifie l'existance de la clé
+                rank = stringToRank(item["rank"], item["max_unites"]);
+                if (item.contains("buff_commandant"))
                 {
                     for (auto& bonus : item["buff_commandant"])
                     {
@@ -351,6 +405,7 @@ void JsonUniteReader::load(const std::string& chemin,std::map<std::string, std::
                     }
                 }
             }
+            else rank = stringToRank(item["rank"]);
         }
 
         std::list<std::shared_ptr<IComportement>> listeComp;
@@ -359,27 +414,22 @@ void JsonUniteReader::load(const std::string& chemin,std::map<std::string, std::
             for (auto& comp : item["comportements"]) 
             {
                 auto ajout = createComp(comp);
-                if(ajout != nullptr) 
-                {
-                    listeComp.push_back(ajout);
-                }
+                if(ajout != nullptr) listeComp.push_back(ajout);
             }
         }
-
 
         if((nom == "Erreur") || (hp == 0)) 
         {
-            std::cout<<"Erreur dans la génération de l'unité !"<<std::endl;
+            std::cout << "Erreur dans la génération de l'unité !" << std::endl;
+        }
+        else if (!toutesRessourcesExistantes)
+        {
+            std::cout << "L'unite '" << nom << "' n'a pas ete creee car ses ressources sont invalides." << std::endl;
         }
         else
         {
-            /*if (listeComp.empty()) 
-            {
-                std::cout << "Attention l'unite " << nom << " n'a aucun comportement." << std::endl;
-            }
-            else std::cout << "L'unite " << nom << ", avec " << listeComp.size()<< " comportements" << std::endl;*/
-            
-            catalogue[nom] = std::make_shared<Unite>(nom, hp, poids, direction::est, Coord{0,0}, rank, listeComp);
+            // CORRECTION : Ajout de 'nb_action' pour correspondre au constructeur de unite.hh
+            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite);
         }
     }   
 }
@@ -388,9 +438,9 @@ void JsonUniteReader::load(const std::string& chemin,std::map<std::string, std::
 // ==========================================
 //                 Factory
 // ==========================================
-void UniteFactory::chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur)
+void UniteFactory::chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur, const std::map<std::string, Ressource*>& ressources)
 {
-    lecteur.load(chemin, _catalogue);
+    lecteur.load(chemin, _catalogue, ressources);
 }
 
 std::shared_ptr<Unite> UniteFactory::create(std::string type) 

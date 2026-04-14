@@ -73,7 +73,7 @@ void testPlateau() {
   GameConfig config;
   config.loadRules("configs/config_rules.json");
 
-  board jeuSpace(10, world, config);
+  board jeuSpace(world, config);
   std::cout << "Plateau de jeu genere avec succes." << std::endl;
   jeuSpace.affichage();
 
@@ -229,13 +229,21 @@ void testSystemeSoin(UniteFactory& factory) {
 int main() {
     std::srand(std::time(nullptr));
     
+    std::map<std::string, Ressource*> ressources;
     UniteFactory factory;
     JsonUniteReader reader;
     
     std::string cfgDir = trouverConfigs();
 
+    JsonRessourceReader resReader;
     try {
-        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader);
+        resReader.load(cfgDir + "/config_ressources.json", ressources);
+    } catch (const std::exception &e) {
+        throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
+    }
+
+    try {
+        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader, ressources);
     } catch (const std::exception& e) {
         std::cerr << "Erreur critique : " << e.what() << std::endl;
         return 1;

@@ -9,29 +9,24 @@ using json = nlohmann::json;
 //===================================================================
 TuileConfigurable::TuileConfigurable(const TuileData* data) : _d(data) {}
 
-std::string TuileConfigurable::getType() const
-{
+std::string TuileConfigurable::getType() const {
     return _d->nom;
 }
 
-char TuileConfigurable::getSymbole() const
-{
+char TuileConfigurable::getSymbole() const {
     return _d->symbole;
 }
 
-int TuileConfigurable::getCoutDeplacement() const
-{
+int TuileConfigurable::getCoutDeplacement() const {
     return _d->cout;
 }
 
-std::vector<Ressource *> TuileConfigurable::getRessource() const
-{
+std::vector<Ressource *> TuileConfigurable::getRessource() const {
     return _d->ressourceSpeciale;
 }
 
 
-bool TuileConfigurable::estFranchissable(const Unite& u) const
-{
+bool TuileConfigurable::estFranchissable(const Unite& u) const {
     bool peutnager = false;
     bool peutvoler = false;
     bool peutmarcher = false;
@@ -99,13 +94,11 @@ void TuileConfigurable::constrBatimentSpeciale(std::unique_ptr<Batiment> b) {
     }
 }
 
-City * TuileConfigurable::getCity() const
-{
+City * TuileConfigurable::getCity() const {
     return _city.get();
 }
 
-float TuileConfigurable::getStat(const std::string & key) const
-{
+float TuileConfigurable::getStat(const std::string & key) const {
     auto itLocal = _localStats.find(key);
     if (itLocal != _localStats.end()) return itLocal->second;
 
@@ -115,19 +108,15 @@ float TuileConfigurable::getStat(const std::string & key) const
     return 0;
 }
 
-void TuileConfigurable::setStat(const std::string & key, float val)
-{
+void TuileConfigurable::setStat(const std::string & key, float val) {
     _localStats[key] = val;
 }
-//===================================================================
-//===================================================================
-//===================================================================
+
 
 //===================================================================
 //                              Board
 //===================================================================
-board::board(WorldFactory & world, const GameConfig& config): _config(config)
-{
+board::board(WorldFactory & world, const GameConfig& config): _config(config) {
     _width = config.getPlateauX();
     _height = config.getPlateauY();
 
@@ -213,15 +202,11 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     return true;
 }
 
-//===================================================================
-//===================================================================
-//===================================================================
 
 //===================================================================
 //                          Factory/Config
 //===================================================================
-void WorldFactory::ajouterAuCatalogue(char symbole, const TuileData& data)
-{
+void WorldFactory::ajouterAuCatalogue(char symbole, const TuileData& data) {
     _catalogue[symbole] = data;
 }
 
@@ -299,8 +284,7 @@ void WorldFactory::postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>
     }
 }
 
-bool WorldFactory::estVide() const
-{
+bool WorldFactory::estVide() const {
     return _catalogue.empty();
 }
 

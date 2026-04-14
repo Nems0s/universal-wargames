@@ -5,6 +5,8 @@
 
 #include "joueur.hh"
 #include "jeu.hh"
+#include "unite.hh"
+#include "comportement.hh"
 
 class Arbitre {
 private:
@@ -40,11 +42,13 @@ public:
 
     bool peutDetruireBatiment(const Joueur & j, const Batiment & b) const;
 
-    // --- ZONE UNITÉS & COMBAT (Ton collègue) ---
-
-
-
-    
-
+    // --- ZONE UNITÉS & COMBAT ---
+    bool appartientJoueur(const Joueur& j, const Unite& unite)const;
+    bool peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>& cout, const Unite& invocation)const;
+    bool peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const;
+    bool peutSoigner(const Joueur& j, const Unite& healer, const Unite& cible, CompSoin* const& TypeSoin)const;
+    bool peutActiverCamouflage(const Joueur& j, const Unite& unite)const;
+    bool peutTransporter(const Joueur& j, const Unite& unite)const;
+    bool peutRejoindreCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const;
 
 };
