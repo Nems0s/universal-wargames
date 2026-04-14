@@ -19,7 +19,8 @@
 // ============================================================
 //               Recherche du dossier configs
 // ============================================================
-std::string trouverConfigs() {
+std::string trouverConfigs() 
+{
   if (std::filesystem::exists("configs"))
     return "configs";
   if (std::filesystem::exists("../configs"))
@@ -30,10 +31,10 @@ std::string trouverConfigs() {
       "Dossier 'configs' introuvable ! Verifiez le repertoire de travail.");
 }
 
-// Helper pour afficher les stats d'une unité
-void afficherEtat(const Unite& u) {
-    std::cout << "[" << u.name() << "] HP: " << u.health_point() << "/" << u.health_point_max() 
-              << " | Moral: " << u.moral_point() << std::endl;
+//Afficher les unitées
+void afficherEtat(const Unite& u) 
+{
+    std::cout<<"[" << u.name()<<"] HP: "<< u.health_point()<<"/" << u.health_point_max()<<" | Moral: "<< u.moral_point()<<std::endl;
 }
 
 // ============================================================
@@ -246,7 +247,8 @@ int main() {
 
     int choix = -1;
     // Changement de la condition de boucle : 8 est Quitter
-    while(choix != 8) {
+    while(choix != 8) 
+    {
         std::cout << "\n========================================" << std::endl;
         std::cout << "       SPACE WARGAMES : TEST SUITE" << std::endl;
         std::cout << "========================================" << std::endl;
@@ -292,6 +294,5 @@ int main() {
                 break;
         }
     }
-
     return 0;
 }
