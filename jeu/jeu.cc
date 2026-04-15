@@ -154,8 +154,9 @@ void board::affichage() const {
     }
 }
 
-void board::placerUnite(int x, int y, std::unique_ptr<Unite> u) {
-    if (x >= 0 && x < _height && y >= 0 && y < _width) {
+void board::placerUnite(int x, int y, std::shared_ptr<Unite> u) {
+    if (x >= 0 && x < _height && y >= 0 && y < _width) 
+    {
         _unites[{x, y}] = std::move(u);
     }
 }

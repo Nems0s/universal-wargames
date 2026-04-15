@@ -1,6 +1,6 @@
 CXX = g++
 # Ajout de -I./UI pour tes headers de rendu et ImGui
-CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./UI -I./UI/imgui -I./UI/imgui-sfml -I./configs -I./arbitre
+CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./UI -I./UI/imgui -I./UI/imgui-sfml -I./configs -I./arbitre -I./gameloop
 
 # Bibliothèques à lier (SFML et OpenGL)
 LIBS = -lsfml-graphics -lsfml-window -lsfml-system -lGL

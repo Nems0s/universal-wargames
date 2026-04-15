@@ -21,8 +21,6 @@ private:
 public:
     Joueur(std::string name) : _name(name), _faction(nullptr) {}
 
-    void debutTour();
-
     // Faction 
     void setFaction(FactionParams* f) { _faction = f; }
     const FactionParams* getFaction() const { return _faction; }

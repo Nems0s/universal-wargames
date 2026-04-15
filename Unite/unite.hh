@@ -73,7 +73,6 @@ public:
     bool defensif() const;
 
     /*Méthodes*/
-    // void movement(Case const& c);
     void affiche() const;
     void ajouterComportement(std::shared_ptr<IComportement> comp);
     void update();

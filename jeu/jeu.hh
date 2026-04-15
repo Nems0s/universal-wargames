@@ -137,7 +137,7 @@ public:
     const hexa* getCell(int i, int j) const;
     void affichage() const;
 
-    void placerUnite(int x, int y, std::unique_ptr<Unite> u);
+    void placerUnite(int x, int y, std::shared_ptr<Unite> u);
     bool deplacerUnite(Unite& u, int xDest, int yDest);
     Unite * getUnite(int x, int y) const;
 
@@ -149,6 +149,6 @@ private:
     int _height;
     const GameConfig& _config;
     std::vector<std::vector<std::unique_ptr<hexa>>> _matrix;
-    std::map<std::pair<int, int>, std::unique_ptr<Unite>> _unites;
+    std::map<std::pair<int, int>, std::shared_ptr<Unite>> _unites;
 };
 
