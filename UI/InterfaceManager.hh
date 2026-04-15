@@ -13,6 +13,8 @@
 #include "config.hh"
 #include "SaveManager.hh"
 #include "NetworkManager.hh"
+#include "arbitre.hh"
+#include "ressource.hh"
 
 using json = nlohmann::json;
 
@@ -28,14 +30,15 @@ private:
     std::vector<Joueur> _joueurs;
 
     // Gestion de la configuration JSON
-    json _configJson; // On n'utilise plus qu'un seul objet JSON
-    json _espaceJson;
+    json _configJson;
     std::string _configPath = "configs/config_rules.json";
     GameConfig _logicConfig; // Ta classe de logique
     
     // Logique du jeu
     std::unique_ptr<board> _board;
     WorldFactory _factory;
+    std::map<std::string, Ressource*> _ressourcesDispo;
+    BatimentFactory _batimentFactory;
     
     // Paramètres d'initialisation
     int _gridSize = 10;
@@ -125,6 +128,19 @@ private:
     
     void sendChatMessage(const std::string& msg); // Fonction d'envoi
     void renderChatWindow();                      // Fenêtre UI du chat
+
+    // Arbitre
+    Arbitre _arbitre;
+
+    bool _showPopup = false;
+    std::string _popupMsg = "";
+
+    // --- Mode Ciblage Unités ---
+    bool _isTargetingMove = false;
+    bool _isTargetingAttack = false;
+    int _unitSourceX = -1;
+    int _unitSourceY = -1;
+    std::vector<std::pair<int, int>> _casesPossibles;
 };
 
 #endif

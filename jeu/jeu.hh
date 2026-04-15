@@ -76,15 +76,20 @@ public:
     void constrBatimentSpeciale(std::unique_ptr<Batiment> b);
 
     City * getCity() const;
+    const Batiment* getBatimentSpecial() const { return _batimentSpecial.get(); }
 
     float getStat(const std::string & key) const;
     void setStat(const std::string & key, float val);
+
+    void setProprietaire(Joueur* j) { _proprietaire = j; }
+    Joueur* getProprietaire() const { return _proprietaire; }
 
 private:
     const TuileData* _d; // Pour eviter de dupliquer les même tuiles (comme espace)
     std::map<std::string, float> _localStats; // données modifiés des struct
     std::unique_ptr<City> _city;
     std::unique_ptr<Batiment> _batimentSpecial;
+    Joueur* _proprietaire = nullptr;
 };
 
 
@@ -106,6 +111,8 @@ class WorldFactory {
         void overrideWeights(const std::map<char, int>& overrides);
 
         bool estVide() const;
+
+        const std::map<char, TuileData>& getCatalogue() const { return _catalogue; }
 };
 
 class WorldConfigReader {

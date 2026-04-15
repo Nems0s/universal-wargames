@@ -371,3 +371,27 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
     }
     else return false;
 }
+
+std::vector<std::pair<int, int>> Arbitre::getCasesDeplacementPossibles(const board& game, const Unite& u) const {
+    std::vector<std::pair<int, int>> casesPossibles;
+    
+    int maxMouv = 0;
+    for (auto mov : u.Mobilite()) {
+        if (mov->mov_per_laps() > maxMouv) maxMouv = mov->mov_per_laps();
+    }
+
+    int ux = u.location().first;
+    int uy = u.location().second;
+
+    Joueur dummy;
+
+    for (int x = std::max(0, ux - maxMouv); x <= std::min(game.getRows() - 1, ux + maxMouv); ++x) {
+        for (int y = std::max(0, uy - maxMouv); y <= std::min(game.getCols() - 1, uy + maxMouv); ++y) {
+            
+            if (moveUnite(dummy, game, u, x, y)) {
+                casesPossibles.push_back({x, y});
+            }
+        }
+    }
+    return casesPossibles;
+}

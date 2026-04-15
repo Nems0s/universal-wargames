@@ -27,6 +27,9 @@ class City {
         void creeBatiment(std::unique_ptr<Batiment> b);
         bool estCapitale() const;
         void product(Joueur & j);
+        void upgrade();
+
+        const std::vector<std::unique_ptr<Batiment>>& getBatiments() const { return _batiments; }
 
         int getLevel() const { return _level; }
         int getMaxLevel() const { return _maxLevel; }

@@ -32,33 +32,36 @@ InterfaceManager::InterfaceManager(sf::RenderWindow& window)
 }
 
 void InterfaceManager::loadConfig() {
-    std::cout << "[INIT] 1. Chargement de config_rules.json..." << std::endl;
     try {
-        std::ifstream file(_configPath);
-        if (file.is_open()) {
-            file >> _configJson;
-            file.close();
-            _logicConfig.loadRules(_configPath);
-            std::cout << "[INIT] -> config_rules.json OK !" << std::endl;
-        } else {
-            std::cerr << "[ERREUR] Impossible d'ouvrir " << _configPath << std::endl;
-        }
-    } catch (const json::exception& e) {
-        std::cerr << "[CRASH JSON] Erreur de syntaxe dans config_rules.json : " << e.what() << std::endl;
-    }
+        std::cout << "[INIT] Chargement de la configuration globale..." << std::endl;
 
-    std::cout << "[INIT] 2. Chargement de config_espace.json..." << std::endl;
-    try {
-        std::ifstream fEspace("configs/config_espace.json");
-        if (fEspace.is_open()) {
-            fEspace >> _espaceJson;
-            fEspace.close();
-            std::cout << "[INIT] -> config_espace.json OK !" << std::endl;
-        } else {
-            std::cerr << "[ERREUR] Attention : config_espace.json introuvable." << std::endl;
+        // 1. Initialisation du tampon JSON pour le menu Options (config_rules.json)
+        std::ifstream fRules(_configPath);
+        if (fRules.is_open()) {
+            fRules >> _configJson; // On garde ce JSON pour les modifs dans renderOptions
+            fRules.close();
         }
-    } catch (const json::exception& e) {
-        std::cerr << "[CRASH JSON] Erreur de syntaxe dans config_espace.json : " << e.what() << std::endl;
+
+        // 2. Charger les Ressources (indispensable pour les bâtiments et les tuiles)
+        JsonRessourceReader resReader;
+        resReader.load("configs/config_ressources.json", _ressourcesDispo);
+
+        // 3. Charger les Bâtiments dans la Factory
+        JsonBatimentReader batReader;
+        _batimentFactory.chargerConfiguration("configs/config_batiments.json", batReader, _ressourcesDispo);
+
+        // 4. Charger les Règles de jeu (Factions, Coûts villes, etc.)
+        _logicConfig.loadRules(_configPath);
+        _logicConfig.loadWins("configs/config_wins.json");
+
+        // 5. Pré-charger les types de tuiles dans la Factory du monde
+        JsonWorldReader worldReader;
+        _factory.initialiserBords();
+        worldReader.chargerConfig("configs/config_espace.json", _ressourcesDispo, _factory);
+
+        std::cout << "[INIT] -> Toute la configuration est chargee avec succes." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "[ERREUR FATALE] Echec de loadConfig : " << e.what() << std::endl;
     }
 }
 
@@ -118,24 +121,68 @@ void InterfaceManager::run() {
                         }
 
                         if (bestI != -1 && minDist <= R) {
-                            if (_joueurs[_localPlayerIndex].estDecouvert(bestI, bestJ)) {
-                                _selectedCellX = bestI; _selectedCellY = bestJ; _hasSelection = true;
+                            
+                            // 1. SI ON EST EN MODE DEPLACEMENT
+                            if (_isTargetingMove) {
+                                // On vérifie que la case cliquée fait bien partie des cases valides
+                                bool caseValide = false;
+                                for (const auto& p : _casesPossibles) {
+                                    if (p.first == bestI && p.second == bestJ) {
+                                        caseValide = true; break;
+                                    }
+                                }
+                                
+                                if (caseValide) {
+                                    Unite* u = _board->getUnite(_unitSourceX, _unitSourceY);
+                                    if (u) {
+                                        // Le Moteur/Plateau effectue l'action validée
+                                        _board->deplacerUnite(*u, bestI, bestJ);
+                                        
+                                        // Transmission réseau
+                                        bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
+                                        if (isMultiplayer) {
+                                            sf::Packet p;
+                                            p << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << _unitSourceX << _unitSourceY << bestI << bestJ;
+                                            _network.sendData(p);
+                                        }
+                                    }
+                                }
+                                
+                                // Fin du ciblage (qu'on ait cliqué au bon endroit ou non)
+                                _isTargetingMove = false; 
+                                _hasSelection = false;    
+                                _casesPossibles.clear();  // On vide la mémoire de l'UI
                             }
-                        } else { _hasSelection = false; }
+                            // 2. SELECTION CLASSIQUE
+                            else {
+                                int viewIndex = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING) ? _localPlayerIndex : _currentPlayerTurn;
+                                if (_joueurs[viewIndex].estDecouvert(bestI, bestJ)) {
+                                    _selectedCellX = bestI; 
+                                    _selectedCellY = bestJ; 
+                                    _hasSelection = true;
+                                }
+                            }
+                        } else { 
+                            _hasSelection = false; 
+                            _isTargetingMove = false;
+                            _casesPossibles.clear();
+                        }
                     }
                 }
             }
 
             // Zoom et Déplacement (Clic droit)
-            if (event.type == sf::Event::MouseWheelScrolled) {
+            if (event.type == sf::Event::MouseWheelScrolled && !ImGui::GetIO().WantCaptureMouse) {
                 float factor = (event.mouseWheelScroll.delta > 0) ? 0.9f : 1.1f;
                 _gameView.zoom(factor);
                 _currentZoom *= factor;
             }
-            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right) {
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right && !ImGui::GetIO().WantCaptureMouse) {
                 _isPanning = true; _lastMousePos = sf::Mouse::getPosition(_window);
             }
-            if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Right) _isPanning = false;
+            if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Right) {
+                _isPanning = false;
+            }
             if (event.type == sf::Event::MouseMoved && _isPanning) {
                 sf::Vector2i newPos = sf::Mouse::getPosition(_window);
                 _gameView.move(_window.mapPixelToCoords(_lastMousePos, _gameView) - _window.mapPixelToCoords(newPos, _gameView));
@@ -321,8 +368,6 @@ void InterfaceManager::loadTextures() {
 
 void InterfaceManager::initGame() {
     JsonWorldReader reader;
-    std::map<std::string, Ressource*> resEmpty;
-    
     _factory = WorldFactory(); 
 
     try {
@@ -330,7 +375,7 @@ void InterfaceManager::initGame() {
         _factory.initialiserBords(); 
 
         // 3. Charger les tuiles depuis le JSON
-        reader.chargerConfig("configs/config_espace.json", resEmpty, _factory);
+        reader.chargerConfig("configs/config_espace.json", _ressourcesDispo, _factory);
         
         // 4. Vérification de sécurité
         if (_factory.estVide()) {
@@ -641,6 +686,21 @@ void InterfaceManager::updateNetworkLoop() {
                 // 2. L'Hôte lance la partie
                 case PacketType::GAME_START: {
                     if (packet >> _mapSeed >> _numPlayers) {
+                        
+                        sf::Int32 sizeX, sizeY, weightsCount;
+                        packet >> sizeX >> sizeY >> weightsCount;
+                        
+                        _configJson["taille_plateau"]["x"] = sizeX;
+                        _configJson["taille_plateau"]["y"] = sizeY;
+                        saveConfig();
+
+                        _customWeights.clear();
+                        for (int i = 0; i < weightsCount; ++i) {
+                            sf::Int32 symb, w;
+                            packet >> symb >> w;
+                            _customWeights[static_cast<char>(symb)] = w;
+                        }
+
                         _connectedPlayers.clear();
                         _playerFactions.clear();
                         
@@ -651,14 +711,14 @@ void InterfaceManager::updateNetworkLoop() {
                             _connectedPlayers.push_back({pName, pFact});
                             _playerFactions.push_back(pFact);
                             
-                            // CRUCIAL : Le client identifie quel est son numéro de joueur !
+                            // Le client identifie quel est son numéro de joueur !
                             if (pName == std::string(_playerNameBuffer)) {
                                 _localPlayerIndex = i;
                             }
                         }
                         
                         std::srand(_mapSeed);
-                        initGame(); // Construit la map et place les joueurs
+                        initGame(); // Construit la map identique à l'Hôte
                         
                         _currentState = GameState::IN_GAME;
                     }
@@ -705,7 +765,51 @@ void InterfaceManager::updateNetworkLoop() {
                     break;
                 }
 
-                // TODO plus tard : Ajouter ACTION_BUILD, ATTACK, etc.
+                case PacketType::ACTION_BUILD: {
+                    sf::Int32 senderIdx;
+                    int x, y;
+                    std::string batNom;
+                    
+                    // L'Hôte reçoit la demande d'un client
+                    if (_network.isHost() && (packet >> senderIdx >> x >> y >> batNom)) {
+                        auto nvBat = _batimentFactory.create(batNom);
+                        
+                        // L'Arbitre vérifie les ressources du client et valide
+                        if (senderIdx < (sf::Int32)_joueurs.size() && 
+                            _arbitre.tenterConstruction(x, y, std::move(nvBat), _joueurs[senderIdx], *_board)) {
+                            
+                            // Si c'est valide, l'Hôte prévient TOUS les joueurs
+                            sf::Packet syncP;
+                            syncP << static_cast<sf::Int32>(PacketType::SYNC_BUILD);
+                            syncP << senderIdx << x << y << batNom;
+                            _network.sendData(syncP); 
+                        }
+                    }
+                    break;
+                }
+
+                case PacketType::SYNC_BUILD: {
+                    sf::Int32 targetIdx;
+                    int x, y;
+                    std::string batNom;
+                    
+                    // Le Client reçoit l'ordre de l'hôte
+                    if (!_network.isHost() && (packet >> targetIdx >> x >> y >> batNom)) {
+                        
+                        // 1. Mise à jour SILENCIEUSE du plateau et des inventaires
+                        if (targetIdx < (sf::Int32)_joueurs.size()) {
+                            auto nvBat = _batimentFactory.create(batNom);
+                            _arbitre.tenterConstruction(x, y, std::move(nvBat), _joueurs[targetIdx], *_board);
+                        }
+                        
+                        // 2. POP-UP UNIQUEMENT SI C'EST MOI LE CONSTRUCTEUR
+                        if (targetIdx == _localPlayerIndex) {
+                            _popupMsg = batNom + " construit avec succes !";
+                            _showPopup = true;
+                        }
+                    }
+                    break;
+                }
             }
         }
     }
@@ -903,20 +1007,20 @@ void InterfaceManager::renderMapConfig() {
         ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "TILE DISTRIBUTION (%%)"); // FIX WARNING (%)
         ImGui::Dummy(ImVec2(0, 10));
 
-        if (_espaceJson.contains("tiles")) {
-            for (auto& t : _espaceJson["tiles"]) {
-                std::string nom = t["nom"];
-                char symb = std::string(t["symbole"])[0];
-                
+        if (!_factory.estVide()) {
+            for (const auto& [symb, data] : _factory.getCatalogue()) {
+                // On ne met pas de slider pour la bordure invisible
+                if (symb == '#') continue; 
+
                 // Initialiser si vide
                 if (_customWeights.find(symb) == _customWeights.end()) 
-                    _customWeights[symb] = t["gen"]["poids"];
+                    _customWeights[symb] = data.gen.poids;
 
-                ImGui::Text("%s:", nom.c_str());
+                ImGui::Text("%s:", data.nom.c_str());
                 ImGui::SliderInt((std::string("##w_") + symb).c_str(), &_customWeights[symb], 0, 100);
             }
         } else {
-            ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Erreur: Impossible de lire config_espace.json");
+            ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Erreur: Catalogue de tuiles vide.");
         }
 
         ImGui::EndTable();
@@ -935,21 +1039,28 @@ void InterfaceManager::renderMapConfig() {
         
         // Si on est connecté et qu'on est l'hôte, on envoie toutes les infos
         if (_network.getState() == NetworkState::CONNECTED && _network.isHost()) {
-            sf::Packet startPacket;
-            startPacket << static_cast<sf::Int32>(PacketType::GAME_START);
-            startPacket << _mapSeed << _numPlayers; 
-            
-            for (int i = 0; i < _numPlayers; ++i) {
-                // FIX WARNING : Ajout du (int)
-                std::string pName = (i < (int)_connectedPlayers.size()) ? _connectedPlayers[i].name : "IA " + std::to_string(i);
-                std::string pFact = (i < (int)_playerFactions.size()) ? _playerFactions[i] : "";
-                startPacket << pName << pFact;
-            }
-            _network.sendData(startPacket);
-        }
+        sf::Packet startPacket;
+        startPacket << static_cast<sf::Int32>(PacketType::GAME_START);
+        startPacket << _mapSeed << _numPlayers; 
         
-        _currentState = GameState::IN_GAME;
+        startPacket << static_cast<sf::Int32>(_configJson["taille_plateau"]["x"]);
+        startPacket << static_cast<sf::Int32>(_configJson["taille_plateau"]["y"]);
+        
+        startPacket << static_cast<sf::Int32>(_customWeights.size());
+        for (auto const& [symb, weight] : _customWeights) {
+            startPacket << static_cast<sf::Int32>(symb) << static_cast<sf::Int32>(weight);
+        }
+
+        for (int i = 0; i < _numPlayers; ++i) {
+            std::string pName = (i < (int)_connectedPlayers.size()) ? _connectedPlayers[i].name : "IA " + std::to_string(i);
+            std::string pFact = (i < (int)_playerFactions.size()) ? _playerFactions[i] : "";
+            startPacket << pName << pFact;
+        }
+        _network.sendData(startPacket);
     }
+    
+    _currentState = GameState::IN_GAME;
+}
 
     ImGui::End();
 }
@@ -970,106 +1081,150 @@ void InterfaceManager::renderGame() {
     _window.setView(_gameView);
     if (!_board) return;
 
+    // --- GESTION DU MODE LOCAL VS MULTI ---
+    bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
+    int viewIndex = isMultiplayer ? _localPlayerIndex : _currentPlayerTurn; 
+    bool isMyTurn = !isMultiplayer || (_currentPlayerTurn == _localPlayerIndex);
+
     float R = _tileSize / 2.0f;
     float W = std::sqrt(3.0f) * R;
 
-    // --- OPTIMISATION : View Culling ---
+    // OPTIMISATION : View Culling
     sf::Vector2f center = _gameView.getCenter();
     sf::Vector2f size = _gameView.getSize();
-
-    // On calcule exactement quelles lignes/colonnes sont à l'écran
     int startRow = std::max(0, (int)((center.y - size.y/2) / (1.5f * R)) - 1);
     int endRow = std::min(_board->getRows(), (int)((center.y + size.y/2) / (1.5f * R)) + 2);
     int startCol = std::max(0, (int)((center.x - size.x/2) / W) - 1);
     int endCol = std::min(_board->getCols(), (int)((center.x + size.x/2) / W) + 2);
 
-    // ==========================================================
-    // CREATION DES FORMES (HORS DE LA BOUCLE !)
-    // C'est le secret pour retrouver 100% de fluidité
-    // ==========================================================
+    // Formes pour le brouillard et la sélection
     sf::ConvexShape hexFog(6);
-    sf::ConvexShape hexTex(6);
     sf::ConvexShape hexSelect(6);
-
     for (int i = 0; i < 6; ++i) {
         float angle = (3.14159f / 180.0f) * (60.0f * i - 30.0f);
         sf::Vector2f pt(R * std::cos(angle), R * std::sin(angle));
         hexFog.setPoint(i, pt);
-        hexTex.setPoint(i, pt);
         hexSelect.setPoint(i, pt);
     }
-
-    // 1. Apparence fixe du Brouillard
     hexFog.setFillColor(sf::Color(5, 5, 15));
     hexFog.setOutlineColor(sf::Color(255, 255, 255, 40));
     hexFog.setOutlineThickness(1.0f);
 
-    // 2. Apparence fixe des Tuiles (La ligne blanche est gérée ici !)
-    hexTex.setFillColor(sf::Color::White); // Blanc pour ne pas assombrir l'image
-    hexTex.setOutlineColor(sf::Color(255, 255, 255, 150)); // Contour blanc bien visible
-    hexTex.setOutlineThickness(1.0f);
-
-    // 3. Apparence fixe de la Sélection
     hexSelect.setFillColor(sf::Color(255, 255, 255, 80));
     hexSelect.setOutlineColor(sf::Color::White);
     hexSelect.setOutlineThickness(2.0f);
 
     // ==========================================================
-    // BOUCLE DE RENDU (Instantanée)
+    // BOUCLE DE RENDU DES TUILES
     // ==========================================================
     for (int i = startRow; i < endRow; ++i) {
         for (int j = startCol; j < endCol; ++j) {
-            
             float posX = W * j + W * 0.5f * (std::abs(i) % 2);
             float posY = 1.5f * R * i;
 
-            bool visible = (_localPlayerIndex < _joueurs.size()) ? _joueurs[_localPlayerIndex].estDecouvert(i, j) : true;
+            bool visible = (viewIndex < (int)_joueurs.size()) ? _joueurs[viewIndex].estDecouvert(i, j) : true;
 
-            // DESSIN : BROUILLARD
             if (!visible) {
                 hexFog.setPosition(posX, posY);
                 _window.draw(hexFog);
                 continue;
             }
 
-            // DESSIN : TUILE DÉCOUVERTE
             const hexa* tile = _board->getCell(i, j);
             if (tile && _textures.count(tile->getSymbole())) {
-                // On se contente de lier la texture et bouger la forme. SFML découpera l'image automatiquement !
-                hexTex.setTexture(&_textures[tile->getSymbole()]);
-                hexTex.setPosition(posX, posY);
-                _window.draw(hexTex);
+                sf::Texture& tex = _textures[tile->getSymbole()];
+                
+                // --- FIX TEXTURE : TriangleFan à 8 points (Centre + 6 coins + fermeture) ---
+                sf::VertexArray hexTex(sf::TriangleFan, 8); 
+                sf::Vector2f texCenter(tex.getSize().x / 2.0f, tex.getSize().y / 2.0f);
+                
+                hexTex[0].position = sf::Vector2f(posX, posY);
+                hexTex[0].texCoords = texCenter;
+                hexTex[0].color = sf::Color::White;
+
+                // pt <= 6 permet de créer le 7eme sommet extérieur pour fermer la boucle !
+                for (int pt = 0; pt <= 6; ++pt) {
+                    float angle = (3.14159f / 180.0f) * (60.0f * (pt % 6) - 30.0f);
+                    hexTex[pt+1].position = sf::Vector2f(posX + R * std::cos(angle), posY + R * std::sin(angle));
+                    hexTex[pt+1].texCoords = sf::Vector2f(
+                        texCenter.x + std::cos(angle) * (tex.getSize().x / 2.0f),
+                        texCenter.y + std::sin(angle) * (tex.getSize().y / 2.0f)
+                    );
+                    hexTex[pt+1].color = sf::Color::White;
+                }
+                _window.draw(hexTex, &tex);
             }
 
-            // DESSIN : SÉLECTION
+            // DESSIN DES SYMBOLES (Ville / Batiment)
+            const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(tile);
+            if (tc) {
+                if (tc->getCity()) {
+                    // Maison pentagonale pour les villes
+                    sf::ConvexShape house(5);
+                    house.setPoint(0, sf::Vector2f(0, -15));
+                    house.setPoint(1, sf::Vector2f(15, -5));
+                    house.setPoint(2, sf::Vector2f(15, 15));
+                    house.setPoint(3, sf::Vector2f(-15, 15));
+                    house.setPoint(4, sf::Vector2f(-15, -5));
+                    
+                    house.setPosition(posX, posY);
+                    house.setFillColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(0, 200, 255));
+                    house.setOutlineThickness(2.0f);
+                    house.setOutlineColor(sf::Color::Black);
+                    _window.draw(house);
+                }
+                if (tc->getBatimentSpecial()) {
+                    sf::CircleShape gear(8, 6);
+                    gear.setOrigin(8, 8);
+                    gear.setPosition(posX, posY + 10);
+                    gear.setFillColor(sf::Color(150, 150, 150));
+                    gear.setOutlineThickness(1.0f);
+                    gear.setOutlineColor(sf::Color::Black);
+                    _window.draw(gear);
+                }
+            }
+
             if (_hasSelection && _selectedCellX == i && _selectedCellY == j) {
                 hexSelect.setPosition(posX, posY);
                 _window.draw(hexSelect);
             }
-            
-            // INDICATION DE CAPITALE (Si tu avais gardé la couronne)
-            const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(tile);
-            if (tc && tc->getCity() && tc->getCity()->estCapitale()) {
-                sf::CircleShape crown(8, 5); 
-                crown.setFillColor(sf::Color(255, 215, 0));
-                crown.setOutlineColor(sf::Color::Black);
-                crown.setOutlineThickness(1);
-                crown.setPosition(posX - 8, posY - 15);
-                _window.draw(crown);
+
+            // DESSIN DU MODE CIBLAGE (Zone Jaune via l'Arbitre)
+            if (_isTargetingMove) {
+                // On vérifie si la case actuelle est dans la liste renvoyée par l'arbitre
+                bool isPossible = false;
+                for (const auto& casePos : _casesPossibles) {
+                    if (casePos.first == i && casePos.second == j) {
+                        isPossible = true;
+                        break;
+                    }
+                }
+                
+                // Si oui, on dessine l'hexagone jaune
+                if (isPossible) {
+                    sf::ConvexShape hexMove = hexSelect; // On clone la forme de sélection
+                    hexMove.setFillColor(sf::Color(255, 255, 0, 50)); // Jaune transparent
+                    hexMove.setOutlineColor(sf::Color::Yellow);
+                    hexMove.setPosition(posX, posY);
+                    _window.draw(hexMove);
+                }
             }
         }
     }
 
+    // ========================================================
+    // INTERFACE HUD (Fixe)
+    // ========================================================
     _window.setView(sf::View(sf::FloatRect(0, 0, _window.getSize().x, _window.getSize().y)));
 
     // --------------------------------------------------------
-    // 1. BARRE SUPERIEURE (Top Bar - Ressources et Tour)
+    // 1. TOP BAR & MENU DÉROULANT DES RESSOURCES
     // --------------------------------------------------------
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(_window.getSize().x, 40));
-    ImGui::Begin("TopBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground);
+    ImGui::Begin("TopBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
     
-    // Fond semi-transparent fait maison
+    // Fond semi-transparent
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->AddRectFilled(ImVec2(0, 0), ImVec2(_window.getSize().x, 40), IM_COL32(20, 25, 35, 220));
 
@@ -1077,183 +1232,463 @@ void InterfaceManager::renderGame() {
     ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "Tour : %d", _currentTurnNumber);
     ImGui::SameLine(100);
 
-    // Affichage des NOMS réels :
-    if (_currentPlayerTurn < _joueurs.size() && _currentPlayerTurn < _playerFactions.size()) {
+    if (_currentPlayerTurn < (int)_joueurs.size() && _currentPlayerTurn < (int)_playerFactions.size()) {
         ImGui::Text("Joueur actuel : %s (%s)", _joueurs[_currentPlayerTurn].getName().c_str(), _playerFactions[_currentPlayerTurn].c_str());
+    }
+
+    // --- NOUVEAU : MENU DÉROULANT DES RESSOURCES ---
+    if (viewIndex < (int)_joueurs.size()) {
+        ImGui::SameLine(500); // Position sur la barre du haut
+        ImGui::SetNextItemWidth(250);
+        std::string comboLabel = "Ressources de " + _joueurs[viewIndex].getName();
+        if (ImGui::BeginCombo("##ressources", comboLabel.c_str())) {
+            const auto& inv = _joueurs[viewIndex].getInventaire();
+            if (inv.empty()) {
+                ImGui::TextDisabled("Aucune ressource disponible.");
+            } else {
+                for (auto const& [res, qte] : inv) {
+                    if (res) {
+                        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%s :", res->getName().c_str());
+                        ImGui::SameLine(150);
+                        ImGui::Text("%d", qte);
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
     }
     
     ImGui::SameLine(_window.getSize().x - 150);
     if (ImGui::Button("Menu Principal")) _currentState = GameState::MENU;
-    ImGui::End();
-
     ImGui::SameLine(_window.getSize().x - 300);
-    if (ImGui::Button("Sauvegarder")) {
-        SaveManager::saveGame("save.json", this);
-    }
-
-    // --------------------------------------------------------
-    // 2. MINIMAP (En bas à gauche)
-    // --------------------------------------------------------
-    ImVec2 minimapSize(250, 200);
-    ImGui::SetNextWindowPos(ImVec2(0, _window.getSize().y - minimapSize.y));
-    ImGui::SetNextWindowSize(minimapSize);
-    ImGui::Begin("Minimap", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "MINIMAP");
-    ImGui::Separator();
-    ImGui::TextDisabled("(Rendu de la minimap ici)");
-    // Plus tard : tu pourras dessiner un RenderTexture SFML de ta carte dézoomée ici
+    if (ImGui::Button("Sauvegarder")) SaveManager::saveGame("save.json", this);
     ImGui::End();
 
-
     // --------------------------------------------------------
-    // 3. BOUTON TOUR SUIVANT (En bas à droite)
+    // 2. BOUTON FIN DE TOUR (Inchagé)
     // --------------------------------------------------------
     ImVec2 nextTurnSize(200, 100);
     ImGui::SetNextWindowPos(ImVec2(_window.getSize().x - nextTurnSize.x, _window.getSize().y - nextTurnSize.y));
     ImGui::SetNextWindowSize(nextTurnSize);
     ImGui::Begin("NextTurnBox", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
-    
-    // Style gros bouton doré
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.2f, 0.4f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.7f, 0.3f, 1.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
     
-    // On désactive le bouton si ce n'est pas notre tour
-    bool isMyTurn = (_currentPlayerTurn == _localPlayerIndex);
     if (!isMyTurn) ImGui::BeginDisabled();
-    
     if (ImGui::Button("TOUR SUIVANT\n>>", ImVec2(180, 80))) {
-        // Logique locale
         _currentPlayerTurn++;
         if (_currentPlayerTurn >= _numPlayers) {
             _currentPlayerTurn = 0;
             _currentTurnNumber++;
         }
         _hasSelection = false;
-        
-        // --- ENVOI RÉSEAU ---
-        sf::Packet turnPacket;
-        turnPacket << static_cast<sf::Int32>(PacketType::END_TURN);
-        _network.sendData(turnPacket);
+        if (isMultiplayer) {
+            sf::Packet turnPacket; turnPacket << static_cast<sf::Int32>(PacketType::END_TURN);
+            _network.sendData(turnPacket);
+        } else {
+            if (_currentPlayerTurn < (int)_joueurs.size() && !_joueurs[_currentPlayerTurn].getCities().empty()) {
+                City* cap = _joueurs[_currentPlayerTurn].getCities().front();
+                _gameView.setCenter(W * cap->getY() + W * 0.5f * (std::abs(cap->getX()) % 2), 1.5f * R * cap->getX());
+            }
+        }
     }
-    
     if (!isMyTurn) ImGui::EndDisabled();
 
-    // Si ce n'est pas mon tour, on affiche une alerte au centre !
     if (!isMyTurn) {
-        ImVec2 center = ImVec2(_window.getSize().x * 0.5f, _window.getSize().y * 0.2f);
-        ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImVec2 centerUi = ImVec2(_window.getSize().x * 0.5f, _window.getSize().y * 0.2f);
+        ImGui::SetNextWindowPos(centerUi, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::Begin("WaitBox", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
-        
         ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Veuillez patienter...");
         ImGui::Separator();
         ImGui::Text("En attente de : %s", _joueurs[_currentPlayerTurn].getName().c_str());
-        
         ImGui::End();
     }
-    
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(2);
     ImGui::End();
 
-
     // --------------------------------------------------------
-    // 4. PANNEAU D'ACTIONS (En bas au centre)
+    // 3. MINIMAP (Interactive avec Zoom, Pan et Clic)
     // --------------------------------------------------------
-    float actionPanelWidth = _window.getSize().x - minimapSize.x - nextTurnSize.x;
-    ImGui::SetNextWindowPos(ImVec2(minimapSize.x, _window.getSize().y - 150));
-    ImGui::SetNextWindowSize(ImVec2(actionPanelWidth, 150));
-    ImGui::Begin("ActionPanel", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    ImVec2 minimapWinSize(300, 250); // Un peu plus grand pour le confort
+    ImGui::SetNextWindowPos(ImVec2(0, _window.getSize().y - minimapWinSize.y));
+    ImGui::SetNextWindowSize(minimapWinSize);
+    ImGui::Begin("Minimap", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus);
     
-    if (_hasSelection) {
-        ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "ACTIONS : Case (%d, %d)", _selectedCellX, _selectedCellY);
-        ImGui::Separator();
+    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "MINIMAP (Scroll: Zoom | Clic Droit: Glisser)");
+    ImGui::Separator();
 
-        // --- ON EMPÊCHE D'AGIR PENDANT LE TOUR ENNEMI ---
-        bool isMyTurn = (_currentPlayerTurn == _localPlayerIndex);
-        if (!isMyTurn) ImGui::BeginDisabled();
+    ImVec2 p = ImGui::GetCursorScreenPos(); // Origine de dessin dans la fenêtre
+    ImVec2 s = ImGui::GetContentRegionAvail(); // Taille dispo
+    ImDrawList* minimapDrawList = ImGui::GetWindowDrawList();
+
+    // Fond spatial de la minimap
+    minimapDrawList->AddRectFilled(p, ImVec2(p.x + s.x, p.y + s.y), IM_COL32(15, 15, 25, 255));
+
+    // Variables statiques pour garder le zoom/pan en mémoire entre deux frames
+    static float miniZoom = 1.0f;
+    static ImVec2 miniOffset(0, 0);
+
+    // --- INTERACTIONS SOURIS SUR LA MINIMAP ---
+    if (ImGui::IsWindowHovered()) {
+        // 1. Scroll pour Zoom/Dézoom de la minimap
+        float wheel = ImGui::GetIO().MouseWheel;
+        if (wheel != 0.0f) {
+            miniZoom += wheel * 0.1f;
+            if (miniZoom < 0.2f) miniZoom = 0.2f;
+            if (miniZoom > 5.0f) miniZoom = 5.0f;
+        }
         
-        // Sous-menus avec des Onglets
-        if (ImGui::BeginTabBar("ActionTabs")) {
-            
-            if (ImGui::BeginTabItem("CONSTRUCTIONS")) {
-                ImGui::Dummy(ImVec2(0, 10));
-                if (ImGui::Button("Fonder une Ville", ImVec2(150, 40))) { /* appel arbitre */ }
-                ImGui::SameLine();
-                if (ImGui::Button("Construire Mine", ImVec2(150, 40))) { /* appel arbitre */ }
-                ImGui::EndTabItem();
+        // 2. Clic Droit enfoncé pour glisser (Pan) dans la minimap
+        if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+            miniOffset.x += ImGui::GetIO().MouseDelta.x;
+            miniOffset.y += ImGui::GetIO().MouseDelta.y;
+        }
+    }
+
+    if (_board && viewIndex < (int)_joueurs.size()) {
+        int rows = _board->getRows();
+        int cols = _board->getCols();
+        Joueur& localJ = _joueurs[viewIndex];
+
+        // Calcul de la taille d'une case sur la minimap pour que la map rentre dans la fenêtre
+        float mapRatio = (float)cols / (float)rows;
+        float winRatio = s.x / s.y;
+        float baseHexSize = (mapRatio > winRatio) ? (s.x / (cols * 1.5f)) : (s.y / (rows * 1.5f));
+
+        float R_mini = baseHexSize * miniZoom;
+        float W_mini = std::sqrt(3.0f) * R_mini;
+
+        // Centrage de la map
+        float mapWidthPx = cols * W_mini;
+        float mapHeightPx = rows * 1.5f * R_mini;
+        float startX = p.x + (s.x - mapWidthPx) * 0.5f + miniOffset.x;
+        float startY = p.y + (s.y - mapHeightPx) * 0.5f + miniOffset.y;
+
+        // --- DESSIN DES CASES DÉCOUVERTES ---
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                // Brouillard de guerre : on ne dessine que ce qu'on connait
+                if (!localJ.estDecouvert(i, j)) continue;
+
+                float cx = startX + W_mini * j + W_mini * 0.5f * (std::abs(i) % 2);
+                float cy = startY + 1.5f * R_mini * i;
+
+                // Optimisation : Ne dessine pas ce qui déborde de la fenêtre minimap
+                if (cx < p.x || cx > p.x + s.x || cy < p.y || cy > p.y + s.y) continue;
+
+                const hexa* tile = _board->getCell(i, j);
+                ImU32 color = IM_COL32(50, 50, 50, 255); // Gris par défaut
+
+                if (tile) {
+                    char symb = tile->getSymbole();
+                    if (symb == '.') color = IM_COL32(20, 20, 35, 255); // Espace (Très sombre)
+                    else if (symb == 'P') color = IM_COL32(50, 200, 50, 255); // Planète (Vert)
+                    else if (symb == 'E') color = IM_COL32(255, 255, 100, 255); // Étoile (Jaune)
+                    else if (symb == 'X') color = IM_COL32(150, 0, 200, 255); // Trou Noir (Violet)
+                    else if (symb == '#') color = IM_COL32(100, 20, 20, 255); // Limite (Rouge)
+
+                    // Vérification s'il y a une ville dessus
+                    const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(tile);
+                    if (tc && tc->getCity()) {
+                        color = tc->getCity()->estCapitale() ? IM_COL32(255, 215, 0, 255) : IM_COL32(0, 200, 255, 255);
+                    }
+                }
+                
+                // Dessin du pixel/carré représentant la case
+                minimapDrawList->AddRectFilled(ImVec2(cx - R_mini*0.8f, cy - R_mini*0.8f), ImVec2(cx + R_mini*0.8f, cy + R_mini*0.8f), color);
             }
-            
-            if (ImGui::BeginTabItem("UNITÉS")) {
-                ImGui::Dummy(ImVec2(0, 10));
-                if (ImGui::Button("Déplacer", ImVec2(150, 40))) { /* Mode déplacement */ }
-                ImGui::SameLine();
-                if (ImGui::Button("Attaquer", ImVec2(150, 40))) { /* Mode attaque */ }
-                ImGui::EndTabItem();
-            }
-            
-            ImGui::EndTabBar();
         }
 
+        // --- DESSIN DU CADRE DE LA CAMÉRA PRINCIPALE ---
+        sf::Vector2f viewCenter = _gameView.getCenter();
+        sf::Vector2f viewSize = _gameView.getSize();
+        
+        float realR = _tileSize / 2.0f;
+        float realW = std::sqrt(3.0f) * realR;
+
+        // Conversion des coordonnées du monde réel vers la minimap
+        float scaleX = W_mini / realW;
+        float scaleY = (1.5f * R_mini) / (1.5f * realR);
+
+        float camMiniX = startX + viewCenter.x * scaleX;
+        float camMiniY = startY + viewCenter.y * scaleY;
+        float camMiniW = viewSize.x * scaleX;
+        float camMiniH = viewSize.y * scaleY;
+
+        minimapDrawList->AddRect(
+            ImVec2(camMiniX - camMiniW*0.5f, camMiniY - camMiniH*0.5f),
+            ImVec2(camMiniX + camMiniW*0.5f, camMiniY + camMiniH*0.5f),
+            IM_COL32(255, 255, 255, 200), 0.0f, 0, 1.5f
+        );
+
+        // --- 3. CLIC GAUCHE : DÉPLACER LA CAMÉRA PRINCIPALE ---
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            ImVec2 mousePos = ImGui::GetMousePos();
+            
+            // On calcule la distance entre le clic et l'origine de la map dessinée
+            float targetMiniX = mousePos.x - startX;
+            float targetMiniY = mousePos.y - startY;
+            
+            // On reconvertit cette distance en coordonnées SFML
+            float targetWorldX = targetMiniX / scaleX;
+            float targetWorldY = targetMiniY / scaleY;
+            
+            // On téléporte la caméra SFML à cet endroit !
+            _gameView.setCenter(targetWorldX, targetWorldY);
+        }
+    }
+
+    ImGui::End();
+
+    // --------------------------------------------------------
+    // 4. ACTION PANEL CONTEXTUEL
+    // --------------------------------------------------------
+    float actionPanelWidth = _window.getSize().x - 450;
+    ImGui::SetNextWindowPos(ImVec2(250, _window.getSize().y - 150));
+    ImGui::SetNextWindowSize(ImVec2(actionPanelWidth, 150));
+    ImGui::Begin("ActionPanel", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+    
+    if (_hasSelection && viewIndex < (int)_joueurs.size()) {
+        Joueur& localJ = _joueurs[viewIndex]; 
+        const hexa* h = _board->getCell(_selectedCellX, _selectedCellY);
+        const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(h);
+
+        ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "Case (%d, %d)", _selectedCellX, _selectedCellY);
+        ImGui::Separator();
+
+        if (!isMyTurn) ImGui::BeginDisabled();
+        bool actionPossible = false;
+
+        if (tc) {
+            // A. Construction de Ville
+            if (_arbitre.buildCity(localJ, *_board, _selectedCellX, _selectedCellY)) {
+                actionPossible = true;
+                if (ImGui::Button("Fonder une Ville", ImVec2(150, 40))) {
+                    hexa* cellMutable = const_cast<hexa*>(_board->getCell(_selectedCellX, _selectedCellY));
+                    TuileConfigurable* tcMutable = dynamic_cast<TuileConfigurable*>(cellMutable);
+
+                    if (tcMutable) {
+                        tcMutable->constrVille(_selectedCellX, _selectedCellY, _logicConfig, 5, false);
+                        if (tcMutable->getCity()) {
+                            localJ.ajouterVille(tcMutable->getCity());
+                            localJ.decouvrirZone(_selectedCellX, _selectedCellY, 5, _board->getRows(), _board->getCols());
+                            _popupMsg = "Ville fondee avec succes !";
+                        } else {
+                            _popupMsg = "Erreur : Impossible de fonder la ville.";
+                        }
+                        _showPopup = true;
+                    }
+                }
+                ImGui::SameLine();
+            }
+
+            // B. Actions sur une Ville Existante
+            if (tc->getCity()) {
+                actionPossible = true;
+                if (ImGui::Button("Ameliorer Ville", ImVec2(150, 40))) {
+                    if (_arbitre.peutAmeliorerVille(localJ, *tc->getCity(), _logicConfig)) {
+                        tc->getCity()->upgrade();
+                        _popupMsg = "Ville amelioree au niveau " + std::to_string(tc->getCity()->getLevel()) + " !";
+                    } else {
+                        _popupMsg = "Amelioration impossible (Niveau max ou ressources insuffisantes).";
+                    }
+                    _showPopup = true;
+                }
+                ImGui::SameLine();
+                
+                // --- NOUVEAU : OUVERTURE DU MENU DE CONSTRUCTION ---
+                if (ImGui::Button("Construire Batiment", ImVec2(150, 40))) {
+                    ImGui::OpenPopup("Menu Construction Batiments");
+                }
+                ImGui::SameLine();
+            }
+
+            // C. Acheter une case vide adjacente
+            if (!tc->getCity() && !_arbitre.estDansTerritoire(localJ, _selectedCellX, _selectedCellY, *_board, _logicConfig)) {
+                if (_arbitre.peutAcheterCase(localJ, _selectedCellX, _selectedCellY, *_board, _logicConfig)) {
+                    actionPossible = true;
+                    if (ImGui::Button("Acheter Territoire", ImVec2(150, 40))) {
+                        
+                        // 1. Définir le coût (Exemple : 50 d'Or)
+                        std::map<Ressource*, int> coutAchat;
+                        if (_ressourcesDispo.count("Or")) {
+                            coutAchat[_ressourcesDispo["Or"]] = 50;
+                        }
+
+                        // 2. Vérifier et payer via l'Arbitre
+                        if (_arbitre.peutPayer(coutAchat, localJ)) {
+                            localJ.payer(coutAchat);
+                            
+                            // 3. Attribuer la case
+                            hexa* cellMutable = const_cast<hexa*>(_board->getCell(_selectedCellX, _selectedCellY));
+                            TuileConfigurable* tcMutable = dynamic_cast<TuileConfigurable*>(cellMutable);
+                            if (tcMutable) {
+                                tcMutable->setProprietaire(&localJ);
+                                localJ.decouvrirZone(_selectedCellX, _selectedCellY, 1, _board->getRows(), _board->getCols());
+                                _popupMsg = "Territoire acquis avec succes !";
+                            }
+                        } else {
+                            _popupMsg = "Fonds insuffisants (Requis : 50 Or).";
+                        }
+                        _showPopup = true;
+                    }
+                }
+            }
+
+            // --- ACTIONS DES UNITÉS ---
+            Unite* uniteSurCase = _board->getUnite(_selectedCellX, _selectedCellY);
+            if (uniteSurCase && _arbitre.appartientJoueur(localJ, *uniteSurCase)) {
+                actionPossible = true;
+                ImGui::Separator();
+                ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "UNITE : %s", uniteSurCase->name().c_str());
+                ImGui::Text("PA : %d/%d", uniteSurCase->point_action(), uniteSurCase->point_action_max());
+                
+                if (ImGui::Button("Deplacer", ImVec2(150, 40))) {
+                    _isTargetingMove = true;
+                    _isTargetingAttack = false;
+                    _unitSourceX = _selectedCellX;
+                    _unitSourceY = _selectedCellY;
+                    
+                    _casesPossibles = _arbitre.getCasesDeplacementPossibles(*_board, *uniteSurCase);
+                    
+                    _popupMsg = "Ciblez une case jaune pour vous deplacer.";
+                    _showPopup = true;
+                }
+                ImGui::SameLine();
+                
+                if (ImGui::Button("Attaquer", ImVec2(150, 40))) {
+                    _isTargetingAttack = true;
+                    _isTargetingMove = false;
+                    _unitSourceX = _selectedCellX;
+                    _unitSourceY = _selectedCellY;
+                    _popupMsg = "Ciblez un ennemi sur la carte pour attaquer.";
+                    _showPopup = true;
+                }
+            }
+        }
+
+        if (!actionPossible) {
+            ImGui::TextDisabled("Aucune action possible sur cette case.");
+        }
+        
         if (!isMyTurn) ImGui::EndDisabled();
 
+        // ========================================================
+        // SOUS-MENU : LISTE DES BÂTIMENTS (Géré par la Factory)
+        // ========================================================
+        if (ImGui::BeginPopup("Menu Construction Batiments")) {
+            ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "BATIMENTS DISPONIBLES");
+            ImGui::Separator();
+            ImGui::Dummy(ImVec2(0, 5));
+
+            // On parcourt le catalogue de l'usine
+            for (const auto& [nom, batimentModele] : _batimentFactory.getCatalogue()) {
+                
+                // 1. Formatage du coût pour l'affichage (ex: "10 Or, 5 Fer")
+                std::string coutText = "";
+                for (auto const& [res, qte] : batimentModele->getResourceConstr()) {
+                    if (!coutText.empty()) coutText += ", ";
+                    coutText += std::to_string(qte) + " " + res->getName();
+                }
+                if (coutText.empty()) coutText = "Gratuit";
+
+                std::string label = nom + " (Cout: " + coutText + ")";
+
+                // 2. Le Bouton de construction
+                if (ImGui::Selectable(label.c_str())) {
+                    if (isMultiplayer && !_network.isHost()) {
+                        // CLIENT : Demande la permission à l'Hôte
+                        sf::Packet p;
+                        p << static_cast<sf::Int32>(PacketType::ACTION_BUILD);
+                        p << static_cast<sf::Int32>(_localPlayerIndex); // On envoie NOTRE id
+                        p << _selectedCellX << _selectedCellY << nom; 
+                        _network.sendData(p);
+                        
+                        _popupMsg = "Requete envoyee, en attente de validation...";
+                        _showPopup = true;
+                    } else {
+                        // LOCAL ou HÔTE : Construit et diffuse
+                        auto nvBatiment = _batimentFactory.create(nom);
+                        if (_arbitre.tenterConstruction(_selectedCellX, _selectedCellY, std::move(nvBatiment), localJ, *_board)) {
+                            _popupMsg = nom + " construit avec succes !";
+                            
+                            if (isMultiplayer) { // Si Hôte, on synchronise les autres
+                                sf::Packet syncP;
+                                syncP << static_cast<sf::Int32>(PacketType::SYNC_BUILD);
+                                syncP << static_cast<sf::Int32>(_localPlayerIndex) << _selectedCellX << _selectedCellY << nom;
+                                _network.sendData(syncP);
+                            }
+                        } else {
+                            _popupMsg = "Construction impossible (Ressources ou terrain).";
+                        }
+                        _showPopup = true;
+                    }
+                }
+            }
+
+            if (_batimentFactory.getCatalogue().empty()) {
+                ImGui::TextDisabled("Aucun batiment dans le catalogue.");
+            }
+
+            ImGui::EndPopup();
+        }
+
     } else {
-        // Rien n'est sélectionné
         ImGui::SetCursorPosY(60);
-        ImGui::SetCursorPosX((actionPanelWidth - ImGui::CalcTextSize("Sélectionnez une case ou une unité").x) * 0.5f);
-        ImGui::TextDisabled("Sélectionnez une case ou une unité");
+        ImGui::SetCursorPosX((actionPanelWidth - ImGui::CalcTextSize("Selectionnez une case").x) * 0.5f);
+        ImGui::TextDisabled("Selectionnez une case");
+    }
+    ImGui::End();
+
+    // --------------------------------------------------------
+    // 5. PANNEAU LATÉRAL INFOS VILLE
+    // --------------------------------------------------------
+    if (_hasSelection) {
+        const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(_board->getCell(_selectedCellX, _selectedCellY));
+        if (tc && tc->getCity()) {
+            City* city = tc->getCity();
+            ImGui::SetNextWindowPos(ImVec2(_window.getSize().x - 260, 50));
+            ImGui::SetNextWindowSize(ImVec2(250, 300));
+            ImGui::Begin("CityInfo", nullptr, ImGuiWindowFlags_NoTitleBar);
+            
+            ImGui::TextColored(ImVec4(0.3f, 0.8f, 1.0f, 1.0f), "VILLE NIVEAU %d", city->getLevel());
+            ImGui::Separator();
+            ImGui::Text("PV: %.0f/%.0f", city->getPv(), city->getPvMax());
+            ImGui::Text("Degats: %.0f", city->getDegats());
+            ImGui::Dummy(ImVec2(0, 10));
+
+            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "BATIMENTS ACTUELS :");
+            if (city->getBatiments().empty()) {
+                ImGui::TextDisabled("  Aucun batiment.");
+            } else {
+                for (auto& b : city->getBatiments()) {
+                    ImGui::BulletText("%s", b->getName().c_str());
+                }
+            }
+            ImGui::End();
+        }
+    }
+
+    // --------------------------------------------------------
+    // 6. POP-UP DE RETOUR D'ACTION (Validations, Erreurs...)
+    // --------------------------------------------------------
+    if (_showPopup) { ImGui::OpenPopup("Resultat Action"); _showPopup = false; }
+    
+    if (ImGui::BeginPopupModal("Resultat Action", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("%s", _popupMsg.c_str());
+        ImGui::Dummy(ImVec2(0, 10));
+        
+        ImGui::SetCursorPosX((ImGui::GetWindowSize().x - 100) * 0.5f); // Centrer le bouton
+        if (ImGui::Button("FERMER", ImVec2(100, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
 
     renderChatWindow();
-    
-    ImGui::End();
 }
-
-/*
-void InterfaceManager::renderGame() {
-    if (!_board) return;
-
-    int rows = _board->getRows();
-    int cols = _board->getCols();
-
-    // 1. Dessin du plateau (Grille 2D -> Rendu Iso)
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
-            const hexa* tile = _board->getCell(i, j); //
-
-            if (!tile) continue;
-            
-            // Calcul Isométrique (i=ligne, j=colonne)
-            float posX = (i - j) * (_tileSize / 2.0f) + (_window.getSize().x / 2.0f);
-            float posY = (i + j) * (_tileSize / 4.0f) + 100.0f;
-
-            sf::RectangleShape shape(sf::Vector2f(_tileSize, _tileSize / 2.0f));
-            shape.setPosition(posX, posY);
-            shape.setOutlineThickness(1);
-            shape.setOutlineColor(sf::Color(255, 255, 255, 50));
-
-            // Couleur selon le symbole
-            if (tile->getSymbole() == '#') {
-                shape.setFillColor(sf::Color(10, 10, 20));
-                shape.setOutlineColor(sf::Color(50, 50, 80));
-            }
-            else if (tile->getSymbole() == 'P') shape.setFillColor(sf::Color::Green);
-            else if (tile->getSymbole() == 'E') shape.setFillColor(sf::Color::Yellow);
-            else if (tile->getSymbole() == 'X') shape.setFillColor(sf::Color::Red);
-            else if (tile->getSymbole() == '.') shape.setFillColor(sf::Color::Black);
-            else shape.setFillColor(sf::Color::Transparent);
-
-            _window.draw(shape);
-        }
-    }
-
-    // 2. HUD de jeu ImGui
-    ImGui::Begin("Infos Secteur");
-    ImGui::Text("Tour en cours : Joueur 1");
-    if (ImGui::Button("Retour au Menu")) _currentState = GameState::MENU;
-    ImGui::End();
-}
-*/
 
 void InterfaceManager::applyCustomTheme() {
     ImGuiStyle& style = ImGui::GetStyle();
@@ -1320,10 +1755,9 @@ bool InterfaceManager::DrawArrowSelector(const char* id, int* current_index, con
 
 void InterfaceManager::initGameFromSave() {
     JsonWorldReader reader;
-    std::map<std::string, Ressource*> resEmpty;
     _factory = WorldFactory(); 
     _factory.initialiserBords(); 
-    reader.chargerConfig("configs/config_espace.json", resEmpty, _factory);
+    reader.chargerConfig("configs/config_espace.json", _ressourcesDispo, _factory);
     _factory.overrideWeights(_customWeights);
 
     // CRUCIAL : On force le hasard avec la graine sauvegardée

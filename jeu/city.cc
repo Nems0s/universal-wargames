@@ -40,3 +40,12 @@ void City::takeDamage(int d) {
     _pvCurrent -= d;
     if (_pvCurrent < 0) _pvCurrent = 0;
 }
+
+void City::upgrade() {
+    if (_level < _maxLevel) {
+        _level++;
+        _pvMax = _config.getPvMaxVille() * _level;
+        _pvCurrent = _pvMax;
+        _damage = _config.getDegatsVille() + (_level * 2);
+    }
+}

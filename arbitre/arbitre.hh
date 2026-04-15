@@ -51,4 +51,6 @@ public:
     bool peutTransporter(const Joueur& j, const Unite& unite)const;
     bool peutRejoindreCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const;
 
+    std::vector<std::pair<int, int>> getCasesDeplacementPossibles(const board& game, const Unite& u) const;
+
 };
