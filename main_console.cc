@@ -3,6 +3,7 @@
 #include <ctime>
 #include <filesystem>
 #include <map>
+#include <vector>
 
 // Inclusions du moteur de jeu
 #include "jeu.hh"
@@ -50,7 +51,6 @@ int main() {
     }
 
     // 4. Initialisation du Plateau et de l'Arbitre
-    // Utilisation de votre constructeur: board(WorldFactory & world, const GameConfig& c)
     board plateau(world, config); 
     Arbitre arbitre;
 
@@ -59,33 +59,48 @@ int main() {
     JsonUniteReader uniteReader;
     try {
         uniteFactory.chargerConfiguration(cfgDir + "/config_unite.json", uniteReader, catalogueRessources);
+        std::cout << "[SYSTEME] Unites chargees." << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Erreur critique Unites : " << e.what() << std::endl;
         return 1;
     }
 
     // 6. Création du Manager de Jeu
-    GameManager moteur(plateau, arbitre, config);
+    GameManager moteur(plateau, arbitre, config, uniteFactory);
+
+    // -----------------------------------------------------------------
+    // NOUVEAU : Création des Factions (Assurez-vous que FactionParams 
+    // dans config.hh possède bien ces champs : nom et unites_disponibles)
+    // -----------------------------------------------------------------
+    FactionParams factionAlliance;
+    factionAlliance.nom = "Alliance Terrestre";
+    factionAlliance.unites_disponibles = {"Commandant Allie", "Infanterie d'Elite", "Tank de Garde", "Medecin"};
+
+    FactionParams factionMercenaire;
+    factionMercenaire.nom = "Syndicat Mercenaire";
+    factionMercenaire.unites_disponibles = {"Commandant Allie", "Sniper", "Gros Tank", "Soldat Blesse"};
 
     // 7. Création et Configuration des Joueurs
     auto j1 = std::make_unique<Joueur>("Commandant Alpha");
     auto j2 = std::make_unique<Joueur>("Commandant Beta");
 
-    // Donner des ressources initiales
+    // Attribution des factions
+    j1->setFaction(&factionAlliance);
+    j2->setFaction(&factionMercenaire);
+
+    // Donner des ressources initiales (500 de chaque ressource du jeu)
     for (auto const& [nom, resPtr] : catalogueRessources) {
-        j1->ajouterRessource(resPtr, 500); 
+        j1->ajouterRessource(resPtr, 500);
         j2->ajouterRessource(resPtr, 500);
     }
 
-    // 8. Placement des unités de départ (ADAPTÉ POUR VOTRE BOARD)
+    // 8. Placement des unités de départ
     
     // Joueur 1 : Position (1,1)
     std::shared_ptr<Unite> u1 = uniteFactory.create("Commandant Allie");
     if (u1) {
         u1->setLocation({1, 1});
-        // Le joueur stocke le pointeur brut pour ses listes internes
-        j1->ajouterUnite(u1.get()); 
-        // Le plateau prend la propriété partagée de l'unité
+        j1->ajouterUnite(u1.get());
         plateau.placerUnite(1, 1, u1); 
     }
 

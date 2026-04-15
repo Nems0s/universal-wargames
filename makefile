@@ -12,7 +12,7 @@ BIN_DIR = bin
 SRC_CC = 	$(wildcard jeu/*.cc) $(wildcard joueur/*.cc) \
         	$(wildcard unite/*.cc) $(wildcard combat/*.cc) \
             $(wildcard configs/*.cc) $(wildcard arbitre/*.cc) \
-            $(wildcard UI/*.cc)
+            $(wildcard UI/*.cc) $(wildcard gameloop/*.cc)
 SRC_CPP = 	$(wildcard UI/imgui/*.cpp) $(wildcard UI/imgui-sfml/*.cpp)
 
 # Transformation en fichiers .o

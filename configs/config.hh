@@ -11,6 +11,7 @@ using json = nlohmann::json;
 struct FactionParams {
     std::string nom;
     std::map<std::string, float> params;
+    std::vector<std::string> unites_disponibles;
 };
 
 enum class WinType { RESOURCE, CITY_COUNT, UNIT_COUNT, CAPITAL_REQ };

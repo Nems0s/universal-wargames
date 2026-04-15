@@ -1,17 +1,18 @@
 #include "moteur.hh"
 #include <cstdlib>
 
-GameManager::GameManager(board & b, Arbitre & a, GameConfig & c):
+GameManager::GameManager(board & b, Arbitre & a, GameConfig & c, UniteFactory & f):
     _plateau(b),
     _joueurs(), // Liste Vide
     _arbitre(a),
     _config(c),
+    _factory(f),
     _indexJoueurActuel(0)
 {}
 
 void GameManager::ajouterJoueur(std::unique_ptr<Joueur> j)
 {
-    _joueurs.push_back(j);
+    _joueurs.push_back(std::move(j));
 }
 
 // Vérifie S'il y a un gagant dans les joueurs
@@ -39,7 +40,7 @@ void GameManager::lancerPartie()
 
     _indexJoueurActuel = std::rand() % nb_joueurs; // Choix aléatoir du joueur qui commence
 
-    while(joueurVictorieux(_joueurs, _arbitre, _config))
+    while(joueurVictorieux(_joueurs, _arbitre, _config) == -1)
     {
         Joueur &joueurActuel = *(_joueurs.at(_indexJoueurActuel));
         
@@ -56,6 +57,8 @@ void GameManager::lancerPartie()
             ++ _indexJoueurActuel;
         }
     }
+    int gagnant = joueurVictorieux(_joueurs, _arbitre, _config);
+    std::cout << "La partie est finie ! Victoire de : " << _joueurs.at(gagnant)->getName() << std::endl;
 }
 
 void GameManager::executerTour(Joueur & j, const Arbitre & a)
@@ -95,7 +98,12 @@ void GameManager::executerTour(Joueur & j, const Arbitre & a)
         std::cout << " 11. -- Fin de Tour -- " << std::endl;
         std::cout << "Choix : ";
 
-        std::cin >> choix;
+        if (!(std::cin >> choix)) 
+        {
+            std::cin.clear();
+            std::cin.ignore(1000, '\n');
+            continue;
+        }
 
         int x, y, targetX, targetY; // Variables pour les coordonnées
 
@@ -116,6 +124,55 @@ void GameManager::executerTour(Joueur & j, const Arbitre & a)
             //Création de Unite
             case 3: 
             { 
+                std::cout << "--- RECRUTEMENT ---" << std::endl;
+    
+                const auto& faction = j.getFaction();
+                if (!faction) 
+                {
+                    std::cout << "Erreur : Le joueur n'a pas de faction !" << std::endl;
+                    break;
+                }
+
+                std::cout << "Unites disponibles pour " << faction->nom << " :" << std::endl;
+                for (size_t i = 0; i < faction->unites_disponibles.size(); ++i) 
+                {
+                    std::cout << i << ". " << faction->unites_disponibles[i] << std::endl;
+                }
+
+                int choixUnite;
+                std::cout << "Votre choix : "; 
+                std::cin >> choixUnite;
+
+                if (choixUnite >= 0 && choixUnite < (int)faction->unites_disponibles.size()) 
+                {
+                    std::string nomType = faction->unites_disponibles[choixUnite];
+                    
+                    std::cout << "Coord de deploiement (x y) : ";
+                    std::cin >> x >> y;
+
+                    if (a.coordValid(x, y, _plateau) && _plateau.getUnite(x, y) == nullptr) 
+                    {
+
+                        std::shared_ptr<Unite> nouvelleUnite = _factory.create(nomType); 
+
+                        if (nouvelleUnite)
+                        {
+                            if (a.peutRecruterUnite(j, nouvelleUnite->cout(), *nouvelleUnite)) 
+                            {
+                                j.payer(nouvelleUnite->cout());      
+                                
+                                nouvelleUnite->setLocation({x, y});
+                                j.ajouterUnite(nouvelleUnite.get()); 
+                                _plateau.placerUnite(x, y, nouvelleUnite); 
+                                
+                                std::cout << "[SUCCES] " << nomType << " recrute !" << std::endl;
+                            } 
+                            else std::cout << "[REFUS] Fonds insuffisants." << std::endl;
+                        }
+                        else std::cout << "Erreur : Cette unite n'existe pas dans le catalogue." << std::endl;
+                    }
+                    else std::cout << "[REFUS] Case invalide ou deja occupee." << std::endl;
+                }
                 break;
             }
 
