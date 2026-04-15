@@ -42,3 +42,30 @@ void Joueur::perdreBatiment(Batiment* b) {
 void Joueur::perdreUnite(Unite* u) {
     _unites.remove(u);
 }
+
+
+// Brouillard
+
+void Joueur::initBrouillard(int w, int h) {
+    // Initialise une grille 2D remplie de "false" (non découvert)
+    _brouillard.assign(w, std::vector<bool>(h, false));
+}
+
+void Joueur::decouvrirZone(int cx, int cy, int rayon, int w, int h) {
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; ++y) {
+            // Distance de Manhattan (typique des jeux sur grille)
+            int distance = std::abs(x - cx) + std::abs(y - cy);
+            if (distance <= rayon) {
+                _brouillard[x][y] = true;
+            }
+        }
+    }
+}
+
+bool Joueur::estDecouvert(int x, int y) const {
+    if (x >= 0 && x < _brouillard.size() && y >= 0 && y < _brouillard[0].size()) {
+        return _brouillard[x][y];
+    }
+    return false;
+}

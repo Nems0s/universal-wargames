@@ -71,4 +71,5 @@ class GameConfig {
         int getDistanceMinVilles() const { return _distanceMinVilles; }
         
         const FactionParams* getFaction(const std::string& nom) const;
+        const std::map<std::string, FactionParams>& getFactions() const { return _factions; }
 };

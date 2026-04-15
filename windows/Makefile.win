@@ -1,0 +1,51 @@
+# Makefile pour cross-compiler Windows depuis WSL
+CXX = x86_64-w64-mingw32-g++
+
+INCLUDES = -I. -I./lib -I./jeu -I./configs -I./joueur -I./unite -I./combat -I./arbitre -I./UI -I./windows/sfml-win/include -IUI/imgui -IUI/imgui-sfml
+
+# Options de compilation 
+CXXFLAGS = -std=c++17 -Wall -O2 $(INCLUDES)
+
+# LDFLAGS mis à jour avec -mwindows
+LDFLAGS = -L./windows/sfml-win/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-network -lopengl32 -lws2_32 -lwinmm -lgdi32 -static-libgcc -static-libstdc++ -mwindows
+
+# --- NOUVEAU : DOSSIERS DE SORTIE WINDOWS ---
+BUILD_DIR = windows/build
+BIN_DIR = windows/bin
+
+# 1. Tes sources
+SRC_CC  = main_gui.cc $(wildcard jeu/*.cc) $(wildcard joueur/*.cc) \
+          $(wildcard unite/*.cc) $(wildcard combat/*.cc) \
+          $(wildcard configs/*.cc) $(wildcard arbitre/*.cc) $(wildcard UI/*.cc) \
+          $(wildcard lib/*.cc)
+
+SRC_CPP = $(wildcard UI/imgui/*.cpp) $(wildcard UI/imgui-sfml/*.cpp)
+
+# --- NOUVEAU : REDIRECTION DES .o VERS BUILD_DIR ---
+# On remplace ".cc" par ".o" et on ajoute le préfixe "windows/build/"
+OBJ_CC = $(patsubst %.cc, $(BUILD_DIR)/%.o, $(SRC_CC))
+OBJ_CPP = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SRC_CPP))
+          
+OBJ = $(OBJ_CC) $(OBJ_CPP)
+EXEC = $(BIN_DIR)/main.exe
+
+all: $(EXEC)
+
+# Création de l'exécutable
+$(EXEC): $(OBJ)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+# --- NOUVEAU : RÈGLES DE COMPILATION AVEC SOUS-DOSSIERS ---
+# La commande @mkdir -p $(dir $@) crée automatiquement les dossiers (ex: windows/build/jeu/)
+$(BUILD_DIR)/%.o: %.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# --- NOUVEAU : CLEAN CIBLE ---
+clean:
+	rm -rf $(BUILD_DIR) $(BIN_DIR)

@@ -3,7 +3,7 @@ CXX = g++
 CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./UI -I./UI/imgui -I./UI/imgui-sfml -I./configs -I./arbitre
 
 # Bibliothèques à lier (SFML et OpenGL)
-LIBS = -lsfml-graphics -lsfml-window -lsfml-system -lGL
+LIBS = -lsfml-graphics -lsfml-window -lsfml-system -lsfml-network -lGL
 
 BUILD_DIR = build
 BIN_DIR = bin
@@ -12,7 +12,7 @@ BIN_DIR = bin
 SRC_CC = 	$(wildcard jeu/*.cc) $(wildcard joueur/*.cc) \
         	$(wildcard unite/*.cc) $(wildcard combat/*.cc) \
             $(wildcard configs/*.cc) $(wildcard arbitre/*.cc) \
-            $(wildcard UI/*.cc)
+            $(wildcard UI/*.cc) $(wildcard lib/*.cc)
 SRC_CPP = 	$(wildcard UI/imgui/*.cpp) $(wildcard UI/imgui-sfml/*.cpp)
 
 # Transformation en fichiers .o

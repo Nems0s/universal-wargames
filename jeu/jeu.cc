@@ -288,6 +288,14 @@ bool WorldFactory::estVide() const {
     return _catalogue.empty();
 }
 
+void WorldFactory::overrideWeights(const std::map<char, int>& overrides) {
+    for (auto const& [symb, weight] : overrides) {
+        if (_catalogue.count(symb)) {
+            _catalogue[symb].gen.poids = weight;
+        }
+    }
+}
+
 void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
     std::ifstream fichier(chemin);
     std::string mot, ligne;

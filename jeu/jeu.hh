@@ -103,6 +103,7 @@ class WorldFactory {
         std::unique_ptr<hexa> createRandomTile();
 
         void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int width, int height);
+        void overrideWeights(const std::map<char, int>& overrides);
 
         bool estVide() const;
 };

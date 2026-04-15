@@ -6,6 +6,7 @@ ue5/
 UI/imgui/
 UI/imgui-sfml/
 imgui.ini
+sfml-win/
 
 # Prerequisites
 *.d
