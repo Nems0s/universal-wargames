@@ -77,14 +77,113 @@ void GameManager::executerTour(Joueur & j, const Arbitre & a)
     }
 
     bool fin_tour = false;
-    int choix = -1;
+    int menu = -1;
 
 
     while(fin_tour != true)
     {
+        //Menu principal
         std::cout << "\n========================================" << std::endl;
-        std::cout << "       Tour du Joueur "<< j.getName() << std::endl;
+        std::cout << "   Tour du Joueur "<< j.getName() << std::endl;
         std::cout << "========================================" << std::endl;
+        std::cout << " 0. Fin du tour " << std::endl;
+        std::cout << " 1. Action sur Ville " << std::endl;
+        std::cout << " 2. Action sur Unité " << std::endl;
+        std::cout << "Action : ";
+
+        if (!(std::cin >> menu)) 
+        {
+            std::cin.clear(); //vide cin
+            std::cin.ignore(1000, '\n'); //vide les 1000 derniers caractères
+            continue;
+        }
+        int x, y, targetX, targetY; // Pour les coord
+        int choix; // Pour le choix de l'action
+
+
+        switch(menu)
+        {
+            case 0:
+                fin_tour = true;
+                break;
+            case 1:
+                //Menu ville
+                std::cout << "\n========================================" << std::endl;
+                std::cout << "              Menu Ville                 " << std::endl;
+                std::cout << "========================================" << std::endl;
+                std::cout << " 0. Fin du tour " << std::endl;
+                std::cout << " 1. Construction " << std::endl;
+                std::cout << " 2. Amélioration " << std::endl;
+                std::cout << "Action : ";
+
+                if (!(std::cin >> choix)) 
+                {
+                    std::cin.clear();
+                    std::cin.ignore(1000, '\n');
+                    continue;
+                }
+
+                switch(choix)
+                {
+                    case 0:
+                        fin_tour = true;
+                        break;
+                    case 1:
+                        break;
+                    case 2:
+                        break;
+                    default:
+                        std::cout << "Action invalide." << std::endl;
+                        break;
+                }
+                
+            case 2:
+                //Menu Unite
+                std::cout << "\n========================================" << std::endl;
+                std::cout << "              Menu Unite                 " << std::endl;
+                std::cout << "========================================" << std::endl;
+                std::cout << " 0. Fin du tour " << std::endl;
+                std::cout << " 1. Action Offensive " << std::endl;
+                std::cout << " 2. Action Defensive " << std::endl;
+                std::cout << " 3. Mouvement " << std::endl;
+                std::cout << "Action : ";
+
+                if (!(std::cin >> choix)) 
+                {
+                    std::cin.clear();
+                    std::cin.ignore(1000, '\n');
+                    continue;
+                }
+
+                switch(choix)
+                {
+                    case 0:
+                        fin_tour = true;
+                        break;
+                    case 1:
+                        std::cout << "[Action Offensive] -> 1.Attaque" << std::endl;
+                        std::cout << "Action : ";
+                        if (!(std::cin >> choix)) 
+                        {
+                            std::cin.clear();
+                            std::cin.ignore(1000, '\n');
+                            continue;
+                        }
+                        break;
+                    case 2:
+                        break;
+                    case 3:
+                        break;
+                    default:
+                        std::cout << "Action invalide." << std::endl;
+                        break;
+                }
+
+            default:
+                std::cout << "Action invalide." << std::endl;
+                break;
+        }
+        
         std::cout << " 1. -- Construction de Ville -- " << std::endl;
         std::cout << " 2. -- Amélioration de Ville -- " << std::endl;
         std::cout << " 3. -- Création de Unite -- " << std::endl;
@@ -96,16 +195,9 @@ void GameManager::executerTour(Joueur & j, const Arbitre & a)
         std::cout << " 9. -- Mise sous Commandement -- " << std::endl;
         std::cout << " 10. -- Cammoufler -- " << std::endl;
         std::cout << " 11. -- Fin de Tour -- " << std::endl;
-        std::cout << "Choix : ";
+        std::cout << "Action : ";
 
-        if (!(std::cin >> choix)) 
-        {
-            std::cin.clear();
-            std::cin.ignore(1000, '\n');
-            continue;
-        }
-
-        int x, y, targetX, targetY; // Variables pour les coordonnées
+        
 
         switch(choix) 
         {

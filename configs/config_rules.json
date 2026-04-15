@@ -1,8 +1,4 @@
 {
-    "taille_plateau": {
-        "x": 100,
-        "y": 100
-    },
     "factions": [
         {
             "nom": "Humains",
@@ -25,7 +21,11 @@
         "cout_base": 100,
         "degats_base": 20,
         "distance_min_entre_villes": 3,
-        "multiplicateur": 1.5,
+        "multiplicateur": 3.0,
         "pv_max_base": 200
+    },
+    "taille_plateau": {
+        "x": 50,
+        "y": 50
     }
 }
