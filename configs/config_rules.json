@@ -6,7 +6,8 @@
                 "gravite": 1,
                 "radiation": 0.2,
                 "temperature": 40
-            }
+            },
+            "unites": ["Sniper", "Tank de Garde", "Gros Tank"]
         },
         {
             "nom": "Extraterrestres",
@@ -14,7 +15,8 @@
                 "gravite": 2,
                 "radiation": 0.8,
                 "temperature": 120
-            }
+            },
+            "unites": ["Infanterie d'Elite", "Soldat Blesse", "Medecin"]
         }
     ],
     "regles_villes": {

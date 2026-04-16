@@ -147,12 +147,19 @@ void board::affichage() const {
         if (i%2 == 0) {
             std::cout << " ";
         }
-        for (int j = 0; j < _width; ++j) {
-            std::cout << _matrix[i][j]->getSymbole() << " ";
+        for (int j = 0; j < _width; ++j) 
+        {
+            Unite* u = getUnite(i, j);
+            if (u != nullptr) 
+            {
+                std::cout << u->getSymbol() << " ";
+            }
+            else std::cout << _matrix[i][j]->getSymbole() << " ";
         }
         std::cout << std::endl;
     }
 }
+
 
 void board::placerUnite(int x, int y, std::shared_ptr<Unite> u) {
     if (x >= 0 && x < _height && y >= 0 && y < _width) 

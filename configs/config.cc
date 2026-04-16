@@ -39,6 +39,13 @@ void GameConfig::loadRules(const std::string& chemin) {
                     fp.params[statName] = limite;
                 }
             }
+
+            if (f.contains("unites")) {
+                for (auto& unitName : f["unites"]) {
+                    fp.unites_disponibles.push_back(unitName);
+                }
+            }
+
             _factions[fp.nom] = fp;
         }
     }

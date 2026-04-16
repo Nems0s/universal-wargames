@@ -41,8 +41,10 @@ private:
     int _temporary_health;
     int _temporary_damage;
 
+    char _symbol;
+
 public:
-    Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout);
+    Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout, char symbole);
     virtual ~Unite() = default;
 
     /*Setters*/
@@ -54,6 +56,7 @@ public:
     void setLocation(const Coord &newLocation);
     void setTemporary_health(int newTemporary_health);
     void setTemporary_damage(int newTemporary_damage);
+    void setSymbol(char s);
 
     /*Getters*/
     std::string name() const;
@@ -71,6 +74,7 @@ public:
     int temporary_health() const;
     int temporary_damage() const;
     bool defensif() const;
+    char getSymbol() const;
 
     /*Méthodes*/
     void affiche() const;

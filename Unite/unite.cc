@@ -6,7 +6,7 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-Unite::Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout)
+Unite::Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout, char symbole)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
@@ -19,7 +19,8 @@ Unite::Unite(const std::string &name, int hp, int point_action, Poids poids, dir
     _rank(r),
     _liste_comportements(liste_comportements),
     _cout(cout),
-    _defensif(false)
+    _defensif(false),
+    _symbol(symbole)
 {}
 
 std::string Unite::name() const
@@ -131,6 +132,18 @@ void Unite::setTemporary_damage(int newTemporary_damage)
 {
     _temporary_damage = newTemporary_damage;
 }
+
+
+void Unite::setSymbol(char s)
+{ 
+    _symbol = s; 
+}
+
+char Unite::getSymbol() const
+{
+    return _symbol;
+}
+
 
 bool Unite::defensif() const
 {
@@ -381,6 +394,9 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         Poids poids = Poids::Moyen;
         if(item.contains("poids")) poids = stringToPoids(item["poids"]);
 
+        std::string symStr = item.value("symbole", " ");
+        char sym = symStr[0];
+
         std::map<Ressource*, int> coutUnite;
         bool toutesRessourcesExistantes = true;
 
@@ -447,7 +463,7 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         }
         else
         {
-            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite);
+            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, sym);
         }
     }   
 }
