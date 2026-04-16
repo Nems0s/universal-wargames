@@ -15,435 +15,257 @@ void GameManager::ajouterJoueur(std::unique_ptr<Joueur> j)
     _joueurs.push_back(std::move(j));
 }
 
-// Vérifie S'il y a un gagant dans les joueurs
-int joueurVictorieux(const std::vector<std::unique_ptr<Joueur>> & liste_joueur, const Arbitre & a, const GameConfig & c)
+void GameManager::passerAuJoueurSuivant() 
 {
-    for(size_t i = 0; i < liste_joueur.size(); ++i)
-    {
-        if(a.verifierVictoire(*(liste_joueur.at(i)), c))
-        {
-            return static_cast<int>(i); // Gagnant trouver
-        }
-    }
-    return -1; // Pas de Gagnant le jeu continue
+    if (_joueurs.empty()) return;
+
+    _indexJoueurActuel = (_indexJoueurActuel + 1) % _joueurs.size();
+
+    Joueur& suivant = *(_joueurs.at(_indexJoueurActuel));
+    suivant.debutTour();
 }
 
-void GameManager::lancerPartie()
+void GameManager::lancerPartie() 
 {
-    if(_joueurs.empty())
-    {
-        std::cout<<"STOP !!! Pas de joueur pour jouer !"<<std::endl;
-        return;
-    }
+    if (_joueurs.empty()) return;
 
-    int nb_joueurs = _joueurs.size();
+    _indexJoueurActuel = std::rand() % _joueurs.size(); 
 
-    _indexJoueurActuel = std::rand() % nb_joueurs; // Choix aléatoir du joueur qui commence
-
-    while(joueurVictorieux(_joueurs, _arbitre, _config) == -1)
-    {
-        Joueur &joueurActuel = *(_joueurs.at(_indexJoueurActuel));
-        
-        //Execution du Tour du joueur
-        executerTour(joueurActuel, _arbitre);
-
-        //Changement de joueur
-        if(_indexJoueurActuel + 1 == nb_joueurs)
-        {
-            _indexJoueurActuel = 0;
-        }
-        else
-        {
-            ++ _indexJoueurActuel;
-        }
-    }
-    int gagnant = joueurVictorieux(_joueurs, _arbitre, _config);
-    std::cout << "La partie est finie ! Victoire de : " << _joueurs.at(gagnant)->getName() << std::endl;
+    Joueur& premier = *(_joueurs.at(_indexJoueurActuel));
+    premier.debutTour();
 }
 
-void GameManager::executerTour(Joueur & j, const Arbitre & a)
+ResultatAction GameManager::traiterAction(const Action& action) 
 {
-    // Récupération de ressource
-    for(City* ville : j.getCities()) 
+    if(_joueurs.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+    Joueur& j = *(_joueurs.at(_indexJoueurActuel));
+
+    switch(action.type) 
     {
-        ville->product(j);
-    }
-    
-    //Reste Buff et point d'action
-    for(auto uni : j.getUnites())
-    {
-        uni->resetTemporary_stats();
-        uni->setPoint_action(uni->point_action_max());
-    }
+        case TypeAction::FIN_TOUR:
+            passerAuJoueurSuivant();
+            return ResultatAction::FIN_TOUR;
 
-    bool fin_tour = false;
-    int menu = -1;
-
-
-    while(fin_tour != true)
-    {
-        //Menu principal
-        std::cout << "\n========================================" << std::endl;
-        std::cout << "   Tour du Joueur "<< j.getName() << std::endl;
-        std::cout << "========================================" << std::endl;
-        std::cout << " 0. Fin du tour " << std::endl;
-        std::cout << " 1. Action sur Ville " << std::endl;
-        std::cout << " 2. Action sur Unité " << std::endl;
-        std::cout << "Action : ";
-
-        if (!(std::cin >> menu)) 
+        case TypeAction::CONSTRUIRE_VILLE: 
         {
-            std::cin.clear(); //vide cin
-            std::cin.ignore(1000, '\n'); //vide les 1000 derniers caractères
-            continue;
+            if(!_arbitre.coordValid(action.x1, action.y1, _plateau)) return ResultatAction::ECHEC_COORD_INVALIDE;
+            if(_arbitre.buildCity(j, _plateau, action.x1, action.y1)) 
+            {
+                City* c = new City(action.x1, action.y1, _config);
+                j.ajouterVille(c);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
         }
-        int x, y, targetX, targetY; // Pour les coord
-        int choix; // Pour le choix de l'action
 
-
-        switch(menu)
+        case TypeAction::CONSTRUIRE_BATIMENT: 
         {
-            case 0:
-                fin_tour = true;
-                break;
-            case 1:
-                //Menu ville
-                std::cout << "\n========================================" << std::endl;
-                std::cout << "              Menu Ville                 " << std::endl;
-                std::cout << "========================================" << std::endl;
-                std::cout << " 0. Fin du tour " << std::endl;
-                std::cout << " 1. Construction " << std::endl;
-                std::cout << " 2. Amélioration " << std::endl;
-                std::cout << "Action : ";
-
-                if (!(std::cin >> choix)) 
-                {
-                    std::cin.clear();
-                    std::cin.ignore(1000, '\n');
-                    continue;
-                }
-
-                switch(choix)
-                {
-                    case 0:
-                        fin_tour = true;
-                        break;
-                    case 1:
-                        break;
-                    case 2:
-                        break;
-                    default:
-                        std::cout << "Action invalide." << std::endl;
-                        break;
-                }
+            // Faire la logique pour batiment
                 
-            case 2:
-                //Menu Unite
-                std::cout << "\n========================================" << std::endl;
-                std::cout << "              Menu Unite                 " << std::endl;
-                std::cout << "========================================" << std::endl;
-                std::cout << " 0. Fin du tour " << std::endl;
-                std::cout << " 1. Action Offensive " << std::endl;
-                std::cout << " 2. Action Defensive " << std::endl;
-                std::cout << " 3. Mouvement " << std::endl;
-                std::cout << "Action : ";
+            return ResultatAction::SUCCES;
+            //return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
 
-                if (!(std::cin >> choix)) 
+        case TypeAction::AMELIORER_VILLE: 
+        {
+            const hexa* cell = _plateau.getCell(action.x1, action.y1);
+            const TuileConfigurable* tuile = dynamic_cast<const TuileConfigurable*>(cell);
+            if(tuile && tuile->getCity() && _arbitre.peutAmeliorerVille(j, *(tuile->getCity()), _config)) 
+            {
+                tuile->getCity()->upgrade();
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
+
+        case TypeAction::RECRUTER_UNITE: 
+        {
+            if(!_arbitre.coordValid(action.x1, action.y1, _plateau) || _plateau.getUnite(action.x1, action.y1) != nullptr)
+                return ResultatAction::ECHEC_COORD_INVALIDE;
+
+            std::shared_ptr<Unite> nouvelleUnite = _factory.create(action.data);
+            if(!nouvelleUnite) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+            if(_arbitre.peutRecruterUnite(j, nouvelleUnite->cout(), *nouvelleUnite)) 
+            {
+                j.payer(nouvelleUnite->cout());
+                nouvelleUnite->setLocation({action.x1, action.y1});
+                j.ajouterUnite(nouvelleUnite.get());
+                _plateau.placerUnite(action.x1, action.y1, nouvelleUnite);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_FONDS_INSUFFISANTS;
+        }
+
+        case TypeAction::DEPLACER: 
+        {
+            Unite* u = _plateau.getUnite(action.x1, action.y1);
+            if(!u || !_arbitre.appartientJoueur(j, *u)) return ResultatAction::ECHEC_ARBITRE_REFUS;
+            
+            if(_arbitre.moveUnite(j, _plateau, *u, action.x2, action.y2)) 
+            {
+                if(_plateau.deplacerUnite(*u, action.x2, action.y2)) 
                 {
-                    std::cin.clear();
-                    std::cin.ignore(1000, '\n');
-                    continue;
+                    u->setLocation({action.x2, action.y2});
+                    u->setPoint_action(u->point_action() - 1);
+                    return ResultatAction::SUCCES;
                 }
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
 
-                switch(choix)
+        case TypeAction::ATTAQUER: 
+        {
+            Unite* att = _plateau.getUnite(action.x1, action.y1);
+            Unite* cible = _plateau.getUnite(action.x2, action.y2);
+            if(!att || !cible) return ResultatAction::ECHEC_COORD_INVALIDE;
+
+            auto attaques = att->Offensive();
+            if(attaques.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+            int index = 0;
+            try{ 
+                index = std::stoi(action.data); 
+            }catch(...){ 
+                index = 0; 
+            }
+            
+            auto it = attaques.begin();
+            std::advance(it, std::min((int)attaques.size() - 1, std::max(0, index))); //Permet d'eviter les coups invalide
+
+            if(_arbitre.peutAttaquer(j, *att, *cible, *it)) 
+            {
+                j.Attaquer(*att, *cible, *it);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
+
+        case TypeAction::SOIGNER: 
+        {
+            Unite* healer = _plateau.getUnite(action.x1, action.y1);
+            Unite* cible = _plateau.getUnite(action.x2, action.y2);
+            if(!healer || !cible) return ResultatAction::ECHEC_COORD_INVALIDE;
+
+            auto soins = healer->Soin();
+            if(soins.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+            int index = -1;
+            try{ 
+                index = std::stoi(action.data); 
+            }catch(...){ 
+                index = -1; 
+            }
+
+            auto it = soins.begin();
+            std::advance(it, std::min((int)soins.size() - 1, std::max(0, index)));
+
+            if(_arbitre.peutSoigner(j, *healer, *cible, *it)) 
+            {
+                j.Soigner(*healer, *cible, *it);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
+
+        case TypeAction::CAMMOUFLER: 
+        {
+            Unite* u = _plateau.getUnite(action.x1, action.y1);
+            if (u && _arbitre.peutActiverCamouflage(j, *u)) 
+            {
+                j.ActiverCamouflage(*u);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
+
+        case TypeAction::DEBUT_DEFENSSE: 
+        {
+            Unite* u = _plateau.getUnite(action.x1, action.y1);
+            if(u && _arbitre.appartientJoueur(j, *u) && !u->defensif()) 
+            {
+                j.ChangerPositionDefensive(*u);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
+
+        case TypeAction::ARRET_DEFENSSE: 
+        {
+            Unite* u = _plateau.getUnite(action.x1, action.y1);
+            if(u && _arbitre.appartientJoueur(j, *u) && u->defensif()) 
+            {
+                u->changerDefense();
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
+
+        case TypeAction::CHARGEMENT: 
+        {
+            Unite* trans = _plateau.getUnite(action.x1, action.y1);
+            Unite* pass = _plateau.getUnite(action.x2, action.y2);
+            if(trans && pass && _arbitre.peutTransporter(j, *trans)) 
+            {
+                j.Transporter(*trans, *pass);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
+
+        case TypeAction::DECHARGEMENT: 
+        {
+            Unite* trans = _plateau.getUnite(action.x1, action.y1);
+            if(!trans || !trans->Transport()) return ResultatAction::ECHEC_COORD_INVALIDE;
+
+            const auto& liste = trans->Transport()->liste_unite_transporter();
+            int index = 0;
+            try{ 
+                index = std::stoi(action.data); 
+            }catch(...){ 
+                index = 0; 
+            }
+            
+            if(index >= 0 && index < (int)liste.size()) 
+            {
+                auto it = liste.begin();
+                std::advance(it, index);
+                std::shared_ptr<Unite> pass = *it;
+
+                if(_arbitre.peutDechargerTransport(j, *trans, *pass, action.x2, action.y2)) 
                 {
-                    case 0:
-                        fin_tour = true;
-                        break;
-                    case 1:
-                        std::cout << "[Action Offensive] -> 1.Attaque" << std::endl;
-                        std::cout << "Action : ";
-                        if (!(std::cin >> choix)) 
-                        {
-                            std::cin.clear();
-                            std::cin.ignore(1000, '\n');
-                            continue;
-                        }
-                        break;
-                    case 2:
-                        break;
-                    case 3:
-                        break;
-                    default:
-                        std::cout << "Action invalide." << std::endl;
-                        break;
+                    j.DechargerTransport(*trans, *pass, action.x2, action.y2);
+                    _plateau.placerUnite(action.x2, action.y2, pass);
+                    return ResultatAction::SUCCES;
                 }
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
+        }
 
-            default:
-                std::cout << "Action invalide." << std::endl;
-                break;
+        case TypeAction::ENROLEMENT: 
+        {
+            Unite* com = _plateau.getUnite(action.x1, action.y1);
+            Unite* reg = _plateau.getUnite(action.x2, action.y2);
+            if (com && reg && _arbitre.peutRejoindreCommandant(j, *com, *reg)) 
+            {
+                j.RejoindreCommandant(*com, *reg);
+                return ResultatAction::SUCCES;
+            }
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
         }
         
-        std::cout << " 1. -- Construction de Ville -- " << std::endl;
-        std::cout << " 2. -- Amélioration de Ville -- " << std::endl;
-        std::cout << " 3. -- Création de Unite -- " << std::endl;
-        std::cout << " 4. -- Combat -- " << std::endl;
-        std::cout << " 5. -- Mise en Position de Defense -- " << std::endl;
-        std::cout << " 6. -- Stopper Position de Defense -- " << std::endl;
-        std::cout << " 7. -- Transporter Troupe -- " << std::endl;
-        std::cout << " 8. -- Decharger Troupe -- " << std::endl;
-        std::cout << " 9. -- Mise sous Commandement -- " << std::endl;
-        std::cout << " 10. -- Cammoufler -- " << std::endl;
-        std::cout << " 11. -- Fin de Tour -- " << std::endl;
-        std::cout << "Action : ";
-
-        
-
-        switch(choix) 
+        case TypeAction::DESENROLEMENT:
         {
-            //Construction de Ville
-            case 1: 
+            Unite* com = _plateau.getUnite(action.x1, action.y1);
+            Unite* reg = _plateau.getUnite(action.x2, action.y2);
+            if (com && reg && _arbitre.peutRejoindreCommandant(j, *com, *reg)) 
             {
-                break;
+                j.QuitterCommandant(*com, *reg);
+                return ResultatAction::SUCCES;
             }
-
-            //Amélioration de Ville
-            case 2: 
-            { 
-                break;
-            }
-
-            //Création de Unite
-            case 3: 
-            { 
-                std::cout << "--- RECRUTEMENT ---" << std::endl;
-    
-                const auto& faction = j.getFaction();
-                if (!faction) 
-                {
-                    std::cout << "Erreur : Le joueur n'a pas de faction !" << std::endl;
-                    break;
-                }
-
-                std::cout << "Unites disponibles pour " << faction->nom << " :" << std::endl;
-                for (size_t i = 0; i < faction->unites_disponibles.size(); ++i) 
-                {
-                    std::cout << i << ". " << faction->unites_disponibles[i] << std::endl;
-                }
-
-                int choixUnite;
-                std::cout << "Votre choix : "; 
-                std::cin >> choixUnite;
-
-                if (choixUnite >= 0 && choixUnite < (int)faction->unites_disponibles.size()) 
-                {
-                    std::string nomType = faction->unites_disponibles[choixUnite];
-                    
-                    std::cout << "Coord de deploiement (x y) : ";
-                    std::cin >> x >> y;
-
-                    if (a.coordValid(x, y, _plateau) && _plateau.getUnite(x, y) == nullptr) 
-                    {
-
-                        std::shared_ptr<Unite> nouvelleUnite = _factory.create(nomType); 
-
-                        if (nouvelleUnite)
-                        {
-                            if (a.peutRecruterUnite(j, nouvelleUnite->cout(), *nouvelleUnite)) 
-                            {
-                                j.payer(nouvelleUnite->cout());      
-                                
-                                nouvelleUnite->setLocation({x, y});
-                                j.ajouterUnite(nouvelleUnite.get()); 
-                                _plateau.placerUnite(x, y, nouvelleUnite); 
-                                
-                                std::cout << "[SUCCES] " << nomType << " recrute !" << std::endl;
-                            } 
-                            else std::cout << "[REFUS] Fonds insuffisants." << std::endl;
-                        }
-                        else std::cout << "Erreur : Cette unite n'existe pas dans le catalogue." << std::endl;
-                    }
-                    else std::cout << "[REFUS] Case invalide ou deja occupee." << std::endl;
-                }
-                break;
-            }
-
-            //Combat
-            case 4: 
-            {   
-                std::cout << "Coord Unite active (x y) : "; std::cin >> x >> y;
-                std::cout << "Coord Cible (x y) : "; std::cin >> targetX >> targetY;
-                
-                Unite* active = _plateau.getUnite(x, y);
-                Unite* cible = _plateau.getUnite(targetX, targetY);
-
-                if (active && cible) 
-                {
-                    std::cout << "Action : 1. Attaquer | 2. Soigner : ";
-                    int sousChoix; std::cin >> sousChoix;
-
-                    //Attaque
-                    if (sousChoix == 1)
-                    {
-                        auto attaques = active->Offensive();
-                        if (attaques.empty()) 
-                        {
-                            std::cout << "Cette unite n'a aucune competence d'offensive." << std::endl;
-                        } 
-                        else
-                        {
-                            std::vector<CompAtt*> vAtt(attaques.begin(), attaques.end());
-                            for (size_t i = 0; i < vAtt.size(); ++i) 
-                            {
-                                std::cout << i << ". "; vAtt[i]->affiche();
-                            }
-
-                            std::cout << "Choisissez l'attaque : ";
-                            int iAtt; std::cin >> iAtt;
-
-                            if (iAtt >= 0 && iAtt < (int)vAtt.size()) 
-                            {
-                                if (a.peutAttaquer(j, *active, *cible, vAtt[iAtt])) 
-                                {
-                                    j.Attaquer(*active, *cible, vAtt[iAtt]);
-                                    std::cout << "[SUCCES] Attaque effectuee !" << std::endl;
-                                } 
-                                else 
-                                {
-                                    std::cout << "[REFUS] L'arbitre refuse l'attaque (PA insuffisants ou cible invalide)." << std::endl;
-                                }
-                            }
-                        }
-                    }
-
-                    //Soin
-                    else if (sousChoix == 2)
-                    {
-                        auto soins = active->Soin();
-                        if (soins.empty()) 
-                        {
-                            std::cout << "Cette unite ne peut pas soigner." << std::endl;
-                        } 
-                        else 
-                        {
-                            std::vector<CompSoin*> vSoin(soins.begin(), soins.end());
-                            for (size_t i = 0; i < vSoin.size(); ++i) 
-                            {
-                                std::cout << i << ". "; vSoin[i]->affiche();
-                            }
-
-                            std::cout << "Choisissez le soin : ";
-                            int iSoin; std::cin >> iSoin;
-
-                            if (iSoin >= 0 && iSoin < (int)vSoin.size()) 
-                            {
-                                if (a.peutSoigner(j, *active, *cible, vSoin[iSoin])) 
-                                {
-                                    j.Soigner(*active, *cible, vSoin[iSoin]);
-                                    std::cout << "[SUCCES] Soin effectue !" << std::endl;
-                                } 
-                                else 
-                                {
-                                    std::cout << "[REFUS] L'arbitre refuse le soin." << std::endl;
-                                }
-                            }
-                        }
-                    }
-                } 
-                else 
-                {
-                    std::cout << "Case vide ou coordonnees invalides." << std::endl;
-                }
-                break;
-            }
-
-            //Mise en Position de Defense
-            case 5: 
-            { 
-                std::cout << "Coord Unite (x y) : "; std::cin >> x >> y;
-                Unite* u = _plateau.getUnite(x, y);
-                if (u && a.appartientJoueur(j, *u)) 
-                {
-                    j.ChangerPositionDefensive(*u);
-                    std::cout << "Position defensive activee." << std::endl;
-                }
-                break;
-            }
-
-            //Stopper Position de Defense
-            case 6: 
-            {
-                std::cout << "Coord Unite (x y) : "; std::cin >> x >> y;
-                Unite* u = _plateau.getUnite(x, y);
-                if (u && a.appartientJoueur(j, *u) && u->defensif()) 
-                {
-                    j.ChangerPositionDefensive(*u);
-                    std::cout << "Position defensive stoppee." << std::endl;
-                }
-                break;
-            }
-
-            //Transporter Troupe
-            case 7: 
-            {
-                std::cout << "Coord Transporteur (x y) : "; std::cin >> x >> y;
-                std::cout << "Coord Passager (x y) : "; std::cin >> targetX >> targetY;
-                Unite* trans = _plateau.getUnite(x, y);
-                Unite* pass = _plateau.getUnite(targetX, targetY);
-
-                if (trans && pass && a.peutTransporter(j, *trans)) { //
-                    j.Transporter(*trans, *pass); //
-                    std::cout << "Unite embarquee." << std::endl;
-                }
-                break;
-            }
-                
-            //Decharger Troupe
-            case 8: 
-            {
-                std::cout << "Coord Transporteur (x y) : "; std::cin >> x >> y;
-                std::cout << "Coord Destination (x y) : "; std::cin >> targetX >> targetY;
-                Unite* trans = _plateau.getUnite(x, y);
-                // Note : il faudrait une logique pour choisir quel passager décharger
-                break;
-            }
-                
-            //Mise sous Commandement
-            case 9: 
-            {
-                std::cout << "Coord Commandant (x y) : "; std::cin >> x >> y;
-                std::cout << "Coord Recrue (x y) : "; std::cin >> targetX >> targetY;
-                Unite* com = _plateau.getUnite(x, y);
-                Unite* reg = _plateau.getUnite(targetX, targetY);
-
-                if(com && reg && a.peutRejoindreCommandant(j, *com, *reg))
-                {
-                    j.RejoindreCommandant(*com, *reg);
-                    std::cout << "Unite sous commandement." << std::endl;
-                }
-                break;
-            }
-
-            //Cammoufler
-            case 10: 
-            {
-                std::cout << "Coord Unite (x y) : "; std::cin >> x >> y;
-                Unite* u = _plateau.getUnite(x, y);
-                if (u && a.peutActiverCamouflage(j, *u)) 
-                {
-                    j.ActiverCamouflage(*u);
-                    std::cout << "Camouflage active." << std::endl;
-                }
-                break;
-            }
-
-            case 11:
-                fin_tour = true;
-                break;
-
-            default: 
-                std::cout << "Choix invalide." << std::endl;
-                break;
+            return ResultatAction::ECHEC_ARBITRE_REFUS;
         }
     }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
 }

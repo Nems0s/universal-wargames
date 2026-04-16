@@ -5,7 +5,6 @@
 #include <map>
 #include <vector>
 
-// Inclusions du moteur de jeu
 #include "jeu.hh"
 #include "joueur.hh"
 #include "arbitre.hh"
@@ -13,125 +12,425 @@
 #include "unite.hh"
 #include "config.hh"
 
-// Helper pour trouver le dossier des configurations
-std::string trouverConfigs() {
-    if (std::filesystem::exists("configs")) return "configs";
-    if (std::filesystem::exists("../configs")) return "../configs";
+std::string trouverConfigs() 
+{
+    if (std::filesystem::exists("configs")) return "configs/";
+    if (std::filesystem::exists("../configs")) return "../configs/";
     throw std::runtime_error("Dossier 'configs' introuvable !");
 }
 
+
 int main() {
-    // 1. Initialisation
-    std::srand(std::time(nullptr));
+
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "      Initialisation Du Jeu" << std::endl;
+    std::cout << "========================================\n" << std::endl;
+
     std::string cfgDir = trouverConfigs();
-    
-    // 2. Chargement des Ressources Globales
+    std::string fic;
+
+    /*==================*/
+    //Config Ressources
+    /*==================*/
+    std::cout << "\nFichier de configuration des ressources: ";
+    std::cin >> fic;
     std::map<std::string, Ressource*> catalogueRessources;
     JsonRessourceReader resReader;
     try {
-        resReader.load(cfgDir + "/config_ressources.json", catalogueRessources);
-        std::cout << "[SYSTEME] Ressources chargees." << std::endl;
+        resReader.load(cfgDir + fic, catalogueRessources);
+        std::cout << "[SYSTEME] Ressources chargées." << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Erreur critique Ressources : " << e.what() << std::endl;
         return 1;
     }
 
-    // 3. Configuration des Règles et du Monde
+    /*=============*/
+    //Config Règle
+    /*=============*/
+    std::cout << "\nFichier de configuration des règles: ";
+    std::cin >> fic;
     GameConfig config;
-    config.loadRules(cfgDir + "/config_rules.json");
+    try {
+        config.loadRules(cfgDir + fic);
+        std::cout << "[SYSTEME] Règles chargées." << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Erreur critique Règle : " << e.what() << std::endl;
+        return 1;
+    }
 
+    /*=============*/
+    //Config Monde
+    /*=============*/
+    std::cout << "\nFichier de configuration du monde: ";
+    std::cin >> fic;
     WorldFactory world;
     JsonWorldReader worldReader;
     try {
-        worldReader.chargerConfig(cfgDir + "/config_espace.json", catalogueRessources, world);
+        worldReader.chargerConfig(cfgDir + fic, catalogueRessources, world);
         world.initialiserBords();
+        std::cout << "[SYSTEME] Monde chargés." << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Erreur critique Monde : " << e.what() << std::endl;
         return 1;
     }
 
-    // 4. Initialisation du Plateau et de l'Arbitre
-    board plateau(world, config); 
-    Arbitre arbitre;
-
-    // 5. Initialisation de l'Usine d'Unités
+    /*=====================*/
+    //Config Factory Unite
+    /*=====================*/
+    std::cout << "\nFichier de configuration des unités: ";
+    std::cin >> fic;
     UniteFactory uniteFactory;
     JsonUniteReader uniteReader;
     try {
-        uniteFactory.chargerConfiguration(cfgDir + "/config_unite.json", uniteReader, catalogueRessources);
-        std::cout << "[SYSTEME] Unites chargees." << std::endl;
+        uniteFactory.chargerConfiguration(cfgDir + fic, uniteReader, catalogueRessources);
+        std::cout << "[SYSTEME] Unites chargées." << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Erreur critique Unites : " << e.what() << std::endl;
         return 1;
     }
 
-    // 6. Création du Manager de Jeu
+    /*=======================*/
+    // Initialisation du jeu
+    /*=======================*/
+    board plateau(world, config); 
+    Arbitre arbitre;
+
     GameManager moteur(plateau, arbitre, config, uniteFactory);
 
-    // -----------------------------------------------------------------
-    // NOUVEAU : Création des Factions (Assurez-vous que FactionParams 
-    // dans config.hh possède bien ces champs : nom et unites_disponibles)
-    // -----------------------------------------------------------------
-    FactionParams factionAlliance;
-    factionAlliance.nom = "Alliance Terrestre";
-    factionAlliance.unites_disponibles = {"Commandant Allie", "Infanterie d'Elite", "Tank de Garde", "Medecin"};
+    /*======================*/
+    // Création des joueurs 
+    /*======================*/
+    int nb_joueur=0;
+    std::string nom_joueur;
 
-    FactionParams factionMercenaire;
-    factionMercenaire.nom = "Syndicat Mercenaire";
-    factionMercenaire.unites_disponibles = {"Commandant Allie", "Sniper", "Gros Tank", "Soldat Blesse"};
+    std::cout << "\nEntrez nombre de joueur: ";
+    std::cin >> nb_joueur;
+    for(int i=1; i <= nb_joueur; ++i)
+    {
+        std::cout << "Entrez nom du joueur "<<i<<": ";
+        std::cin >> nom_joueur;
 
-    // 7. Création et Configuration des Joueurs
-    auto j1 = std::make_unique<Joueur>("Commandant Alpha");
-    auto j2 = std::make_unique<Joueur>("Commandant Beta");
-
-    // Attribution des factions
-    j1->setFaction(&factionAlliance);
-    j2->setFaction(&factionMercenaire);
-
-    // Donner des ressources initiales (500 de chaque ressource du jeu)
-    for (auto const& [nom, resPtr] : catalogueRessources) {
-        j1->ajouterRessource(resPtr, 500);
-        j2->ajouterRessource(resPtr, 500);
+        auto j = std::make_unique<Joueur>(nom_joueur);
+        moteur.ajouterJoueur(std::move(j));
     }
 
-    // 8. Placement des unités de départ
+    /*======================*/
+    // Gestion des Factions 
+    /*======================*/
+    for(auto& joueur : moteur.getJoueurs())
+    {
+        std::string choix_faction;
+        int i=1;
+
+        std::cout << "\nChoisir une faction pour " << joueur->getName() <<": ";
+        for(auto& faction : config.get_AllFactions())
+        {
+            std::cout<<"\n" << i <<". "<< faction.first << " ";
+            ++i;
+        }
+        std::cout <<"\nChoix (Mettre le nom): ";
+        std::cin >> choix_faction;
+
+        auto fact = config.getFaction(choix_faction);
+        if(fact) 
+        {
+            joueur->setFaction(fact);
+        }
+    }
     
-    // Joueur 1 : Position (1,1)
-    std::shared_ptr<Unite> u1 = uniteFactory.create("Commandant Allie");
-    if (u1) {
-        u1->setLocation({1, 1});
-        j1->ajouterUnite(u1.get());
-        plateau.placerUnite(1, 1, u1); 
+
+    /*======================*/
+    // Ressources de départ  
+    /*======================*/
+    std::string ressources_depart;
+    std::cout <<"\nVoulez vous donner des ressources de départ ? (Oui/Non): ";
+    std::cin >> ressources_depart;
+
+    if(ressources_depart == "Oui")
+    {
+        for(auto const& [nom, resPtr] : catalogueRessources) 
+        {
+            int quantite = 0;
+            std::cout <<"Quantité pour "<< nom << ": ";
+            std::cin >> quantite;
+            for(auto& joueur : moteur.getJoueurs())
+            {
+                joueur->ajouterRessource(resPtr, quantite);
+            }
+        }   
     }
 
-    // Joueur 2 : Position (8,8)
-    std::shared_ptr<Unite> u2 = uniteFactory.create("Commandant Allie");
-    if (u2) {
-        u2->setLocation({8, 8});
-        j2->ajouterUnite(u2.get());
-        plateau.placerUnite(8, 8, u2); 
+
+    /*========================================================*/
+    // Affichage du plateau pour voir ou mettre les capitales 
+    /*========================================================*/
+
+    plateau.affichage();
+
+
+    /*=========================*/
+    // Placement des Capitales
+    /*=========================*/
+    std::cout << "\nGénération aléatoire des Capitales" << std::endl;
+
+    for(auto& joueur : moteur.getJoueurs())
+    {
+        bool placementValide = false;
+        int x, y;
+
+        while(!placementValide)
+        {
+            x = std::rand() % plateau.getRows(); 
+            y = std::rand() % plateau.getCols();
+
+            if(arbitre.coordValid(x, y, plateau)) //
+            {
+                const hexa* cell = plateau.getCell(x, y);
+                TuileConfigurable* tuile = const_cast<TuileConfigurable*>(dynamic_cast<const TuileConfigurable*>(cell));
+
+                if(tuile && tuile->peutConstrVille()) //
+                {
+                    tuile->constrVille(x, y, config, 5, true); 
+                    City* capitale = tuile->getCity();
+                    
+                    if(capitale)
+                    {
+                        joueur->ajouterVille(capitale); //
+                        placementValide = true;
+
+                        std::cout << "[INFO] La capitale de " << joueur->getName() << " a été établie en (" << x << ", " << y << ")." << std::endl;
+                    }
+                }
+            }
+        }
     }
 
-    // Ajouter les joueurs au moteur
-    moteur.ajouterJoueur(std::move(j1));
-    moteur.ajouterJoueur(std::move(j2));
 
-    // 9. Lancement de la boucle de jeu
+
+
+
+
+    /*==========================*/
+    // Boucle de Jeu Principale
+    /*==========================*/
     std::cout << "\n========================================" << std::endl;
-    std::cout << "       LANCEMENT DE SPACE WARGAMES" << std::endl;
+    std::cout << "      Début de la Partie" << std::endl;
     std::cout << "========================================\n" << std::endl;
-    
-    try {
-        moteur.lancerPartie();
-    } catch (const std::exception &e) {
-        std::cerr << "Erreur en cours de partie : " << e.what() << std::endl;
+    moteur.lancerPartie(); // Initialise le premier tour
+    bool jeuEnCours = true;
+
+    while (jeuEnCours) 
+    {
+        const auto& listeJoueurs = moteur.getJoueurs();
+        int indexActuel = moteur.getIndexJoueurActuel();
+        Joueur& joueurActif = *(listeJoueurs.at(indexActuel));
+
+        std::cout << "\n========================================" << std::endl;
+        std::cout << "   TOUR DE : " << joueurActif.getName() << std::endl;
+        std::cout << "========================================" << std::endl;
+        
+        int choixMenu;
+        std::cout << "1. Voir la carte (Affichage plateau)" << std::endl;
+        std::cout << "2. Faire une Action" << std::endl;
+        std::cout << "3. Déclarer Forfait" << std::endl;
+        std::cout << "Choix : ";
+        std::cin >> choixMenu;
+
+        if (choixMenu == 1) 
+        {
+            plateau.affichage();
+        } 
+        else if (choixMenu == 2) 
+        {
+            std::cout << "\n--- ACTIONS POSSIBLES ---" << std::endl;
+            std::cout << " 1. Déplacer             |  2. Attaquer             |  3. Soigner" << std::endl;
+            std::cout << " 4. Recruter             |  5. Construire Ville     |  6. Construire Bâtiment" << std::endl;
+            std::cout << " 7. Améliorer Ville      |  8. Camoufler            |  9. Début Défense" << std::endl;
+            std::cout << "10. Arrêt Défense        | 11. Chargement (Monter)  | 12. Déchargement (Sortir)" << std::endl;
+            std::cout << "13. Enrôlement (Cdt)     | 14. Désenrôlement        | 15. FIN DE TOUR" << std::endl;
+            
+            int choixAction; 
+            std::cout << "Choix de l'action : "; 
+            std::cin >> choixAction;
+            
+            Action a;
+            bool actionValide = true;
+
+            switch(choixAction) 
+            {
+                case 1: // DEPLACER
+                    std::cout << "\nDéplacement" << std::endl;
+                    a.type = TypeAction::DEPLACER;
+                    std::cout << "Coord. unité (x y) : ";
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. destination (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    break;
+                case 2: // ATTAQUER
+                    std::cout << "\nAttaque" << std::endl;
+                    a.type = TypeAction::ATTAQUER;
+                    std::cout << "Coord. attaquant (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. cible (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    std::cout << "Index de l'attaque : "; 
+                    std::cin >> a.data;
+                    break;
+                case 3: // SOIGNER
+                    std::cout << "\nSoin" << std::endl;
+                    std::cout << "Coord. soigneur (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. cible (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    std::cout << "Index du soin : "; 
+                    std::cin >> a.data;
+                    break;
+                case 4: // RECRUTER
+                    {                    
+                        std::cout << "\nRecrutement" << std::endl;
+                        a.type = TypeAction::RECRUTER_UNITE;
+                        std::cout << "Coord. recrutement (x y) : "; 
+                        std::cin >> a.x1 >> a.y1;
+                        
+                        const FactionParams* faction = joueurActif.getFaction();
+                        if (faction) 
+                        {
+                            for (const std::string& nomUnite : faction->unites_disponibles) 
+                            {
+                                std::cout << "Unité invocable : " << nomUnite << std::endl;
+                            }
+                        }
+                        else std::cout << "Pas d'unité"<< std::endl;
+
+                        std::cout << "Nom de l'unité : "; 
+                        std::cin >> a.data;
+                        break;
+                    }
+                case 5: // CONSTRUIRE VILLE
+                    std::cout << "\nConstruction de Ville" << std::endl;
+                    a.type = TypeAction::CONSTRUIRE_VILLE;
+                    std::cout << "Coord. nouvelle ville (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 6: // CONSTRUIRE BATIMENT
+                    std::cout << "\nConstruction de Batiment" << std::endl;
+                    a.type = TypeAction::CONSTRUIRE_BATIMENT;
+                    std::cout << "Coord. tuile (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Nom du bâtiment : "; 
+                    std::cin >> a.data;
+                    break;
+                case 7: // AMELIORER VILLE
+                    std::cout << "\nAmélioration de Ville" << std::endl;
+                    a.type = TypeAction::AMELIORER_VILLE;
+                    std::cout << "Coord. ville (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 8: // CAMMOUFLER
+                    std::cout << "\nCammouflage d'unité" << std::endl; 
+                    a.type = TypeAction::CAMMOUFLER;
+                    std::cout << "Coord. unité (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 9: // DEBUT_DEFENSSE
+                    std::cout << "\nUnité mise en position defensive" << std::endl; 
+                    a.type = TypeAction::DEBUT_DEFENSSE;
+                    std::cout << "Coord. unité (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 10: // ARRET_DEFENSSE
+                    std::cout << "\nUnité retirer de sa position defensive" << std::endl; 
+                    a.type = TypeAction::ARRET_DEFENSSE;
+                    std::cout << "Coord. unité (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 11: // CHARGEMENT
+                    std::cout << "\nChargement d'unité dans un transporteur" << std::endl; 
+                    a.type = TypeAction::CHARGEMENT;
+                    std::cout << "Coord. transporteur (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. passager (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    break;
+                case 12: // DECHARGEMENT
+                    std::cout << "\nDechargement d'unité dans un transporteur" << std::endl; 
+                    a.type = TypeAction::DECHARGEMENT;
+                    std::cout << "Coord. transporteur (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. arrivée (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    std::cout << "Index de l'unité à sortir : "; 
+                    std::cin >> a.data;
+                    break;
+                case 13: // ENROLEMENT
+                    std::cout << "\nEnrolement d'une unité par un commandant" << std::endl; 
+                    a.type = TypeAction::ENROLEMENT;
+                    std::cout << "Coord. Commandant (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. Recrue (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    break;
+                case 14: // DESENROLEMENT
+                    std::cout << "\nDesenrolement d'une unité par un commandant" << std::endl; 
+                    a.type = TypeAction::DESENROLEMENT;
+                    std::cout << "Coord. Commandant (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. Recrue (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    break;
+                case 15: // FIN_TOUR
+                    std::cout << "\nFin du tour de "<<joueurActif.getName() << std::endl; 
+                    a.type = TypeAction::FIN_TOUR;
+                    break;
+                default:
+                    std::cout << "Action inconnue." << std::endl;
+                    actionValide = false;
+            }
+
+            if (actionValide) 
+            {
+                ResultatAction res = moteur.traiterAction(a);
+                if (res == ResultatAction::FIN_TOUR) 
+                {
+                    std::cout << "Tour terminé." << std::endl;
+                } 
+                else if (res == ResultatAction::SUCCES) 
+                {
+                    std::cout << "[SUCCÈS] Action effectuée." << std::endl;
+                } 
+                else 
+                {
+                    std::cout << "[ÉCHEC] L'arbitre a refusé l'action (Ressources, PA ou portée)." << std::endl;
+                }
+            }
+        } 
+        else if (choixMenu == 3) 
+        {
+            std::cout << "Le joueur " << joueurActif.getName() << " a déclaré forfait !" << std::endl;
+            jeuEnCours = false;
+        }
+
+        for (auto& j : listeJoueurs) 
+        {
+            if (arbitre.verifierVictoire(*j, config)) 
+            {
+                std::cout << "\n****************************************" << std::endl;
+                std::cout << " FÉLICITATIONS ! " << j->getName() << " GAGNE !" << std::endl;
+                std::cout << "****************************************" << std::endl;
+                jeuEnCours = false;
+                break;
+            }
+        }
     }
 
-    // 10. Nettoyage de la mémoire
-    for (auto const& [nom, res] : catalogueRessources) {
+    
+    /*=========================*/
+    // Nettoyage de la mémoire
+    /*=========================*/
+    for (auto const& [nom, res] : catalogueRessources) 
+    {
         delete res;
     }
     catalogueRessources.clear();
-
     return 0;
 }

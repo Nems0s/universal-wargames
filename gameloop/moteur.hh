@@ -4,6 +4,48 @@
 #include "arbitre.hh"
 #include "unite.hh"
 
+enum class TypeAction 
+{
+    FIN_TOUR,
+    
+    CONSTRUIRE_VILLE,
+    CONSTRUIRE_BATIMENT,
+    AMELIORER_VILLE,
+    
+    RECRUTER_UNITE,
+    
+    DEPLACER,
+    ATTAQUER,
+    SOIGNER,
+    CAMMOUFLER,
+    
+    DEBUT_DEFENSSE,
+    ARRET_DEFENSSE,
+    
+    CHARGEMENT,
+    DECHARGEMENT,
+    
+    ENROLEMENT, // Mise sous un commandant
+    DESENROLEMENT // Enleve de sous un commandant
+};
+
+struct Action 
+{
+    TypeAction type;
+    int x1, y1;
+    int x2, y2;
+    std::string data;
+};
+
+enum class ResultatAction 
+{
+    SUCCES,
+    FIN_TOUR,
+    ECHEC_FONDS_INSUFFISANTS,
+    ECHEC_COORD_INVALIDE,
+    ECHEC_ARBITRE_REFUS
+};
+
 class GameManager{
 private:
     board & _plateau;
@@ -16,9 +58,12 @@ private:
 public:
     GameManager(board & b, Arbitre & a, GameConfig & c, UniteFactory & f);
 
-    void ajouterJoueur(std::unique_ptr<Joueur> j);
+    const std::vector<std::unique_ptr<Joueur>>& getJoueurs() const { return _joueurs; };
+    int getIndexJoueurActuel(){return _indexJoueurActuel;};
 
+    void ajouterJoueur(std::unique_ptr<Joueur> j);
     void lancerPartie();
-    void executerTour(Joueur & j, const Arbitre & a);
- 
+
+    ResultatAction traiterAction(const Action& action);
+    void passerAuJoueurSuivant();
 };

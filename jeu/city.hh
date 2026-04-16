@@ -28,6 +28,8 @@ class City {
         bool estCapitale() const;
         void product(Joueur & j);
 
+        void upgrade();
+
         int getLevel() const { return _level; }
         int getMaxLevel() const { return _maxLevel; }
 

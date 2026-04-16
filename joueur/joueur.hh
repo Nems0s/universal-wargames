@@ -12,7 +12,7 @@ class Ressource;
 class Joueur {
 private:
     std::string _name;
-    FactionParams* _faction;
+    const FactionParams* _faction;
     std::map<Ressource*, int> _inventaire;
     std::list<Unite*> _unites;
     std::list<City*> _cities;
@@ -21,8 +21,11 @@ private:
 public:
     Joueur(std::string name) : _name(name), _faction(nullptr) {}
 
+    void debutTour();
+
+
     // Faction 
-    void setFaction(FactionParams* f) { _faction = f; }
+    void setFaction(const FactionParams* f) { _faction = f; }
     const FactionParams* getFaction() const { return _faction; }
 
     // Ressources
@@ -46,6 +49,7 @@ public:
     void Soigner(Unite& healer, Unite& cible, CompSoin* const& TypeSoin);
     void ActiverCamouflage(Unite& unite);
     void RejoindreCommandant(Unite& commandant, Unite& unite);
+    void QuitterCommandant(Unite& commandant, Unite& unite);
     
     void Transporter(Unite& transporteur, Unite& passager);
     void DechargerTransport(Unite& transporteur, Unite& passager, int xDest, int yDest); 

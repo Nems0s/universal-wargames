@@ -70,6 +70,7 @@ class GameConfig {
 
         int getRayonBaseVille() const { return _rayonBaseVille; }
         int getDistanceMinVilles() const { return _distanceMinVilles; }
+        std::map<std::string, FactionParams> get_AllFactions() { return _factions; };
         
         const FactionParams* getFaction(const std::string& nom) const;
 };

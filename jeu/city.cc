@@ -40,3 +40,10 @@ void City::takeDamage(int d) {
     _pvCurrent -= d;
     if (_pvCurrent < 0) _pvCurrent = 0;
 }
+
+
+ void City::upgrade()
+ {
+    //Après faut revoir tout la logique d'évolution sur la production, etc
+    if(_level < _maxLevel) ++ _level;
+ }
