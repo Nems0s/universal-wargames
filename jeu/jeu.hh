@@ -5,9 +5,10 @@
 #include "unite.hh"
 #include "batiment.hh"
 #include "city.hh"
-#include "unite.hh"
 #include "joueur.hh"
 #include "config.hh"
+
+class Unite;
 
 //===================================================================
 //                              Tools
@@ -148,6 +149,7 @@ public:
     void placerUnite(int x, int y, std::unique_ptr<Unite> u);
     bool deplacerUnite(Unite& u, int xDest, int yDest);
     Unite * getUnite(int x, int y) const;
+    void placerUnite(int x, int y, std::shared_ptr<Unite> u);
 
     int getRows() const { return _matrix.size(); }
     int getCols() const { return _matrix.empty() ? 0 : _matrix[0].size(); }
@@ -157,6 +159,7 @@ private:
     int _height;
     const GameConfig& _config;
     std::vector<std::vector<std::unique_ptr<hexa>>> _matrix;
-    std::map<std::pair<int, int>, std::unique_ptr<Unite>> _unites;
+    std::map<std::pair<int, int>, std::shared_ptr<Unite>> _unites;
+    
 };
 

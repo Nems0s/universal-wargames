@@ -1,5 +1,5 @@
 #include "SaveManager.hh"
-#include "../UI/InterfaceManager.hh" // Pour accéder aux variables
+#include "../UI/InterfaceManager.hh"
 #include <fstream>
 #include <iostream>
 
@@ -8,11 +8,13 @@ using json = nlohmann::json;
 bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
     json j;
 
+    MoteurDeJeu & moteur = ui->_moteur;
+
     // 1. État global de la partie
-    j["game_state"]["turn"] = ui->_currentTurnNumber;
-    j["game_state"]["current_player"] = ui->_currentPlayerTurn;
+    j["game_state"]["turn"] = moteur.getTourActuel();
+    j["game_state"]["current_player"] = moteur.getCurrentPlayerTurn();
     j["game_state"]["num_players"] = ui->_numPlayers;
-    j["game_state"]["seed"] = ui->_mapSeed;
+    j["game_state"]["seed"] = moteur.getMapSeed();
 
     // 2. Paramètres de la carte (Poids et Factions)
     j["factions"] = ui->_playerFactions;
@@ -21,13 +23,46 @@ bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
         j["custom_weights"][s] = weight;
     }
 
-    // 3. Les Joueurs (Brouillard de guerre)
-    for (size_t i = 0; i < ui->_joueurs.size(); ++i) {
+    // 3. Les Joueurs (Brouillard, Villes, Unités)
+    const auto& joueurs = moteur.getJoueurs();
+    for (size_t i = 0; i < joueurs.size(); ++i) {
         json playerJson;
-        playerJson["name"] = ui->_joueurs[i].getName();
-        playerJson["brouillard"] = ui->_joueurs[i].getBrouillard(); // Conversion auto en JSON !
+        playerJson["name"] = joueurs[i].getName();
+        playerJson["brouillard"] = joueurs[i].getBrouillard(); 
         
-        // TODO plus tard : Sauvegarder ici les coordonnées des Villes et Unités du joueur
+        // --- SAUVEGARDE DES VILLES ---
+        json villesJson = json::array();
+        for (City* c : joueurs[i].getCities()) {
+            json cj;
+            cj["x"] = c->getX();
+            cj["y"] = c->getY();
+            cj["level"] = c->getLevel();
+            cj["pv"] = c->getPv();
+            cj["capitale"] = c->estCapitale();
+            
+            // Sauvegarde des bâtiments dans la ville
+            json batJson = json::array();
+            for (const auto& b : c->getBatiments()) { 
+                batJson.push_back(b->getName());
+            }
+            cj["batiments"] = batJson;
+            
+            villesJson.push_back(cj);
+        }
+        playerJson["villes"] = villesJson;
+
+        // --- SAUVEGARDE DES UNITÉS ---
+        json unitesJson = json::array();
+        for (Unite* u : joueurs[i].getUnites()) {
+            json uj;
+            uj["x"] = u->location().first;
+            uj["y"] = u->location().second;
+            uj["name"] = u->name();
+            uj["hp"] = u->health_point();
+            uj["pa"] = u->point_action();
+            unitesJson.push_back(uj);
+        }
+        playerJson["unites"] = unitesJson;
         
         j["players"].push_back(playerJson);
     }
@@ -35,12 +70,13 @@ bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
     // 4. Écriture dans le fichier
     std::ofstream file(filename);
     if (file.is_open()) {
-        file << j.dump(4); // Indentation de 4 espaces pour être lisible
+        file << j.dump(4);
         std::cout << "Partie sauvegardee : " << filename << std::endl;
         return true;
     }
     return false;
 }
+
 
 bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
     std::ifstream file(filename);
@@ -51,29 +87,89 @@ bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
 
     json j;
     file >> j;
+    MoteurDeJeu& moteur = ui->_moteur;
 
     // 1. Restaurer l'état global
-    ui->_currentTurnNumber = j["game_state"]["turn"];
-    ui->_currentPlayerTurn = j["game_state"]["current_player"];
     ui->_numPlayers = j["game_state"]["num_players"];
     ui->_mapSeed = j["game_state"]["seed"];
-
-    // 2. Restaurer les paramètres de carte
     ui->_playerFactions = j["factions"].get<std::vector<std::string>>();
     ui->_customWeights.clear();
     for (auto& el : j["custom_weights"].items()) {
         ui->_customWeights[el.key()[0]] = el.value();
     }
 
-    // 3. Régénérer le plateau avec la Seed sauvegardée
-    ui->initGameFromSave(); 
+    // 2. Restaurer les paramètres du plateau
+    moteur.overrideWorldWeights(ui->_customWeights);
+    moteur.initGame(ui->_mapSeed, ui->_numPlayers, ui->_playerFactions);
 
-    // 4. Restaurer les Joueurs
+    // 3. Restaurer le temps de la sauvegarde
+    moteur.setTourActuel(j["game_state"]["turn"]);
+    moteur.setCurrentPlayerTurn(j["game_state"]["current_player"]);
+
+    // 4. Restaurer les Joueurs, Villes et Unités
     for (size_t i = 0; i < j["players"].size(); ++i) {
-        // Appliquer le brouillard sauvegardé
-        ui->_joueurs[i].setBrouillard(j["players"][i]["brouillard"].get<std::vector<std::vector<bool>>>());
+        Joueur& joueurActuel = moteur.getJoueurMutable(i);
         
-        // TODO plus tard : Re-créer les Villes et Unités ici
+        // A. Brouillard
+        joueurActuel.setBrouillard(j["players"][i]["brouillard"].get<std::vector<std::vector<bool>>>());
+        
+        // B. Reconstruire les Villes
+        for (const auto& cj : j["players"][i]["villes"]) {
+            int x = cj["x"];
+            int y = cj["y"];
+            
+            // On récupère la tuile pour forcer la construction
+            hexa* cell = const_cast<hexa*>(moteur.getPlateau()->getCell(x, y));
+            TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
+            
+            if (tc) {
+                // On construit gratuitement
+                tc->constrVille(x, y, moteur.getLogicConfig(), 5, cj["capitale"]);
+                City* city = tc->getCity();
+                
+                // On restaure les statistiques exactes
+                city->setLevel(cj["level"]);
+                city->setPv(cj["pv"]);
+                
+                // On recrée les bâtiments internes
+                for (const auto& batName : cj["batiments"]) {
+                    auto b = moteur.getBatimentFactory().create(batName.get<std::string>());
+                    if (b) {
+                        city->creeBatiment(std::move(b));
+                    }
+                }
+                
+                // On lie la ville au joueur et au territoire
+                joueurActuel.ajouterVille(city);
+                tc->setProprietaire(&joueurActuel);
+            }
+        }
+
+        // C. Reconstruire les Unités
+        if (j["players"][i].contains("unites")) {
+            for (const auto& uj : j["players"][i]["unites"]) {
+                int x = uj["x"];
+                int y = uj["y"];
+                std::string name = uj["name"];
+                
+                // 1. On recrée la bonne unité dynamiquement via la Factory
+                auto u = moteur.getUniteFactory().create(name);
+                
+                if (u) {
+                    // 2. On restaure ses statistiques exactes
+                    u->setHealth_point(uj["hp"]);
+                    u->setPoint_action(uj["pa"]); 
+                    u->setLocation({x, y});
+                    
+                    // 3. On extrait le pointeur brut pour l'inventaire du joueur
+                    Unite* ptrUnite = u.get();
+                    joueurActuel.ajouterUnite(ptrUnite);
+                    
+                    // 4. Le plateau prend possession de l'unité aux bonnes coordonnées
+                    moteur.getPlateauMutable()->placerUnite(x, y, std::move(u));
+                }
+            }
+        }
     }
 
     std::cout << "Partie chargee avec succes !" << std::endl;

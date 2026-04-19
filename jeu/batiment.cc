@@ -131,11 +131,11 @@ void BatimentFactory::chargerConfiguration(const std::string& chemin, BatimentCo
     lecteur.load(chemin, _catalogue, ressourcesDispo);
 }
 
-std::unique_ptr<Batiment> BatimentFactory::create(std::string type)
+std::unique_ptr<Batiment> BatimentFactory::create(std::string type) const
 {
     if (_catalogue.count(type))
     {
-        return _catalogue[type]->clone();
+        return _catalogue.at(type)->clone();
     }
     return nullptr;
 }

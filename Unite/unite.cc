@@ -443,11 +443,12 @@ void UniteFactory::chargerConfiguration(const std::string& chemin, UniteConfigRe
     lecteur.load(chemin, _catalogue, ressources);
 }
 
-std::shared_ptr<Unite> UniteFactory::create(std::string type) 
+// MODIFIE PAR NAIM
+std::shared_ptr<Unite> UniteFactory::create(std::string type) const
 {
     if (_catalogue.count(type))
     {
-        return _catalogue[type]->clone();
+        return _catalogue.at(type)->clone();
     }
     return nullptr;
 }

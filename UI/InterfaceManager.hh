@@ -1,20 +1,17 @@
 #pragma once
-#ifndef INTERFACE_MANAGER_HH
-#define INTERFACE_MANAGER_HH
 
 #include <SFML/Graphics.hpp>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <vector>
+#include <string>
+
 #include "imgui.h"
 #include "imgui-SFML.h"
-#include "jeu.hh"
-#include "config.hh"
-#include "SaveManager.hh"
 #include "NetworkManager.hh"
-#include "arbitre.hh"
-#include "ressource.hh"
+#include "moteur.hh"
 
 using json = nlohmann::json;
 
@@ -24,123 +21,97 @@ enum class OptionsTab { GAME_SETTINGS, GRAPHICS, ADVANCED };
 class InterfaceManager {
     friend class SaveManager;
 private:
-    sf::RenderWindow& _window;
+    sf::RenderWindow & _window;
+    MoteurDeJeu & _moteur;
+
     GameState _currentState;
     OptionsTab _currentOptionsTab = OptionsTab::GAME_SETTINGS;
-    std::vector<Joueur> _joueurs;
 
-    // Gestion de la configuration JSON
+    // configuration JSON
     json _configJson;
+    json _espaceJson;
     std::string _configPath = "configs/config_rules.json";
-    GameConfig _logicConfig; // Ta classe de logique
-    
-    // Logique du jeu
-    std::unique_ptr<board> _board;
-    WorldFactory _factory;
-    std::map<std::string, Ressource*> _ressourcesDispo;
-    BatimentFactory _batimentFactory;
-    
-    // Paramètres d'initialisation
-    int _gridSize = 10;
-    
-    // Graphismes
+
+    // graphismes
     std::map<char, sf::Texture> _textures;
     float _tileSize = 64.0f;
-
-    // factions
-    std::string _selectedFaction = "";
-
-    // Options
-    bool _vsync = false;
-    bool _fullscreen = false;
-    int _qualityIndex = 1;
-    bool DrawArrowSelector(const char* id, int* current_index, const std::vector<std::string>& items);
-
-    // Opions de carte
-    std::map<char, int> _customWeights;
-    int _mapSeed = 42;
-
-    // joueurs
-    int _numPlayers = 2;
-    std::vector<std::string> _playerFactions;
-
-    // --- État de la Partie ---
-    int _currentPlayerTurn = 0; // Index du joueur dont c'est le tour
-    int _currentTurnNumber = 1; // Numéro du tour global
-    
-    // --- Sélection sur la carte ---
-    int _selectedCellX = -1;
-    int _selectedCellY = -1;
-    bool _hasSelection = false;
-
-public:
-    InterfaceManager(sf::RenderWindow& window);
-    
-    void loadConfig();
-    void saveConfig();
-    void run(); // Boucle principale
-    
-private:
     sf::View _gameView;
     float _currentZoom = 1.0f;
     bool _isPanning = false;
     sf::Vector2i _lastMousePos;
 
-    void renderMenu();
-    void renderPlayMenu();
-    void renderFactionSelect();
-    void renderOptions();
-    void renderMapConfig();
-    void renderSetup();
-    void renderGame();
-    
-    void initGame();
-    void loadTextures();
-    void applyCustomTheme();
+    // options visuelles
+    bool _vsync = false;
+    bool _fullscreen = false;
+    int _qualityIndex = 1;
 
-    void initGameFromSave();
+    // parametre avant partie
+    std::map<char, int> _customWeights;
+    int _mapSeed = 42;
+    int _numPlayers = 2;
+    std::vector<std::string> _playerFactions;
 
-    // Multijoueur
+    // réseau
     NetworkManager _network;
     char _ipBuffer[64] = "127.0.0.1";
     int _maxPlayersBuffer = 4;
     bool _hasSentName = false;
     int _portBuffer = 5000;
-
     char _playerNameBuffer[64] = "NomGenerique1";
     int _localPlayerIndex = 0;
-    
+
     struct NetPlayer { 
         std::string name; 
         std::string faction; 
     };
     std::vector<NetPlayer> _connectedPlayers;
+
+    // chat
+    std::vector<std::string> _chatMessages;
+    char _chatInputBuffer[256] = "";
+
+    // systeme selection et ciblage
+    int _selectedCellX = -1;
+    int _selectedCellY = -1;
+    bool _hasSelection = false;
     
-    void updateNetworkLoop();
-
-    void renderMultiMenu();
-    void renderHostLobby();
-    void renderJoinLobby();
-
-    // Système de Chat
-    std::vector<std::string> _chatMessages; // Historique des messages
-    char _chatInputBuffer[256] = "";        // Texte en cours de saisie
-    
-    void sendChatMessage(const std::string& msg); // Fonction d'envoi
-    void renderChatWindow();                      // Fenêtre UI du chat
-
-    // Arbitre
-    Arbitre _arbitre;
-
     bool _showPopup = false;
     std::string _popupMsg = "";
 
-    // --- Mode Ciblage Unités ---
     bool _isTargetingMove = false;
     bool _isTargetingAttack = false;
     int _unitSourceX = -1;
     int _unitSourceY = -1;
     std::vector<std::pair<int, int>> _casesPossibles;
-};
 
-#endif
+public:
+    InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur);
+
+    void run();
+    
+private:
+
+    void loadUIConfig();
+    void saveConfig();
+    void initGame();
+    void loadTextures();
+    void applyCustomTheme();
+    bool DrawArrowSelector(const char* id, int* current_index, const std::vector<std::string>& items);
+
+    // Menus
+    void renderMenu();
+    void renderPlayMenu();
+    void renderFactionSelect();
+    void renderOptions();
+    void renderMapConfig();
+    void renderGame();
+
+    // Multijoueur
+    void renderMultiMenu();
+    void renderHostLobby();
+    void renderJoinLobby();
+    void renderChatWindow();
+    void updateNetworkLoop();
+    void sendChatMessage(const std::string& msg);
+
+};

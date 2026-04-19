@@ -1,5 +1,5 @@
 #include "jeu.hh"
-#include "comportement.hh"
+#include "unite.hh"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -154,11 +154,13 @@ void board::affichage() const {
     }
 }
 
-void board::placerUnite(int x, int y, std::unique_ptr<Unite> u) {
-    if (x >= 0 && x < _height && y >= 0 && y < _width) {
-        _unites[{x, y}] = std::move(u);
+
+void board::placerUnite(int x, int y, std::shared_ptr<Unite> u) {
+        if (x >= 0 && x < _height && y >= 0 && y < _width) {
+            _unites[{x, y}] = std::move(u);
+        }
     }
-}
+    
 Unite * board::getUnite(int x, int y) const {
     auto it = _unites.find({x, y});
     if (it != _unites.end()) {

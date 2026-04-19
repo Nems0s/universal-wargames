@@ -49,7 +49,7 @@ public:
     void perdreUnite(Unite* u);
 
     // Accesseurs
-    std::string getName() { return _name; }
+    std::string getName() const { return _name; }
     int getNbVilles() const { return _cities.size(); }
     const std::list<City*> & getCities() const { return _cities; }
     const std::list<Unite*> & getUnites() const { return _unites; }

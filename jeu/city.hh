@@ -29,6 +29,9 @@ class City {
         void product(Joueur & j);
         void upgrade();
 
+        void setLevel(int l) { _level = l; }
+        void setPv(float p) { _pvCurrent = p; }
+
         const std::vector<std::unique_ptr<Batiment>>& getBatiments() const { return _batiments; }
 
         int getLevel() const { return _level; }

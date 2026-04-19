@@ -1,18 +1,23 @@
-#include "UI/InterfaceManager.hh"
 #include <iostream>
+#include "moteur.hh"
+#include "UI/InterfaceManager.hh"
 
 int main() {
     try {
+
+        // Le moteur du jeu
+        MoteurDeJeu moteur;
+        moteur.chargerConfiguration("configs/config_rules.json");
+
+        // La fenetre
         std::cout << "[MAIN] Creation de la fenetre SFML..." << std::endl;
         sf::RenderWindow window(sf::VideoMode(1280, 720), "Space Wargames");
-        //window.setVerticalSyncEnabled(false);
-        //window.setFramerateLimit(60);
         
         std::cout << "[MAIN] Lancement de l'interface..." << std::endl;
-        InterfaceManager ui(window);
+        InterfaceManager interface(window, moteur);
         
         std::cout << "[MAIN] Entree dans la boucle principale..." << std::endl;
-        ui.run(); 
+        interface.run(); 
 
         ImGui::SFML::Shutdown();
         std::cout << "[MAIN] Fermeture propre." << std::endl;

@@ -20,7 +20,7 @@
             "gen": { "poids": 5, "nbMin": 3 },
             "env": { "temperature": 0.5, "radiation": 0.0, "gravite": 0.5 },
             "ressources": [],
-            "properties": { "temperature": 15.0, "gravite": 1.0 }
+            "properties": { "temperature": 15.0, "gravite": 1.0, "spawn_capitale": 1.0 }
         },
         {
             "nom": "Etoile",

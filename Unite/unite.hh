@@ -52,6 +52,9 @@ public:
     void setTemporary_health(int newTemporary_health);
     void setTemporary_damage(int newTemporary_damage);
 
+    // MODIFIE PAR NAIM
+    void setPoint_action(int pa) { _point_action = pa; }
+
     /*Getters*/
     std::string name() const;
     int health_point() const;
@@ -105,5 +108,6 @@ private:
     std::map<std::string, std::shared_ptr<Unite>> _catalogue;
 public:
     void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur,const std::map<std::string, Ressource*>& ressources);
-    std::shared_ptr<Unite> create(std::string type);
+    // MODIFIE PAR NAIM
+    std::shared_ptr<Unite> create(std::string type) const;
 };

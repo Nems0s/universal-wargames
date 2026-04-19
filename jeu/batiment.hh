@@ -78,7 +78,7 @@ class BatimentFactory
 
     public:
         void chargerConfiguration(const std::string& chemin, BatimentConfigReader& lecteur, const std::map<std::string, Ressource*>& ressourcesDispo);
-        std::unique_ptr<Batiment> create(std::string type);
+        std::unique_ptr<Batiment> create(std::string type) const;
 
         const std::map<std::string, std::unique_ptr<Batiment>>& getCatalogue() const { return _catalogue; }
 };
