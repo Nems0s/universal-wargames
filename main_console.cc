@@ -37,7 +37,7 @@ int main() {
     std::map<std::string, Ressource*> catalogueRessources;
     JsonRessourceReader resReader;
     try {
-        resReader.load(cfgDir + fic, catalogueRessources);
+        resReader.load(cfgDir + fic + ".json", catalogueRessources);
         std::cout << "[SYSTEME] Ressources chargées." << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Erreur critique Ressources : " << e.what() << std::endl;
@@ -51,7 +51,7 @@ int main() {
     std::cin >> fic;
     GameConfig config;
     try {
-        config.loadRules(cfgDir + fic);
+        config.loadRules(cfgDir + fic + ".json");
         std::cout << "[SYSTEME] Règles chargées." << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Erreur critique Règle : " << e.what() << std::endl;
@@ -66,7 +66,7 @@ int main() {
     WorldFactory world;
     JsonWorldReader worldReader;
     try {
-        worldReader.chargerConfig(cfgDir + fic, catalogueRessources, world);
+        worldReader.chargerConfig(cfgDir + fic + ".json", catalogueRessources, world);
         world.initialiserBords();
         std::cout << "[SYSTEME] Monde chargés." << std::endl;
     } catch (const std::exception &e) {
@@ -82,7 +82,7 @@ int main() {
     UniteFactory uniteFactory;
     JsonUniteReader uniteReader;
     try {
-        uniteFactory.chargerConfiguration(cfgDir + fic, uniteReader, catalogueRessources);
+        uniteFactory.chargerConfiguration(cfgDir + fic + ".json", uniteReader, catalogueRessources);
         std::cout << "[SYSTEME] Unites chargées." << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Erreur critique Unites : " << e.what() << std::endl;
@@ -143,10 +143,10 @@ int main() {
     // Ressources de départ  
     /*======================*/
     std::string ressources_depart;
-    std::cout <<"\nVoulez vous donner des ressources de départ ? (Oui/Non): ";
+    std::cout <<"\nVoulez vous donner des ressources de départ ? (Y/N): ";
     std::cin >> ressources_depart;
 
-    if(ressources_depart == "Oui")
+    if(ressources_depart == "Y" || ressources_depart == "Yes" || ressources_depart == "YES" || ressources_depart == "yes" || ressources_depart == "y")
     {
         for(auto const& [nom, resPtr] : catalogueRessources) 
         {
@@ -229,10 +229,19 @@ int main() {
         std::cout << "   TOUR DE : " << joueurActif.getName() << std::endl;
         std::cout << "========================================" << std::endl;
         
+
+        std::cout << "\nRessources Actuelle : " << std::endl;
+        for(auto r : joueurActif.getInventaire())
+        {
+            std::cout << r.first->getName() << ": "<< r.second << std::endl;
+        }
+
         int choixMenu;
         std::cout << "1. Voir la carte (Affichage plateau)" << std::endl;
         std::cout << "2. Faire une Action" << std::endl;
-        std::cout << "3. Déclarer Forfait" << std::endl;
+        std::cout << "3. Voir Armée" << std::endl;
+        std::cout << "4. Voir Ville" << std::endl;
+        std::cout << "5. Déclarer Forfait" << std::endl;
         std::cout << "Choix : ";
         std::cin >> choixMenu;
 
@@ -403,11 +412,36 @@ int main() {
                     std::cout << "[ÉCHEC] L'arbitre a refusé l'action (Ressources, PA ou portée)." << std::endl;
                 }
             }
-        } 
+        }
         else if (choixMenu == 3) 
         {
-            std::cout << "Le joueur " << joueurActif.getName() << " a déclaré forfait !" << std::endl;
-            jeuEnCours = false;
+            std::cout <<"\nVoici le liste de vos unités :"<<std::endl;
+
+            for(auto i : joueurActif.getUnites())
+            {
+                std::cout <<"\n";
+                i->affiche();
+            }
+        }
+        else if (choixMenu == 4) 
+        {
+            std::cout <<"\nVoici le liste de vos villes :";
+            for(auto i : joueurActif.getCities())
+            {
+               // Créer la fonction d'affichage pour les villes
+            }
+        }
+        else if (choixMenu == 5) 
+        {
+            std::string forfait;
+            std::cout <<"\nÊtes-vous sûr de déclarer forfait ? (Y/N): ";
+            std::cin >> forfait;
+
+            if(forfait == "Y" || forfait == "Yes" || forfait == "YES" || forfait == "yes" || forfait == "y")
+            {
+                std::cout << "Le joueur " << joueurActif.getName() << " a déclaré forfait !" << std::endl;
+                jeuEnCours = false;
+            }
         }
 
         for (auto& j : listeJoueurs) 

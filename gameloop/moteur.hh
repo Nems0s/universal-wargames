@@ -64,6 +64,22 @@ public:
     void ajouterJoueur(std::unique_ptr<Joueur> j);
     void lancerPartie();
 
+    ResultatAction actionFinTour();
+    ResultatAction actionConstruireVille(Joueur& j, const Action& a);
+    ResultatAction actionConstruireBatiment(Joueur& j, const Action& a);
+    ResultatAction actionAmeliorerVille(Joueur& j, const Action& a);
+    ResultatAction actionRecruterUnite(Joueur& j, const Action& a);
+    ResultatAction actionDeplacer(Joueur& j, const Action& a);
+    ResultatAction actionAttaquer(Joueur& j, const Action& a);
+    ResultatAction actionSoigner(Joueur& j, const Action& a);
+    ResultatAction actionCamoufler(Joueur& j, const Action& a);
+    ResultatAction actionDebutDefense(Joueur& j, const Action& a);
+    ResultatAction actionArretDefense(Joueur& j, const Action& a);
+    ResultatAction actionChargement(Joueur& j, const Action& a);
+    ResultatAction actionDechargement(Joueur& j, const Action& a);
+    ResultatAction actionEnrolement(Joueur& j, const Action& a);
+    ResultatAction actionDesenrolement(Joueur& j, const Action& a);
+
     ResultatAction traiterAction(const Action& action);
     void passerAuJoueurSuivant();
 };

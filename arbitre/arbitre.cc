@@ -257,25 +257,31 @@ bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
 
 bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>& cout, const Unite& invocation) const 
 {
-    if (!peutPayer(cout, j)) {
-        return false;
-    }
-    if (invocation.health_point() <= 0) {
-        return false;
-    }
-    auto voisins = Voisins(invocation.location());
-    for(auto ville : j.getCities())
+    if (!peutPayer(cout, j)) return false;
+    if (invocation.health_point() <= 0) return false;
+
+    /*
+    Coord coordCible = invocation.location();
+    auto voisins = Voisins(coordCible);
+    for (const auto* ville : j.getCities()) 
     {
         Coord locate_ville = {ville->getX(), ville->getY()};
-        for(auto voisin : voisins)
+
+        if(locate_ville == coordCible) 
         {
-            if(locate_ville == voisin)
+            return false;
+        }
+
+        for(const auto& voisin : voisins) 
+        {
+            if (locate_ville == voisin) 
             {
                 return true;
             }
         }
     }
-    return false;
+    return false;*/
+    return true;
 }
 
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const
