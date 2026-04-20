@@ -260,7 +260,6 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>
     if (!peutPayer(cout, j)) return false;
     if (invocation.health_point() <= 0) return false;
 
-    /*
     Coord coordCible = invocation.location();
     auto voisins = Voisins(coordCible);
     for (const auto* ville : j.getCities()) 
@@ -280,8 +279,7 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>
             }
         }
     }
-    return false;*/
-    return true;
+    return false;
 }
 
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const

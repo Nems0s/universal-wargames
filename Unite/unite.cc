@@ -253,6 +253,7 @@ void Unite::affiche() const
 {
     std::cout << "=== [" << _name << "] ===" << std::endl;
     std::cout << "Position: (" << _location.first << "," << _location.second << ")" << std::endl;
+    std::cout << "Point d'action restant: " << _point_action << "/" << _point_action_max << std::endl;
     if(_rank)
     {
         std::cout << "Grade: "; _rank->get_role(); std::cout << std::endl;

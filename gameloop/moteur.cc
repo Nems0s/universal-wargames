@@ -78,11 +78,12 @@ ResultatAction GameManager::actionRecruterUnite(Joueur& j, const Action& action)
 
     std::shared_ptr<Unite> nouvelleUnite = _factory.create(action.data);
     if(!nouvelleUnite) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
+    nouvelleUnite->setLocation({action.x1, action.y1});
 
     if(_arbitre.peutRecruterUnite(j, nouvelleUnite->cout(), *nouvelleUnite)) 
     {
         j.payer(nouvelleUnite->cout());
-        nouvelleUnite->setLocation({action.x1, action.y1});
         j.ajouterUnite(nouvelleUnite.get());
         _plateau.placerUnite(action.x1, action.y1, nouvelleUnite);
         return ResultatAction::SUCCES;
@@ -117,7 +118,7 @@ ResultatAction GameManager::actionAttaquer(Joueur& j, const Action& action)
     if(attaques.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
 
     int index = 0;
-    try{ index = std::stoi(action.data); } catch(...){ index = 0; }
+    try{index = std::stoi(action.data); } catch(...){ index = 0; }
     
     auto it = attaques.begin();
     std::advance(it, std::min((int)attaques.size() - 1, std::max(0, index)));

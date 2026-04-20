@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <vector>
+#include <regex>
 
 #include "jeu.hh"
 #include "joueur.hh"
@@ -19,6 +20,14 @@ std::string trouverConfigs()
     throw std::runtime_error("Dossier 'configs' introuvable !");
 }
 
+//Regex qui permet de récupérer tout les formes de YES et OUI
+// std::regex pattern_validation(R"(^([yY][eE][sS] | ^[oO][uU][iI] | ^[oO] | ^[yY])$)"); //Première version avec o et y mis en brute
+
+// Mais on peut rendre optionnel certain caractère avec ?
+// std::regex pattern_validation(R"(^([yY]([eE][sS])? | ^[oO]([uU][iI])?)$)"); //Par contre obligé de mettre les maj et min
+
+// Donc on peut utiliser le drapeau icase qui permet de ne plus distinguer min et maj 
+std::regex pattern_validation(R"(^(yes|y|oui|o)$)", std::regex_constants::icase);
 
 int main() {
 
@@ -113,6 +122,7 @@ int main() {
         auto j = std::make_unique<Joueur>(nom_joueur);
         moteur.ajouterJoueur(std::move(j));
     }
+    
 
     /*======================*/
     // Gestion des Factions 
@@ -146,7 +156,7 @@ int main() {
     std::cout <<"\nVoulez vous donner des ressources de départ ? (Y/N): ";
     std::cin >> ressources_depart;
 
-    if(ressources_depart == "Y" || ressources_depart == "Yes" || ressources_depart == "YES" || ressources_depart == "yes" || ressources_depart == "y")
+    if(std::regex_match(ressources_depart, pattern_validation)) // Vérifie que l'entrer correspond à la regex
     {
         for(auto const& [nom, resPtr] : catalogueRessources) 
         {
@@ -230,14 +240,14 @@ int main() {
         std::cout << "========================================" << std::endl;
         
 
-        std::cout << "\nRessources Actuelle : " << std::endl;
+        std::cout << "\nRessources Actuelle : ";
         for(auto r : joueurActif.getInventaire())
         {
-            std::cout << r.first->getName() << ": "<< r.second << std::endl;
+            std::cout << r.first->getName() << ": "<< r.second <<"  ";
         }
 
         int choixMenu;
-        std::cout << "1. Voir la carte (Affichage plateau)" << std::endl;
+        std::cout << "\n1. Voir la carte (Affichage plateau)" << std::endl;
         std::cout << "2. Faire une Action" << std::endl;
         std::cout << "3. Voir Armée" << std::endl;
         std::cout << "4. Voir Ville" << std::endl;
@@ -276,30 +286,91 @@ int main() {
                     std::cin >> a.x2 >> a.y2;
                     break;
                 case 2: // ATTAQUER
-                    std::cout << "\nAttaque" << std::endl;
-                    a.type = TypeAction::ATTAQUER;
-                    std::cout << "Coord. attaquant (x y) : "; 
-                    std::cin >> a.x1 >> a.y1;
-                    std::cout << "Coord. cible (x y) : "; 
-                    std::cin >> a.x2 >> a.y2;
-                    std::cout << "Index de l'attaque : "; 
-                    std::cin >> a.data;
-                    break;
+                    {
+                        std::cout << "\nAttaque" << std::endl;
+                        a.type = TypeAction::ATTAQUER;
+                        std::cout << "Coord. attaquant (x y) : "; 
+                        std::cin >> a.x1 >> a.y1;
+
+                        Unite* att = plateau.getUnite(a.x1, a.y1);
+                        if (att) 
+                        {
+                            auto listeAttaques = att->Offensive();
+                            if (!listeAttaques.empty()) 
+                            {
+                                std::cout << "Attaques disponibles pour " << att->name() << " :" << std::endl;
+                                int i = 0;
+                                for (auto comp : listeAttaques) 
+                                {
+                                    std::cout << i << ". ";
+                                    comp->affiche();
+                                    i++;
+                                }
+                            } 
+                            else 
+                            {
+                                std::cout << "Cette unité n'a aucune capacité offensive." << std::endl;
+                                break;
+                            }
+                            std::cout << "Coord. cible (x y) : "; 
+                            std::cin >> a.x2 >> a.y2;
+                            std::cout << "Index de l'attaque : "; 
+                            std::cin >> a.data;
+                            break;
+                        }
+                        else
+                        {
+                            std::cout << "Coordonnées Invalide" << std::endl;
+                            break;
+                        }
+                    }
+
                 case 3: // SOIGNER
-                    std::cout << "\nSoin" << std::endl;
-                    std::cout << "Coord. soigneur (x y) : "; 
-                    std::cin >> a.x1 >> a.y1;
-                    std::cout << "Coord. cible (x y) : "; 
-                    std::cin >> a.x2 >> a.y2;
-                    std::cout << "Index du soin : "; 
-                    std::cin >> a.data;
-                    break;
+                    {
+                        std::cout << "\nSoin" << std::endl;
+                        std::cout << "Coord. soigneur (x y) : "; 
+                        std::cin >> a.x1 >> a.y1;
+
+                        Unite* soin = plateau.getUnite(a.x1, a.y1);
+                        if(soin) 
+                        {
+                            auto listeSoins = soin->Soin();
+                            if (!listeSoins.empty()) 
+                            {
+                                std::cout << "Attaques disponibles pour " << soin->name() << " :" << std::endl;
+                                int i = 0;
+                                for (auto comp : listeSoins) 
+                                {
+                                    std::cout << i << ". ";
+                                    comp->affiche();
+                                    i++;
+                                }
+                            } 
+                            else
+                            {
+                                std::cout << "Cette unité n'a aucune capacité de soin." << std::endl;
+                                break;
+                            }
+                            std::cout << "Coord. cible (x y) : "; 
+                            std::cin >> a.x2 >> a.y2;
+                            std::cout << "Index du soin : "; 
+                            std::cin >> a.data;
+                            break;
+                        }
+                        else
+                        {
+                            std::cout << "Coordonnées Invalide" << std::endl;
+                            break;
+                        }
+                    }
                 case 4: // RECRUTER
                     {                    
                         std::cout << "\nRecrutement" << std::endl;
                         a.type = TypeAction::RECRUTER_UNITE;
                         std::cout << "Coord. recrutement (x y) : "; 
                         std::cin >> a.x1 >> a.y1;
+
+                        std::cin.ignore(10000, '\n');
                         
                         const FactionParams* faction = joueurActif.getFaction();
                         if (faction) 
@@ -312,7 +383,7 @@ int main() {
                         else std::cout << "Pas d'unité"<< std::endl;
 
                         std::cout << "Nom de l'unité : "; 
-                        std::cin >> a.data;
+                        std::getline(std::cin, a.data); // Car certaine troupe on plusieur espace
                         break;
                     }
                 case 5: // CONSTRUIRE VILLE
@@ -437,7 +508,7 @@ int main() {
             std::cout <<"\nÊtes-vous sûr de déclarer forfait ? (Y/N): ";
             std::cin >> forfait;
 
-            if(forfait == "Y" || forfait == "Yes" || forfait == "YES" || forfait == "yes" || forfait == "y")
+            if(std::regex_match(forfait, pattern_validation))
             {
                 std::cout << "Le joueur " << joueurActif.getName() << " a déclaré forfait !" << std::endl;
                 jeuEnCours = false;
