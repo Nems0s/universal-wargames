@@ -39,8 +39,11 @@ private:
 
     int _temporary_health;
     int _temporary_damage;
+    int _visionRange;
+    int _fov;
+    std::string _texturePath;
 public:
-    Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout);
+    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout, const std::string& texturePath = "");
     virtual ~Unite() = default;
 
     /*Setters*/
@@ -54,6 +57,7 @@ public:
 
     // MODIFIE PAR NAIM
     void setPoint_action(int pa) { _point_action = pa; }
+    std::string texturePath() const { return _texturePath; }
 
     /*Getters*/
     std::string name() const;
@@ -71,6 +75,12 @@ public:
     int temporary_health() const;
     int temporary_damage() const;
 
+    // Vision
+    int visionRange() const { return _visionRange; }
+    void setVisionRange(int v) { _visionRange = v; }
+    int fov() const { return _fov; }
+    void setFov(int f) { _fov = f; }
+    
     /*Méthodes*/
     // void movement(Case const& c);
     void affiche() const;
@@ -110,4 +120,5 @@ public:
     void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur,const std::map<std::string, Ressource*>& ressources);
     // MODIFIE PAR NAIM
     std::shared_ptr<Unite> create(std::string type) const;
+    const std::map<std::string, std::shared_ptr<Unite>>& getCatalogue() const { return _catalogue; }
 };

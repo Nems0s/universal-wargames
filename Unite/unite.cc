@@ -5,8 +5,7 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
-
-Unite::Unite(const std::string &name, int hp, int point_action, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout)
+Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout, const std::string& texturePath)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
@@ -18,7 +17,10 @@ Unite::Unite(const std::string &name, int hp, int point_action, Poids poids, dir
     _location(loc),
     _rank(r),
     _liste_comportements(liste_comportements),
-    _cout(cout) // Initialisation correcte
+    _cout(cout),
+    _visionRange(vision),
+    _fov(fov),
+    _texturePath(texturePath)
 {}
 
 std::string Unite::name() const
@@ -428,10 +430,12 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         }
         else
         {
-            // CORRECTION : Ajout de 'nb_action' pour correspondre au constructeur de unite.hh
-            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite);
-        }
-    }   
+            std::string tex = item.value("texture", "");
+            int vision = item.value("vision", 2);
+            int fov = item.value("fov", 80);
+            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, vision, fov, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, tex);
+        }   
+    }
 }
 
 

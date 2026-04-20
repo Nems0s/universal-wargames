@@ -21,11 +21,17 @@ void GameConfig::loadRules(const std::string& chemin) {
     // règles construction des villes
     if (data.contains("regles_villes")) {
         auto& v = data["regles_villes"];
-        _coutBaseVille = v.value("cout_base", 100);
+        if (v.contains("cout_base")) {
+            for (auto& [res, qte] : v["cout_base"].items()) {
+                _coutBaseVille[res] = qte;
+            }
+        }
         _multiplicateurVille = v.value("multiplicateur", 1.5f);
         _distanceMinVilles = v.value("distance_min_entre_villes", 3);
         _pvMaxVille = v.value("pv_max_base", 200);
         _degatsVille = v.value("degats_base", 20);
+        _textureVille = v.value("texture", "");
+        _porteeVueVille = v.value("portee_vue_ville", 4);
     }
 
     // factions
@@ -40,6 +46,24 @@ void GameConfig::loadRules(const std::string& chemin) {
                 }
             }
             _factions[fp.nom] = fp;
+        }
+    }
+    
+    // regles unites
+    if (data.contains("regles_unites")) {
+        auto& v = data["regles_unites"];
+        _coutRotation = v.value("cout_rotation", 1);
+    }
+
+    if (data.contains("ressources_depart")) {
+        for (auto& [resName, qty] : data["ressources_depart"].items()) {
+            _ressourcesDepart[resName] = qty;
+        }
+    }
+
+    if (data.contains("production_capitale")) {
+        for (auto& [resName, qty] : data["production_capitale"].items()) {
+            _productionCapitale[resName] = qty;
         }
     }
 }
@@ -57,7 +81,7 @@ void GameConfig::loadWins(const std::string & chemin) {
             WinConditions cond;
             std::string typeStr = item["type"];
 
-            if (typeStr == "ressource_thresold") cond.type = WinType::RESOURCE;
+            if (typeStr == "resource_threshold") cond.type = WinType::RESOURCE;
             else if (typeStr == "city_count") cond.type = WinType::CITY_COUNT;
             else if (typeStr == "unit_count") cond.type = WinType::UNIT_COUNT;
             else if (typeStr == "require_capital") cond.type = WinType::CAPITAL_REQ;

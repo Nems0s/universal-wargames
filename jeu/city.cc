@@ -9,11 +9,13 @@ City::City(int x, int y, const GameConfig & config, int max, bool capitale,int l
     _config(config),
     _maxLevel(max),
     _estCapitale(capitale),
-    _level(level)
+    _level(level),
+    _nbBatiments(static_cast<size_t>(max))  // Capacité initiale = max level (5 bâtiments)
 {
     _pvMax = config.getPvMaxVille() * level;
     _pvCurrent = _pvMax;
     _damage = config.getDegatsVille() + (level * 2);
+    _visionRange = config.getPorteeVueVille();
 }
 
 bool City::peutAjouterBatiment() const {

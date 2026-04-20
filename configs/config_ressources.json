@@ -7,6 +7,10 @@
         {
             "nom": "Or",
             "symbole": "Or"
+        },
+        {
+            "nom": "Fer",
+            "symbole": "Fe"
         }
     ]
 }

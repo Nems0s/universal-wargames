@@ -34,22 +34,28 @@ class GameConfig {
         int _plateauX;
         int _plateauY;
 
-        int _coutBaseVille;
+        std::map<std::string, int> _coutBaseVille;
         float _multiplicateurVille;
         int _distanceMinVilles;
         int _pvMaxVille;
         int _degatsVille;
+        int _porteeVueVille;
+        int _coutRotation;
 
         int _maxLevelVille;
         int _rayonBaseVille;
+        std::string _textureVille;
 
         std::vector<WinConditions> _winConds;
         std::vector<VictorySet> _victorySets;
 
+        std::map<std::string, int> _ressourcesDepart;
+        std::map<std::string, int> _productionCapitale;
+
         std::map<std::string, FactionParams> _factions;
 
     public:
-        GameConfig() : _plateauX(10), _plateauY(10), _coutBaseVille(100), _multiplicateurVille(1.5f), _distanceMinVilles(3), _pvMaxVille(200), _degatsVille(20), _maxLevelVille(5), _rayonBaseVille(2) {}
+        GameConfig() : _plateauX(10), _plateauY(10), _multiplicateurVille(1.5f), _distanceMinVilles(3), _pvMaxVille(200), _degatsVille(20), _porteeVueVille(4), _coutRotation(1), _maxLevelVille(5), _rayonBaseVille(2) {}
 
         void loadRules(const std::string& chemin);
         void loadWins(const std::string& chemin);
@@ -60,7 +66,7 @@ class GameConfig {
         int getPlateauX() const { return _plateauX; }
         int getPlateauY() const { return _plateauY; }
 
-        int getCoutBaseVille() const { return _coutBaseVille; }
+        const std::map<std::string, int>& getCoutBaseVille() const { return _coutBaseVille; }
         float getMultiplicateurVille() const { return _multiplicateurVille; }
         int getPvMaxVille() const { return _pvMaxVille; }
         int getDegatsVille() const { return _degatsVille; }
@@ -68,8 +74,14 @@ class GameConfig {
         int getMaxLevelVille() const { return _maxLevelVille; }
 
         int getRayonBaseVille() const { return _rayonBaseVille; }
+        int getPorteeVueVille() const { return _porteeVueVille; }
+        int getCoutRotation() const { return _coutRotation; }
         int getDistanceMinVilles() const { return _distanceMinVilles; }
+        std::string getTextureVille() const { return _textureVille; }
         
         const FactionParams* getFaction(const std::string& nom) const;
         const std::map<std::string, FactionParams>& getFactions() const { return _factions; }
+
+        const std::map<std::string, int>& getRessourcesDepart() const { return _ressourcesDepart; }
+        const std::map<std::string, int>& getProductionCapitale() const { return _productionCapitale; }
 };

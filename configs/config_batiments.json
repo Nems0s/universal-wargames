@@ -11,7 +11,8 @@
                 { "ressource": "poussiereDEtoile", "quantite": 10 },
                 { "ressource": "Energie", "quantite": 2 }
             ],
-            "ressources_sol_requises": ["poussiereDEtoile", "Gaz"]
+            "ressources_sol_requises": ["poussiereDEtoile"],
+            "texture": "assets/extractor.png"
         },
         {
             "nom": "Muraille",
@@ -20,7 +21,8 @@
                 "Or": 15 
             },
             "production": [],
-            "ressources_sol_requises": []
+            "ressources_sol_requises": [],
+            "texture": ""
         }
     ]
 }

@@ -121,7 +121,9 @@ void JsonBatimentReader::load(const std::string& chemin,
             }
         }
 
-        catalogue[nom] = std::make_unique<BatimentRessource>(nom, coutMap, prodMap, solsRequis);
+        std::string tex = item.value("texture", "");
+
+        catalogue[nom] = std::make_unique<BatimentRessource>(nom, coutMap, prodMap, solsRequis, 1, tex);
     }
 }
 

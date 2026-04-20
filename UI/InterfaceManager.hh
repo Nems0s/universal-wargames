@@ -33,7 +33,11 @@ private:
     std::string _configPath = "configs/config_rules.json";
 
     // graphismes
-    std::map<char, sf::Texture> _textures;
+    std::map<char, sf::Texture> _textures; // Terrain
+    std::map<std::string, sf::Texture> _unitTextures; // Unités
+    std::map<std::string, sf::Texture> _buildingTextures; // Batiments
+    sf::Texture _cityTexture; // Ville globale
+
     float _tileSize = 64.0f;
     sf::View _gameView;
     float _currentZoom = 1.0f;
@@ -84,6 +88,15 @@ private:
     int _unitSourceY = -1;
     std::vector<std::pair<int, int>> _casesPossibles;
 
+    // Drag and Drop
+    bool _isDragging = false;
+    int _dragSourceX = -1;
+    int _dragSourceY = -1;
+
+    // Rotation et Apercu
+    bool _hasPreviewRotation = false;
+    direction _previewDirection = direction::est;
+
 public:
     InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur);
 
@@ -105,6 +118,8 @@ private:
     void renderOptions();
     void renderMapConfig();
     void renderGame();
+    void renderUnitActions(Unite* u);
+    float getRotationAngle(direction dir);
 
     // Multijoueur
     void renderMultiMenu();

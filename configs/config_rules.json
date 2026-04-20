@@ -17,12 +17,26 @@
             }
         }
     ],
+    "production_capitale": {
+        "Or": 10
+    },
+    "regles_unites": {
+        "cout_rotation": 1
+    },
     "regles_villes": {
-        "cout_base": 100,
+        "cout_base": {
+            "Or": 50
+        },
         "degats_base": 20,
         "distance_min_entre_villes": 3,
         "multiplicateur": 1.5,
+        "portee_vue_ville": 4,
         "pv_max_base": 200
+    },
+    "ressources_depart": {
+        "Energie": 50,
+        "Fer": 150,
+        "Or": 100
     },
     "taille_plateau": {
         "x": 100,

@@ -15,10 +15,11 @@ class Batiment
         int _maxLevel;
         std::string _name;
         std::map<Ressource*, int> _cout;
+        std::string _texturePath;
 
     public:
-        Batiment(std::string n, std::map<Ressource*, int> c, int level=1)
-            : _level(level), _name(n), _cout(c) {}
+        Batiment(std::string n, std::map<Ressource*, int> c, int level=1, const std::string& tex = "")
+            : _level(level), _name(n), _cout(c), _texturePath(tex) {}
         virtual ~Batiment() = default;
 
         virtual std::unique_ptr<Batiment> clone() const = 0;
@@ -32,6 +33,7 @@ class Batiment
 
         int getLevel() const { return _level; }
         int getMaxLevel() const { return _maxLevel; }
+        std::string getTexturePath() const { return _texturePath; }
 };
 
 class BatimentRessource : public Batiment
@@ -41,8 +43,8 @@ class BatimentRessource : public Batiment
         std::vector<Ressource*> _ressourcesSolRequises;
     
     public:
-        BatimentRessource(std::string n, std::map<Ressource*, int> c, std::map<Ressource*, int> p, std::vector<Ressource*> sols, int l=1)
-            : Batiment(n, c, l), _produits(p), _ressourcesSolRequises(sols) {}
+        BatimentRessource(std::string n, std::map<Ressource*, int> c, std::map<Ressource*, int> p, std::vector<Ressource*> sols, int l=1, const std::string& tex = "")
+            : Batiment(n, c, l, tex), _produits(p), _ressourcesSolRequises(sols) {}
 
         std::unique_ptr<Batiment> clone() const override;
 

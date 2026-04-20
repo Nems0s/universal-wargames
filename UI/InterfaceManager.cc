@@ -1,6 +1,7 @@
 #include "InterfaceManager.hh"
 #include <iostream>
 #include <ctime>
+#include <set>
 
 InterfaceManager::InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur) 
     : _window(window), _moteur(moteur), _currentState(GameState::MENU) {
@@ -53,7 +54,13 @@ void InterfaceManager::saveConfig() {
 void InterfaceManager::initGame() {
     try {
         _moteur.overrideWorldWeights(_customWeights);
-        _moteur.initGame(_mapSeed, _numPlayers, _playerFactions);
+
+        std::vector<std::string> noms;
+        for(int i = 0; i < _numPlayers; ++i) {
+            noms.push_back(_connectedPlayers[i].name);
+        }
+
+        _moteur.initGame(_mapSeed, noms, _playerFactions);
 
         // Centrage de la vue sur la capitale
         if (_localPlayerIndex < (int)_moteur.getJoueurs().size() && !_moteur.getJoueurs()[_localPlayerIndex].getCities().empty()) {
@@ -84,9 +91,8 @@ void InterfaceManager::run() {
                 }
             }
             
-            // CLIC GAUCHE
+            // CLIC GAUCHE ET DRAG AND DROP
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-
                 bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
                 int currentTurn = _moteur.getCurrentPlayerTurn();
 
@@ -94,75 +100,100 @@ void InterfaceManager::run() {
                 bool isMyTurn = !isMultiplayer || (currentTurn == _localPlayerIndex);
 
                 if (_currentState == GameState::IN_GAME && !ImGui::GetIO().WantCaptureMouse) {
-                    if (_moteur.getPlateau() && currentTurn < (int)_moteur.getJoueurs().size() && isMyTurn) {
-                        sf::Vector2i pixelPos = sf::Mouse::getPosition(_window);
-                        sf::Vector2f worldPos = _window.mapPixelToCoords(pixelPos, _gameView);
+                    sf::Vector2i pixelPos = sf::Mouse::getPosition(_window);
+                    sf::Vector2f worldPos = _window.mapPixelToCoords(pixelPos, _gameView);
+                    float R = _tileSize / 2.0f; float W = std::sqrt(3.0f) * R;
+                    int estI = std::round(worldPos.y / (1.5f * R));
+                    int estJ = std::round((worldPos.x / W) - 0.5f * (std::abs(estI) % 2));
+                    int bestI = -1, bestJ = -1; float minDist = R;
 
-                        float R = _tileSize / 2.0f; 
-                        float W = std::sqrt(3.0f) * R; 
-
-                        int estI = std::round(worldPos.y / (1.5f * R)); 
-                        int estJ = std::round((worldPos.x / W) - 0.5f * (std::abs(estI) % 2)); 
-
-                        int bestI = -1, bestJ = -1;
-                        float minDist = R * 1.5f; 
-
-                        for (int di = -1; di <= 1; ++di) {
-                            for (int dj = -1; dj <= 1; ++dj) {
-                                int ci = estI + di;
-                                int cj = estJ + dj;
-                                if (ci >= 0 && ci < _moteur.getPlateau()->getRows() && cj >= 0 && cj < _moteur.getPlateau()->getCols()) {
-                                    float hx = W * cj + W * 0.5f * (std::abs(ci) % 2);
-                                    float hy = 1.5f * R * ci;
-                                    float d = std::sqrt(std::pow(worldPos.x - hx, 2) + std::pow(worldPos.y - hy, 2));
-                                    if (d < minDist) { minDist = d; bestI = ci; bestJ = cj; }
-                                }
+                    for (int di = -1; di <= 1; ++di) {
+                        for (int dj = -1; dj <= 1; ++dj) {
+                            int ci = estI + di; int cj = estJ + dj;
+                            if (ci >= 0 && ci < _moteur.getPlateau()->getRows() && cj >= 0 && cj < _moteur.getPlateau()->getCols()) {
+                                float hx = W * cj + W * 0.5f * (std::abs(ci) % 2); float hy = 1.5f * R * ci;
+                                float d = std::sqrt(std::pow(worldPos.x - hx, 2) + std::pow(worldPos.y - hy, 2));
+                                if (d < minDist) { minDist = d; bestI = ci; bestJ = cj; }
                             }
                         }
+                    }
 
-                        if (bestI != -1 && minDist <= R) {
-                            // SI ON EST EN MODE DEPLACEMENT
-                            if (_isTargetingMove) {
-                                // On vérifie que la case cliquée fait bien partie des cases valides
-                                bool caseValide = false;
-                                for (const auto& p : _casesPossibles) {
-                                    if (p.first == bestI && p.second == bestJ) {
-                                        caseValide = true; break;
-                                    }
-                                }
-                                
-                                if (caseValide) {
-                                    // demande au moteur
-                                    if (_moteur.demanderDeplacement(currentTurn, _unitSourceX, _unitSourceY, bestI, bestJ)) {
-                                        // Transmission réseau (gérer par le moteur ensuite)
-                                        if (isMultiplayer && !_network.isHost()) {
-                                            sf::Packet p;
-                                            p << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << _unitSourceX << _unitSourceY << bestI << bestJ;
-                                            _network.sendData(p);
-                                        }
-                                    }
-                                }
-                                
-                                // Fin du ciblage
-                                _isTargetingMove = false; 
-                                _hasSelection = false;    
-                                _casesPossibles.clear(); 
-                            } else {
-                                // Selection classique
-                                if (_moteur.getJoueurs()[currentTurn].estDecouvert(bestI, bestJ)) {
-                                    _selectedCellX = bestI; 
-                                    _selectedCellY = bestJ; 
-                                    _hasSelection = true;
-                                }
-                            }
-                        } else { 
-                            _hasSelection = false; 
-                            _isTargetingMove = false;
-                            _casesPossibles.clear();
+                    if (bestI != -1 && isMyTurn) {
+                        if (_moteur.getProprietaireUnite(bestI, bestJ) == currentTurn) {
+                            _isDragging = true;
+                            _dragSourceX = bestI;
+                            _dragSourceY = bestJ;
+                            _unitSourceX = bestI;
+                            _unitSourceY = bestJ;
+                            _casesPossibles = _moteur.getDeplacementsPossibles(currentTurn, bestI, bestJ);
+                            _hasSelection = true;
+                            _selectedCellX = bestI;
+                            _selectedCellY = bestJ;
+                            _hasPreviewRotation = false;
+                        } else {
+                            _selectedCellX = bestI;
+                            _selectedCellY = bestJ;
+                            _hasSelection = true;
+                            _hasPreviewRotation = false;
                         }
                     }
                 }
             }
+
+            if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
+                if (_isDragging) {
+                    bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
+                    int currentTurn = _moteur.getCurrentPlayerTurn();
+                    sf::Vector2i pixelPos = sf::Mouse::getPosition(_window);
+                    sf::Vector2f worldPos = _window.mapPixelToCoords(pixelPos, _gameView);
+                    float R = _tileSize / 2.0f; float W = std::sqrt(3.0f) * R;
+                    int estI = std::round(worldPos.y / (1.5f * R));
+                    int estJ = std::round((worldPos.x / W) - 0.5f * (std::abs(estI) % 2));
+                    int targetI = -1, targetJ = -1; float minDist = R;
+
+                    for (int di = -1; di <= 1; ++di) {
+                        for (int dj = -1; dj <= 1; ++dj) {
+                            int ci = estI + di; int cj = estJ + dj;
+                            if (ci >= 0 && ci < _moteur.getPlateau()->getRows() && cj >= 0 && cj < _moteur.getPlateau()->getCols()) {
+                                float hx = W * cj + W * 0.5f * (std::abs(ci) % 2); float hy = 1.5f * R * ci;
+                                float d = std::sqrt(std::pow(worldPos.x - hx, 2) + std::pow(worldPos.y - hy, 2));
+                                if (d < minDist) { minDist = d; targetI = ci; targetJ = cj; }
+                            }
+                        }
+                    }
+
+                    if (targetI != -1 && (targetI != _dragSourceX || targetJ != _dragSourceY)) {
+                        int propDest = _moteur.getProprietaireUnite(targetI, targetJ);
+
+                        if (propDest != -1 && propDest != currentTurn) {
+                            if (_moteur.demanderAttaque(currentTurn, _dragSourceX, _dragSourceY, targetI, targetJ)) {
+                                if (isMultiplayer) {
+                                    sf::Packet pk;
+                                    pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _dragSourceX << _dragSourceY << targetI << targetJ;
+                                    _network.sendData(pk);
+                                }
+                            }
+                        } else {
+                            if (_moteur.demanderDeplacement(currentTurn, _dragSourceX, _dragSourceY, targetI, targetJ)) {
+                                if (isMultiplayer) {
+                                    sf::Packet pk;
+                                    pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << _dragSourceX << _dragSourceY << targetI << targetJ;
+                                    _network.sendData(pk);
+                                }
+                                // Mise à jour de la sélection pour la faire suivre l'unité
+                                _selectedCellX = targetI;
+                                _selectedCellY = targetJ;
+                                _unitSourceX = targetI;
+                                _unitSourceY = targetJ;
+                                _hasPreviewRotation = false;
+                            }
+                        }
+                    }
+                    _isDragging = false;
+                    _casesPossibles.clear();
+                }
+            }
+
 
             // Zoom et Déplacement (Clic droit)
             if (event.type == sf::Event::MouseWheelScrolled && !ImGui::GetIO().WantCaptureMouse) {
@@ -439,6 +470,13 @@ void InterfaceManager::renderFactionSelect() {
             if (_numPlayers < 2) _numPlayers = 2;
             if (_numPlayers > 4) _numPlayers = 4;
         }
+        
+        while ((int)_connectedPlayers.size() < _numPlayers) {
+            _connectedPlayers.push_back({"Joueur " + std::to_string(_connectedPlayers.size() + 1), ""});
+        }
+        while ((int)_connectedPlayers.size() > _numPlayers) {
+            _connectedPlayers.pop_back();
+        }
     } else {
         ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Mode Multijoueur actif : %d Commandants", _numPlayers);
     }
@@ -450,16 +488,21 @@ void InterfaceManager::renderFactionSelect() {
         for (int i = 0; i < _numPlayers; ++i) {
             ImGui::TableNextRow(0);
             ImGui::TableSetColumnIndex(0);
-            
-            std::string pName = (isMultiplayer && i < (int)_connectedPlayers.size()) ? _connectedPlayers[i].name : "Joueur " + std::to_string(i + 1);
-            ImGui::Text("%s", pName.c_str());
-
-            ImGui::TableSetColumnIndex(1);
             ImGui::PushID(i);
+
+            if (isMultiplayer) {
+                ImGui::Text("%s", _connectedPlayers[i].name.c_str());
+            } else {
+                char buf[64];
+                strncpy(buf, _connectedPlayers[i].name.c_str(), sizeof(buf));
+                if (ImGui::InputText("##nom", buf, sizeof(buf))) {
+                    _connectedPlayers[i].name = buf;
+                }
+            }
             
             std::string comboLabel = _playerFactions[i].empty() ? "Choisir une faction..." : _playerFactions[i];
             if (ImGui::BeginCombo("##factionCombo", comboLabel.c_str())) {
-                for (const auto& [nom, params] : _moteur.getLogicConfig().getFactions()) {
+                for (const auto& [nom, params] : _moteur.getFactionsAvailable()) {
                     bool isSelected = (_playerFactions[i] == nom);
                     if (ImGui::Selectable(nom.c_str(), isSelected)) _playerFactions[i] = nom;
                     if (isSelected) ImGui::SetItemDefaultFocus();
@@ -793,21 +836,28 @@ void InterfaceManager::updateNetworkLoop() {
                         _connectedPlayers.clear();
                         _playerFactions.clear();
                         
+                        std::vector<std::string> noms;
+                        
                         // On lit les infos de tous les joueurs
                         for (int i = 0; i < _numPlayers; ++i) {
                             std::string pName, pFact;
                             packet >> pName >> pFact;
+                            
                             _connectedPlayers.push_back({pName, pFact});
                             _playerFactions.push_back(pFact);
+                            noms.push_back(pName);
                             
-                            // Le client identifie quel est son numéro de joueur !
+                            // Le client identifie quel est son numéro de joueur
                             if (pName == std::string(_playerNameBuffer)) {
                                 _localPlayerIndex = i;
                             }
                         }
                         
                         std::srand(_mapSeed);
-                        initGame(); // Construit la map identique à l'Hôte
+                        
+                        // Initialisation avec la nouvelle architecture
+                        _moteur.overrideWorldWeights(_customWeights);
+                        _moteur.initGame(_mapSeed, noms, _playerFactions); 
                         
                         _currentState = GameState::IN_GAME;
                     }
@@ -829,10 +879,30 @@ void InterfaceManager::updateNetworkLoop() {
 
                 // L'autre joueur a bougé une unité
                 case PacketType::ACTION_MOVE: {
+                    sf::Int32 pIdx;
+                    int xSrc, ySrc, xDest, yDest;
+                    if (packet >> pIdx >> xSrc >> ySrc >> xDest >> yDest) {
+                        _moteur.demanderDeplacement(pIdx, xSrc, ySrc, xDest, yDest);
+                    }
+                    break;
+                }
+
+                // L'autre joueur a attaqué
+                case PacketType::ACTION_ATTACK: {
                     int xSrc, ySrc, xDest, yDest;
                     if (packet >> xSrc >> ySrc >> xDest >> yDest) {
-                        Unite* u = _moteur.getPlateau()->getUnite(xSrc, ySrc);
-                        if (u) const_cast<board*>(_moteur.getPlateau())->deplacerUnite(*u, xDest, yDest);
+                        // On trouve le joueur à qui c'est le tour
+                        int turn = _moteur.getCurrentPlayerTurn();
+                        _moteur.demanderAttaque(turn, xSrc, ySrc, xDest, yDest);
+                    }
+                    break;
+                }
+
+                // L'autre joueur a pivoté
+                case PacketType::ACTION_ROTATE: {
+                    sf::Int32 pIdx; int x, y; sf::Int32 dirInt;
+                    if (packet >> pIdx >> x >> y >> dirInt) {
+                        _moteur.demanderRotation(pIdx, x, y, static_cast<direction>(dirInt));
                     }
                     break;
                 }
@@ -848,7 +918,18 @@ void InterfaceManager::updateNetworkLoop() {
                 case PacketType::ACTION_BUILD: {
                     sf::Int32 senderIdx; int x, y; std::string batNom;
                     if (_network.isHost() && (packet >> senderIdx >> x >> y >> batNom)) {
-                        _moteur.demanderConstruction(senderIdx, x, y, batNom);
+                        if (_moteur.demanderConstruction(senderIdx, x, y, batNom)) {
+                            sf::Packet p; p << static_cast<sf::Int32>(PacketType::SYNC_BUILD) << senderIdx << x << y << batNom;
+                            _network.sendData(p);
+                        }
+                    }
+                    break;
+                }
+
+                case PacketType::ACTION_BUILD_CITY: {
+                    sf::Int32 pIdx; int x, y;
+                    if (packet >> pIdx >> x >> y) {
+                        _moteur.demanderFondationVille(pIdx, x, y);
                     }
                     break;
                 }
@@ -895,130 +976,394 @@ void InterfaceManager::renderGame() {
     int startCol = std::max(0, (int)((center.x - size.x/2) / W) - 1);
     int endCol = std::min(_moteur.getPlateau()->getCols(), (int)((center.x + size.x/2) / W) + 2);
 
-    // Formes pour le brouillard et la sélection
-    sf::ConvexShape hexFog(6);
-    sf::ConvexShape hexSelect(6);
-    for (int i = 0; i < 6; ++i) {
-        float angle = (3.14159f / 180.0f) * (60.0f * i - 30.0f);
-        sf::Vector2f pt(R * std::cos(angle), R * std::sin(angle));
-        hexFog.setPoint(i, pt);
-        hexSelect.setPoint(i, pt);
-    }
-    hexFog.setFillColor(sf::Color(5, 5, 15));
-    hexFog.setOutlineColor(sf::Color(255, 255, 255, 40));
-    hexFog.setOutlineThickness(1.0f);
-    hexSelect.setFillColor(sf::Color(255, 255, 255, 80));
-    hexSelect.setOutlineColor(sf::Color::White);
-    hexSelect.setOutlineThickness(2.0f);
+    // Si la caméra voit une zone > 3x l'écran normal, on passe en mode simplifié
+    float zoomRatio = _gameView.getSize().x / _window.getSize().x;
+    bool drawDetails = (zoomRatio < 3.0f);
+    bool drawUnits   = (zoomRatio < 5.0f);
 
     // ==========================================================
-    // OPTIMISATION : PRECALCUL ET NIVEAU DE DETAIL (LOD)
+    // PRÉ-CALCUL DES OFFSETS HEXAGONAUX (TriangleFan → Triangles)
+    // 6 triangles par hex = 18 vertices en mode sf::Triangles
     // ==========================================================
+    static const float PI = 3.14159265f;
     sf::Vector2f hexOffsets[7];
     for (int pt = 0; pt <= 6; ++pt) {
-        float angle = (3.14159f / 180.0f) * (60.0f * (pt % 6) - 30.0f);
+        float angle = (PI / 180.0f) * (60.0f * (pt % 6) - 30.0f);
         hexOffsets[pt] = sf::Vector2f(std::cos(angle), std::sin(angle));
     }
-    
-    // Si la caméra voit une zone 3 fois plus large que l'écran normal, on cache les détails
-    bool drawDetails = (_gameView.getSize().x / _window.getSize().x) < 3.0f;
-
-    sf::VertexArray hexTex(sf::TriangleFan, 8);
 
     // ==========================================================
-    // BOUCLE DE RENDU DES TUILES
+    // BATCHING : On accumule tous les vertices par texture
+    // ==========================================================
+    std::map<char, sf::VertexArray> batches;
+    for (auto& [sym, tex] : _textures) {
+        batches[sym] = sf::VertexArray(sf::Triangles);
+    }
+
+    // VertexArray pour le brouillard (triangles simples, pas de texture)
+    sf::VertexArray moveBatch(sf::Triangles);
+    sf::VertexArray attackBatch(sf::Triangles);
+    sf::VertexArray territoryBatch(sf::Lines);
+    sf::VertexArray buyBatch(sf::Triangles);
+    sf::VertexArray fogBatch(sf::Triangles);
+    sf::VertexArray selectBatch(sf::Triangles);
+
+    // Ensemble des cases possibles en set pour accès O(1)
+    std::set<std::pair<int,int>> casesSet(_casesPossibles.begin(), _casesPossibles.end());
+
+    const bool joueurValide = viewIndex < (int)_moteur.getJoueurs().size();
+
+    // ==========================================================
+    // BOUCLE DE COLLECTE DES VERTICES (PAS DE DRAW)
     // ==========================================================
     for (int i = startRow; i < endRow; ++i) {
         for (int j = startCol; j < endCol; ++j) {
             float posX = W * j + W * 0.5f * (std::abs(i) % 2);
             float posY = 1.5f * R * i;
 
-            bool visible = (viewIndex < (int)_moteur.getJoueurs().size()) ? _moteur.getJoueurs()[viewIndex].estDecouvert(i, j) : true;
+            bool discovered = joueurValide ? _moteur.getJoueurs()[viewIndex].estDecouvert(i, j) : true;
+            bool visible    = joueurValide ? _moteur.getJoueurs()[viewIndex].estVisible(i, j) : true;
 
-            if (!visible) {
-                hexFog.setPosition(posX, posY);
-                _window.draw(hexFog);
+            // --- BROUILLARD NOIR (Inexploré) ---
+            if (!discovered) {
+                sf::Color fogColor(5, 5, 15, 255);
+                for (int tri = 0; tri < 6; ++tri) {
+                    sf::Vertex v0, v1, v2;
+                    v0.position = {posX, posY}; v0.color = fogColor;
+                    v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = fogColor;
+                    v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = fogColor;
+                    fogBatch.append(v0); fogBatch.append(v1); fogBatch.append(v2);
+                }
                 continue;
             }
 
-            const hexa* tile = _moteur.getPlateau()->getCell(i, j);
-            if (tile && _textures.count(tile->getSymbole())) {
-                sf::Texture& tex = _textures[tile->getSymbole()];
-                sf::VertexArray hexTex(sf::TriangleFan, 8); 
-                sf::Vector2f texCenter(tex.getSize().x / 2.0f, tex.getSize().y / 2.0f);
-                
-                hexTex[0].position = sf::Vector2f(posX, posY);
-                hexTex[0].texCoords = texCenter;
-                hexTex[0].color = sf::Color::White;
-
-                // pt <= 6 pour créer le 7eme sommet extérieur pour fermer la boucle
-                for (int pt = 0; pt <= 6; ++pt) {
-                    hexTex[pt+1].position = sf::Vector2f(posX + R * hexOffsets[pt].x, posY + R * hexOffsets[pt].y);
-                    hexTex[pt+1].texCoords = sf::Vector2f(
-                        texCenter.x + hexOffsets[pt].x * (tex.getSize().x / 2.0f),
-                        texCenter.y + hexOffsets[pt].y * (tex.getSize().y / 2.0f)
-                    );
-                    hexTex[pt+1].color = sf::Color::White;
+            // --- BROUILLARD GRIS / SHROUD (Exploré mais hors de vue) ---
+            if (!visible) {
+                sf::Color shroudColor(0, 0, 0, 100);
+                for (int tri = 0; tri < 6; ++tri) {
+                    sf::Vertex v0, v1, v2;
+                    v0.position = {posX, posY}; v0.color = shroudColor;
+                    v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = shroudColor;
+                    v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = shroudColor;
+                    fogBatch.append(v0); fogBatch.append(v1); fogBatch.append(v2);
                 }
-                _window.draw(hexTex, &tex);
             }
 
-            // DESSIN DES SYMBOLES UNIQUEMENT SI ASSEZ ZOOM (Ville / Batiment)
-            if (drawDetails) {
-            const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(tile);
+            // --- TUILE TEXTURÉE ---
+            const hexa* tile = _moteur.getPlateau()->getCell(i, j);
+            if (tile && batches.count(tile->getSymbole())) {
+                char sym = tile->getSymbole();
+                sf::Texture& tex = _textures[sym];
+                sf::Vector2f texCenter(tex.getSize().x / 2.0f, tex.getSize().y / 2.0f);
+                float tw = tex.getSize().x / 2.0f;
+                float th = tex.getSize().y / 2.0f;
+
+                // 6 triangles pour l'hexagone texturé
+                for (int tri = 0; tri < 6; ++tri) {
+                    sf::Vertex v0, v1, v2;
+                    v0.position  = {posX, posY};
+                    v0.texCoords = texCenter;
+                    v0.color = sf::Color::White;
+
+                    v1.position  = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y};
+                    v1.texCoords = {texCenter.x + hexOffsets[tri].x * tw, texCenter.y + hexOffsets[tri].y * th};
+                    v1.color = sf::Color::White;
+
+                    v2.position  = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y};
+                    v2.texCoords = {texCenter.x + hexOffsets[(tri+1)%6].x * tw, texCenter.y + hexOffsets[(tri+1)%6].y * th};
+                    v2.color = sf::Color::White;
+
+                    batches[sym].append(v0);
+                    batches[sym].append(v1);
+                    batches[sym].append(v2);
+                }
+            }
+
+            // --- SÉLECTION ---
+            if (_hasSelection && _selectedCellX == i && _selectedCellY == j) {
+                sf::Color selColor(255, 255, 255, 80);
+                for (int tri = 0; tri < 6; ++tri) {
+                    sf::Vertex v0, v1, v2;
+                    v0.position = {posX, posY};         v0.color = selColor;
+                    v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = selColor;
+                    v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = selColor;
+                    selectBatch.append(v0); selectBatch.append(v1); selectBatch.append(v2);
+                }
+            }
+
+            // --- SURBRILLANCES DE DRAG & DROP (Mouvement/Attaque) ---
+            if (_isDragging && i == _dragSourceX && j == _dragSourceY) {
+                // On peut optionnellement griser la case source
+            }
+
+            // Mouvement Possible (Jaune)
+            if (_isDragging && casesSet.count({i, j})) {
+                sf::Color moveCol(255, 255, 0, 70);
+                for (int tri = 0; tri < 6; ++tri) {
+                    sf::Vertex v0, v1, v2;
+                    v0.position = {posX, posY}; v0.color = moveCol;
+                    v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = moveCol;
+                    v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = moveCol;
+                    moveBatch.append(v0); moveBatch.append(v1); moveBatch.append(v2);
+                }
+            }
+
+            // Attaque Possible (Rouge)
+            if (_isDragging) {
+                Unite* uSrc = _moteur.getPlateau()->getUnite(_dragSourceX, _dragSourceY);
+                Unite* uDest = _moteur.getPlateau()->getUnite(i, j);
+                if (uSrc && uDest && !_moteur.getArbitre().appartientJoueur(_moteur.getJoueurs()[viewIndex], *uDest)) {
+                    // Calcul de distance (pour de vrai dans l'arbitre normalement)
+                    int dist = std::abs(i - _dragSourceX) + std::abs(j - _dragSourceY);
+                    if (dist <= 2) { // Distance d'attaque arbitraire pour le visuel, à lier aux comp d'unité plus tard
+                        sf::Color attCol(255, 0, 0, 80);
+                        for (int tri = 0; tri < 6; ++tri) {
+                            sf::Vertex v0, v1, v2;
+                            v0.position = {posX, posY}; v0.color = attCol;
+                            v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = attCol;
+                            v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = attCol;
+                            attackBatch.append(v0); attackBatch.append(v1); attackBatch.append(v2);
+                        }
+                    }
+                }
+            }
+
+            // --- TRACÉ DES TERRITOIRES ---
+            static const sf::Color playerColors[] = {
+                sf::Color(80, 180, 255), sf::Color(255, 80, 80), sf::Color(80, 255, 80), sf::Color(255, 200, 0)
+            };
+
+            for (int pIdx = 0; pIdx < (int)_moteur.getJoueurs().size(); ++pIdx) {
+                const Joueur& pj = _moteur.getJoueurs()[pIdx];
+                if (_moteur.estDansTerritoire(pIdx, i, j)) {
+                    sf::Color borderCol = playerColors[pIdx % 4];
+                    borderCol.a = 200;
+
+                    // Bordures : pour chaque côté, si le voisin n'est pas dans le territoire, on trace le trait
+                    const int dx[] = {-1, 1, 0, 0, -1, 1};
+                    const int dy[] = {0, 0, -1, 1, (i%2==0?-1:1), (i%2==0?-1:1)};
+
+                    for (int side = 0; side < 6; ++side) {
+                        int ni = i + dx[side];
+                        int nj = j + dy[side];
+                        if (!_moteur.estDansTerritoire(pIdx, i, j)) {
+                            sf::Vertex v1, v2;
+                            v1.position = {posX + R * hexOffsets[side].x, posY + R * hexOffsets[side].y};
+                            v1.color = borderCol;
+                            v2.position = {posX + R * hexOffsets[(side+1)%6].x, posY + R * hexOffsets[(side+1)%6].y};
+                            v2.color = borderCol;
+                            territoryBatch.append(v1);
+                            territoryBatch.append(v2);
+                        }
+                    }
+                }
+            }
+
+            // --- CASES ACHETABLES (S'il y a une sélection de territoire en cours ou simplement visible) ---
+            if (joueurValide) {
+                const Joueur& curJ = _moteur.getJoueurs()[viewIndex];
+                if (_moteur.getArbitre().peutAcheterCase(curJ, i, j, *_moteur.getPlateau(), _moteur.getLogicConfig())) {
+                    sf::Color buyColor(0, 255, 100, 30);
+                    for (int tri = 0; tri < 6; ++tri) {
+                        sf::Vertex v0, v1, v2;
+                        v0.position = {posX, posY}; v0.color = buyColor;
+                        v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = buyColor;
+                        v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = buyColor;
+                        buyBatch.append(v0); buyBatch.append(v1); buyBatch.append(v2);
+                    }
+                }
+            }
+        }
+    }
+
+    // ==========================================================
+    // DRAW CALLS BATCHÉS (1 par type de texture + fog + overlays)
+    // ==========================================================
+    for (auto& [sym, va] : batches) {
+        if (va.getVertexCount() > 0)
+            _window.draw(va, &_textures[sym]);
+    }
+    if (fogBatch.getVertexCount() > 0) _window.draw(fogBatch);
+    if (buyBatch.getVertexCount() > 0) _window.draw(buyBatch);
+    if (moveBatch.getVertexCount() > 0) _window.draw(moveBatch);
+    if (attackBatch.getVertexCount() > 0) _window.draw(attackBatch);
+    if (selectBatch.getVertexCount() > 0) _window.draw(selectBatch);
+    if (territoryBatch.getVertexCount() > 0) {
+        sf::RenderStates states;
+        states.blendMode = sf::BlendAdd;
+        _window.draw(territoryBatch, states);
+    }
+
+    // ==========================================================
+    // DÉTAILS : Villes, Bâtiments, Unités (uniquement si zoomé)
+    // ==========================================================
+    if (drawDetails) {
+        for (int i = startRow; i < endRow; ++i) {
+            for (int j = startCol; j < endCol; ++j) {
+                bool visible = joueurValide ? _moteur.getJoueurs()[viewIndex].estDecouvert(i, j) : true;
+                if (!visible) continue;
+
+                float posX = W * j + W * 0.5f * (std::abs(i) % 2);
+                float posY = 1.5f * R * i;
+
+                const hexa* tile = _moteur.getPlateau()->getCell(i, j);
+                const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(tile);
                 if (tc) {
                     if (tc->getCity()) {
-                        // Maison pentagonale pour les villes
-                        sf::ConvexShape house(5);
-                        house.setPoint(0, sf::Vector2f(0, -15));
-                        house.setPoint(1, sf::Vector2f(15, -5));
-                        house.setPoint(2, sf::Vector2f(15, 15));
-                        house.setPoint(3, sf::Vector2f(-15, 15));
-                        house.setPoint(4, sf::Vector2f(-15, -5));
-                        
-                        house.setPosition(posX, posY);
-                        house.setFillColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(0, 200, 255));
-                        house.setOutlineThickness(2.0f);
-                        house.setOutlineColor(sf::Color::Black);
-                        _window.draw(house);
+                        sf::Sprite citySpr;
+                        citySpr.setTexture(_cityTexture);
+                        citySpr.setOrigin(citySpr.getLocalBounds().width / 2.0f, citySpr.getLocalBounds().height / 2.0f);
+                        citySpr.setPosition(posX, posY - 10.0f);
+                        // Teinte dorée si capitale, bleuté si normale
+                        citySpr.setColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(200, 230, 255));
+                        _window.draw(citySpr);
                     }
                     if (tc->getBatimentSpecial()) {
-                        sf::CircleShape gear(8, 6);
-                        gear.setOrigin(8, 8);
-                        gear.setPosition(posX, posY + 10);
-                        gear.setFillColor(sf::Color(150, 150, 150));
-                        gear.setOutlineThickness(1.0f);
-                        gear.setOutlineColor(sf::Color::Black);
-                        _window.draw(gear);
+                        std::string bNom = tc->getBatimentSpecial()->getName();
+                        if (_buildingTextures.count(bNom)) {
+                            sf::Sprite bSpr;
+                            bSpr.setTexture(_buildingTextures[bNom]);
+                            bSpr.setOrigin(bSpr.getLocalBounds().width / 2.0f, bSpr.getLocalBounds().height / 2.0f);
+                            bSpr.setPosition(posX, posY + 10.0f);
+                            
+                            sf::FloatRect bounds = bSpr.getLocalBounds();
+                            float scale = (_tileSize * 0.6f) / std::max(bounds.width, bounds.height);
+                            bSpr.setScale(scale, scale);
+
+                            _window.draw(bSpr);
+                        }
                     }
                 }
             }
+        }
+    }
 
-            if (_hasSelection && _selectedCellX == i && _selectedCellY == j) {
-                hexSelect.setPosition(posX, posY);
-                _window.draw(hexSelect);
-            }
+    // === DESSIN DES UNITÉS ===
+    if (drawUnits) {
+        // Cercle pour fond/couleur du joueur
+        sf::CircleShape unitDot(R * 0.35f);
+        unitDot.setOrigin(R * 0.35f, R * 0.35f);
 
-            // dessin du mode ciblage (Zone Jaune via l'Arbitre)
-            if (_isTargetingMove) {
-                // On vérifie si la case actuelle est dans la liste renvoyée par l'arbitre
-                bool isPossible = false;
-                for (const auto& casePos : _casesPossibles) {
-                    if (casePos.first == i && casePos.second == j) {
-                        isPossible = true;
-                        break;
-                    }
+        for (int i = startRow; i < endRow; ++i) {
+            for (int j = startCol; j < endCol; ++j) {
+                
+                bool visible = joueurValide ? _moteur.getJoueurs()[viewIndex].estVisible(i, j) : true;
+                Unite* u = _moteur.getPlateau()->getUnite(i, j);
+                if (!u) continue;
+
+                int propIdx = _moteur.getProprietaireUnite(i, j);
+                bool isMine = (propIdx == viewIndex);
+                
+                // On voit toujours ses propres unités, même hors vision
+                if (!visible && !isMine) continue;
+
+                float posX = W * j + W * 0.5f * (std::abs(i) % 2);
+                float posY = 1.5f * R * i;
+
+                // Couleur selon le propriétaire
+                sf::Color unitColor(180, 180, 180);
+                if (propIdx != -1) {
+                    static const sf::Color playerColors[] = {
+                        sf::Color(80, 180, 255), sf::Color(255, 80, 80), sf::Color(80, 255, 80), sf::Color(255, 200, 0)
+                    };
+                    unitColor = playerColors[propIdx % 4];
                 }
                 
-                // Si oui, on dessine l'hexagone jaune
-                if (isPossible) {
-                    sf::ConvexShape hexMove = hexSelect;
-                    hexMove.setFillColor(sf::Color(255, 255, 0, 50));
-                    hexMove.setOutlineColor(sf::Color::Yellow);
-                    hexMove.setPosition(posX, posY);
-                    _window.draw(hexMove);
+                // Dessin de fond de faction (halo)
+                unitDot.setFillColor(unitColor);
+                unitDot.setOutlineThickness(1.0f);
+                unitDot.setOutlineColor(sf::Color::Black);
+                unitDot.setPosition(posX, posY);
+                _window.draw(unitDot);
+
+                // Sprite par dessus
+                if (_unitTextures.count(u->name())) {
+                    sf::Sprite uSpr;
+                    uSpr.setTexture(_unitTextures[u->name()]);
+                    uSpr.setOrigin(uSpr.getLocalBounds().width / 2.0f, uSpr.getLocalBounds().height / 2.0f);
+                    uSpr.setPosition(posX, posY);
+                    
+                    // Ajustement de la taille : l'unité doit faire environ 80% de la taille d'une case
+                    sf::FloatRect bounds = uSpr.getLocalBounds();
+                    float scale = (_tileSize * 0.8f) / std::max(bounds.width, bounds.height);
+                    uSpr.setScale(scale, scale);
+
+                    // Orientation
+                    if (_hasSelection && _selectedCellX == i && _selectedCellY == j && _hasPreviewRotation) {
+                        uSpr.setRotation(getRotationAngle(_previewDirection));
+                    } else {
+                        uSpr.setRotation(getRotationAngle(u->regarde()));
+                    }
+
+                    // --- DESSIN DU CÔNE DE VISION (Faisceau lumineux) ---
+                    if (_hasSelection && _selectedCellX == i && _selectedCellY == j) {
+                        direction d = (_hasPreviewRotation) ? _previewDirection : u->regarde();
+                        float angleDeg = getRotationAngle(d); 
+                        float angleRad = angleDeg * PI / 180.0f;
+                        
+                        float halfFov = (u->fov() / 2.0f) * PI / 180.0f; 
+                        float coneLength = u->visionRange() * W * 1.5f;
+                        
+                        sf::VertexArray cone(sf::TriangleFan, 4);
+                        sf::Color coneColor(0, 200, 255, 90);
+                        sf::Color coneEnd(0, 200, 255, 0);
+                        
+                        cone[0].position = sf::Vector2f(posX, posY);
+                        cone[0].color = coneColor;
+                        
+                        cone[1].position = sf::Vector2f(posX + coneLength * std::cos(angleRad - halfFov), posY + coneLength * std::sin(angleRad - halfFov));
+                        cone[1].color = coneEnd;
+                        
+                        cone[2].position = sf::Vector2f(posX + coneLength * std::cos(angleRad), posY + coneLength * std::sin(angleRad));
+                        cone[2].color = coneEnd;
+
+                        cone[3].position = sf::Vector2f(posX + coneLength * std::cos(angleRad + halfFov), posY + coneLength * std::sin(angleRad + halfFov));
+                        cone[3].color = coneEnd;
+                        
+                        sf::RenderStates states;
+                        states.blendMode = sf::BlendAdd;
+                        _window.draw(cone, states);
+                    }
+
+                    _window.draw(uSpr);
                 }
             }
+        }
+    }
+
+    // === CONTOURS DE SÉLECTION (outline dessiné après les fills) ===
+    if (_hasSelection) {
+        float posX = W * _selectedCellY + W * 0.5f * (std::abs(_selectedCellX) % 2);
+        float posY = 1.5f * R * _selectedCellX;
+        sf::ConvexShape hexSel(6);
+        for (int pt = 0; pt < 6; ++pt) {
+            hexSel.setPoint(pt, {R * hexOffsets[pt].x, R * hexOffsets[pt].y});
+        }
+        hexSel.setPosition(posX, posY);
+        hexSel.setFillColor(sf::Color::Transparent);
+        hexSel.setOutlineColor(sf::Color::White);
+        hexSel.setOutlineThickness(2.0f);
+        _window.draw(hexSel);
+    }
+
+    // === DESSIN DE L'UNITÉ DRAGUÉE ===
+    if (_isDragging) {
+        Unite* u = _moteur.getPlateau()->getUnite(_dragSourceX, _dragSourceY);
+        if (u && _unitTextures.count(u->name())) {
+            sf::Vector2i pixelPos = sf::Mouse::getPosition(_window);
+            sf::Vector2f worldPos = _window.mapPixelToCoords(pixelPos, _gameView);
+
+            sf::Sprite dragSpr;
+            dragSpr.setTexture(_unitTextures[u->name()]);
+            dragSpr.setOrigin(dragSpr.getLocalBounds().width / 2.0f, dragSpr.getLocalBounds().height / 2.0f);
+            dragSpr.setPosition(worldPos);
+            
+            sf::FloatRect bounds = dragSpr.getLocalBounds();
+            float scale = (_tileSize * 0.8f) / std::max(bounds.width, bounds.height);
+            dragSpr.setScale(scale, scale);
+            dragSpr.setColor(sf::Color(255, 255, 255, 180));
+            
+            _window.draw(dragSpr);
         }
     }
 
@@ -1249,9 +1594,9 @@ void InterfaceManager::renderGame() {
     // 4. ACTION PANEL CONTEXTUEL
     // --------------------------------------------------------
     float actionPanelWidth = _window.getSize().x - 450;
-    ImGui::SetNextWindowPos(ImVec2(250, _window.getSize().y - 150));
-    ImGui::SetNextWindowSize(ImVec2(actionPanelWidth, 150));
-    ImGui::Begin("ActionPanel", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+    ImGui::SetNextWindowPos(ImVec2(320, _window.getSize().y - 250), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(actionPanelWidth, 250), ImGuiCond_FirstUseEver);
+    ImGui::Begin("ActionPanel", nullptr, ImGuiWindowFlags_NoTitleBar);
     
     if (_hasSelection && viewIndex < (int)_moteur.getJoueurs().size()) {
         int localJIdx = isMultiplayer ? _localPlayerIndex : _moteur.getCurrentPlayerTurn();
@@ -1267,60 +1612,111 @@ void InterfaceManager::renderGame() {
 
         if (tc) {
             // Fonder une ville
-            if (_moteur.getArbitre().buildCity(localJ, *_moteur.getPlateau(), _selectedCellX, _selectedCellY)) {
+            if (!tc->getCity() && _moteur.peutFonderVille(localJIdx, _selectedCellX, _selectedCellY)) {
                 actionPossible = true;
-                if (ImGui::Button("Fonder une Ville", ImVec2(150, 40))) {
-                    hexa* cellMutable = const_cast<hexa*>(_moteur.getPlateau()->getCell(_selectedCellX, _selectedCellY));
-                    TuileConfigurable* tcMutable = dynamic_cast<TuileConfigurable*>(cellMutable);
-                    if (tcMutable) {
-                        tcMutable->constrVille(_selectedCellX, _selectedCellY, _moteur.getLogicConfig(), 5, false);
-                        localJ.ajouterVille(tcMutable->getCity());
-                        localJ.decouvrirZone(_selectedCellX, _selectedCellY, 5, _moteur.getPlateau()->getRows(), _moteur.getPlateau()->getCols());
-                        _popupMsg = "Ville fondee avec succes !";
-                        _showPopup = true;
-                    }
-                }
-                ImGui::SameLine();
-            }
+                
+                std::map<Ressource*, int> coutVille = _moteur.getCoutFondationVille(localJIdx);
+                bool peutPayer = _moteur.peutPayer(localJIdx, coutVille);
+                
+                std::string textCout = "Cout Fondation : ";
+                if (coutVille.empty()) textCout += "Gratuit";
+                else { for (auto const& [res, qte] : coutVille) textCout += std::to_string(qte) + " " + res->getName() + "  "; }
+                
+                if (!peutPayer) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                else ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+                ImGui::Text("%s", textCout.c_str());
+                ImGui::PopStyleColor();
 
-            // B. Actions sur une Ville Existante
-            if (tc->getCity()) {
-                actionPossible = true;
-                if (ImGui::Button("Ameliorer Ville", ImVec2(150, 40))) {
-                    if (_moteur.demanderAmeliorationVille(localJIdx, _selectedCellX, _selectedCellY)) {
-                        _popupMsg = "Ville amelioree !";
+                if (!peutPayer) ImGui::BeginDisabled();
+                if (ImGui::Button("Fonder une Ville", ImVec2(150, 40))) {
+                    if (_moteur.demanderFondationVille(localJIdx, _selectedCellX, _selectedCellY)) {
+                        _popupMsg = "Ville fondee avec succes !";
+                        if (isMultiplayer) {
+                            sf::Packet p;
+                            p << static_cast<sf::Int32>(PacketType::ACTION_BUILD_CITY) 
+                              << static_cast<sf::Int32>(localJIdx) 
+                              << _selectedCellX << _selectedCellY;
+                            _network.sendData(p);
+                        }
                     } else {
-                        _popupMsg = "Amelioration impossible (Niveau max ou ressources insuffisantes).";
+                        _popupMsg = "Erreur: Impossible de fonder la ville.";
                     }
                     _showPopup = true;
                 }
-                ImGui::SameLine();
-                if (ImGui::Button("Construire Batiment", ImVec2(150, 40))) ImGui::OpenPopup("Menu Construction Batiments");
+                if (!peutPayer) ImGui::EndDisabled();
+                
                 ImGui::SameLine();
             }
 
-            // C. Acheter territoire
-            if (!tc->getCity() && !_moteur.getArbitre().estDansTerritoire(localJ, _selectedCellX, _selectedCellY, *_moteur.getPlateau(), _moteur.getLogicConfig())) {
-                if (_moteur.getArbitre().peutAcheterCase(localJ, _selectedCellX, _selectedCellY, *_moteur.getPlateau(), _moteur.getLogicConfig())) {
+            bool estDansTerritoire = _moteur.estDansTerritoire(localJIdx, _selectedCellX, _selectedCellY);
+
+            // B. Si c'est est une Ville
+            if (tc->getCity()) {
+                bool villeAuJoueur = _moteur.estVilleAuJoueur(localJIdx, _selectedCellX, _selectedCellY);
+
+                if (villeAuJoueur) {
                     actionPossible = true;
-                    if (ImGui::Button("Acheter Territoire", ImVec2(150, 40))) {
-                        _popupMsg = "Achat de territoire declenche !";
+                    if (ImGui::Button("Ameliorer Ville", ImVec2(150, 40))) { 
+                        if (_moteur.demanderAmeliorationVille(localJIdx, _selectedCellX, _selectedCellY)) {
+                            _popupMsg = "Ville amelioree !";
+                        } else {
+                            _popupMsg = "Amelioration impossible (Niveau max ou ressources insuffisantes).";
+                        }
                         _showPopup = true;
                     }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Construire Batiment", ImVec2(150, 40))) ImGui::OpenPopup("Menu Construction Batiments");
+                    ImGui::SameLine();
+                    if (ImGui::Button("Recruter Unite", ImVec2(130, 40))) ImGui::OpenPopup("Menu Recrutement");
                 }
+            } 
+            // C. Notre territoire, mais SANS ville
+            else if (estDansTerritoire) {
+                actionPossible = true;
+                if (ImGui::Button("Construire Special", ImVec2(150, 40))) {
+                    ImGui::OpenPopup("Menu Construction Batiments");
+                }
+            }
+            // D. Hors de notre territoire (Acheter la case)
+            else if (_moteur.peutAcheterTerritoire(localJIdx, _selectedCellX, _selectedCellY)) {
+                actionPossible = true;
+                
+                std::map<Ressource*, int> coutAchat = _moteur.getCoutAchatTerritoire(localJIdx);
+                bool peutPayer = _moteur.peutPayer(localJIdx, coutAchat);
+                
+                std::string textCout = "Acheter Case : ";
+                for (auto const& [res, qte] : coutAchat) textCout += std::to_string(qte) + " " + res->getName() + " ";
+                ImGui::TextColored(peutPayer ? ImVec4(0.8f,0.8f,0.8f,1.0f) : ImVec4(1.0f,0.3f,0.3f,1.0f), "%s", textCout.c_str());
+
+                if (!peutPayer) ImGui::BeginDisabled();
+                if (ImGui::Button("Acheter Territoire", ImVec2(150, 40))) {
+                    if (_moteur.demanderAchatTerritoire(localJIdx, _selectedCellX, _selectedCellY)) {
+                        _popupMsg = "Territoire achete !";
+                    } else {
+                        _popupMsg = "Erreur lors de l'achat.";
+                    }
+                    _showPopup = true;
+                }
+                if (!peutPayer) ImGui::EndDisabled();
             }
 
             // --- UNITÉS ---
             Unite* uniteSurCase = _moteur.getPlateau()->getUnite(_selectedCellX, _selectedCellY);
-            if (uniteSurCase && _moteur.getArbitre().appartientJoueur(localJ, *uniteSurCase)) {
+            if (uniteSurCase && _moteur.getProprietaireUnite(_selectedCellX, _selectedCellY) == localJIdx) {
                 actionPossible = true;
                 ImGui::Separator();
                 ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "UNITE : %s", uniteSurCase->name().c_str());
                 
+                // Affiche PA et HP
+                ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.9f, 1.0f), "PA : %d / %d   |   HP : %d / %d", 
+                                   uniteSurCase->point_action(), uniteSurCase->point_action_max(),
+                                   uniteSurCase->health_point(), uniteSurCase->health_point_max());
+                ImGui::Dummy(ImVec2(0, 5));
+
                 if (ImGui::Button("Deplacer", ImVec2(150, 40))) {
                     _isTargetingMove = true; _isTargetingAttack = false;
                     _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
-                    _casesPossibles = _moteur.getArbitre().getCasesDeplacementPossibles(*_moteur.getPlateau(), *uniteSurCase);
+                    _casesPossibles = _moteur.getDeplacementsPossibles(localJIdx, _selectedCellX, _selectedCellY);
                     _popupMsg = "Ciblez une case jaune pour vous deplacer.";
                     _showPopup = true;
                 }
@@ -1331,6 +1727,8 @@ void InterfaceManager::renderGame() {
                     _popupMsg = "Ciblez un ennemi sur la carte pour attaquer.";
                     _showPopup = true;
                 }
+
+                renderUnitActions(uniteSurCase);
             }
         }
 
@@ -1361,6 +1759,10 @@ void InterfaceManager::renderGame() {
                     } else {
                         if (_moteur.demanderConstruction(localJIdx, _selectedCellX, _selectedCellY, nom)) {
                             _popupMsg = nom + " construit avec succes !";
+                            if (isMultiplayer) {
+                                sf::Packet p; p << static_cast<sf::Int32>(PacketType::SYNC_BUILD) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY << nom;
+                                _network.sendData(p);
+                            }
                         } else {
                             _popupMsg = "Construction impossible (Ressources ou terrain).";
                         }
@@ -1372,6 +1774,56 @@ void InterfaceManager::renderGame() {
             ImGui::EndPopup();
         }
 
+        // ========================================================
+        // SOUS-MENU : RECRUTEMENT D'UNITÉS
+        // ========================================================
+        if (ImGui::BeginPopup("Menu Recrutement")) {
+            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "RECRUTEMENT D'UNITES");
+            ImGui::Separator();
+            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "L'unite sera placee sur la case selectionnee.");
+            ImGui::Dummy(ImVec2(0, 5));
+
+            const auto& catalogue = _moteur.getUniteFactory().getCatalogue();
+            if (catalogue.empty()) {
+                ImGui::TextDisabled("Aucune unite dans le catalogue.");
+            } else {
+                for (const auto& [nom, uniteModele] : catalogue) {
+                    // Construire le texte du cout
+                    std::string coutText;
+                    for (auto const& [res, qte] : uniteModele->cout()) {
+                        if (!coutText.empty()) coutText += ", ";
+                        coutText += std::to_string(qte) + " " + res->getName();
+                    }
+                    if (coutText.empty()) coutText = "Gratuit";
+
+                    // Vérifier si le joueur peut se le permettre
+                    bool canAfford = _moteur.peutRecruterUnite(localJIdx, nom);
+
+                    if (!canAfford) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                    std::string label = nom + "  [" + coutText + "]  HP:" + std::to_string(uniteModele->health_point());
+                    if (ImGui::Selectable(label.c_str(), false, canAfford ? 0 : ImGuiSelectableFlags_Disabled)) {
+                        if (_moteur.demanderRecrutementUnite(localJIdx, _selectedCellX, _selectedCellY, nom)) {
+                            _popupMsg = nom + " recrute avec succes !";
+                        } else {
+                            _popupMsg = "Recrutement impossible.";
+                        }
+                        _showPopup = true;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    if (!canAfford) ImGui::PopStyleColor();
+
+                    // Tooltip avec détails de l'unité
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("HP: %d | PA: %d", uniteModele->health_point(), uniteModele->point_action());
+                        if (!canAfford) ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Ressources insuffisantes !");
+                        ImGui::EndTooltip();
+                    }
+                }
+            }
+            ImGui::EndPopup();
+        }
+
     } else {
         ImGui::SetCursorPosY(60);
         ImGui::SetCursorPosX((actionPanelWidth - ImGui::CalcTextSize("Selectionnez une case").x) * 0.5f);
@@ -1380,28 +1832,43 @@ void InterfaceManager::renderGame() {
     ImGui::End();
 
     // --------------------------------------------------------
-    // 5. PANNEAU LATÉRAL INFOS VILLE
+    // 5. PANNEAU LATÉRAL (INFOS VILLE ET PANNEAU SPECIAL)
     // --------------------------------------------------------
     if (_hasSelection) {
         const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(_moteur.getPlateau()->getCell(_selectedCellX, _selectedCellY));
-        if (tc && tc->getCity()) {
-            City* city = tc->getCity();
-            ImGui::SetNextWindowPos(ImVec2(_window.getSize().x - 260, 50));
-            ImGui::SetNextWindowSize(ImVec2(250, 300));
-            ImGui::Begin("CityInfo", nullptr, ImGuiWindowFlags_NoTitleBar);
+        
+        if (tc && (tc->getCity() || tc->getBatimentSpecial())) {
+            ImGui::SetNextWindowPos(ImVec2(_window.getSize().x - 260, 50), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(250, 300), ImGuiCond_FirstUseEver);
+            ImGui::Begin("TileInfo", nullptr, ImGuiWindowFlags_NoTitleBar);
             
-            ImGui::TextColored(ImVec4(0.3f, 0.8f, 1.0f, 1.0f), "VILLE NIVEAU %d", city->getLevel());
-            ImGui::Separator();
-            ImGui::Text("PV: %.0f/%.0f", city->getPv(), city->getPvMax());
-            ImGui::Text("Degats: %.0f", city->getDegats());
-            ImGui::Dummy(ImVec2(0, 10));
+            if (tc->getCity()) {
+                City* city = tc->getCity();
+                ImGui::TextColored(ImVec4(0.3f, 0.8f, 1.0f, 1.0f), "VILLE NIVEAU %d", city->getLevel());
+                ImGui::Separator();
+                ImGui::Text("PV: %.0f/%.0f", city->getPv(), city->getPvMax());
+                ImGui::Text("Degats: %.0f", city->getDegats());
+                ImGui::Dummy(ImVec2(0, 10));
 
-            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "BATIMENTS ACTUELS :");
-            if (city->getBatiments().empty()) {
-                ImGui::TextDisabled("  Aucun batiment.");
-            } else {
-                for (auto& b : city->getBatiments()) {
-                    ImGui::BulletText("%s", b->getName().c_str());
+                ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "BATIMENTS ACTUELS :");
+                if (city->getBatiments().empty()) {
+                    ImGui::TextDisabled("  Aucun batiment.");
+                } else {
+                    for (auto& b : city->getBatiments()) {
+                        ImGui::BulletText("%s", b->getName().c_str());
+                    }
+                }
+            } 
+            else if (tc->getBatimentSpecial()) {
+                const Batiment* bat = tc->getBatimentSpecial();
+                ImGui::TextColored(ImVec4(0.9f, 0.5f, 0.2f, 1.0f), "BATIMENT SPECIAL");
+                ImGui::Separator();
+                ImGui::Text("%s (Niv %d)", bat->getName().c_str(), bat->getLevel());
+                ImGui::Dummy(ImVec2(0, 10));
+                
+                ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "COUT CONSTRUCTION :");
+                for (auto const& [res, qte] : bat->getResourceConstr()) {
+                    ImGui::BulletText("%d %s", qte, res->getName().c_str());
                 }
             }
             ImGui::End();
@@ -1427,16 +1894,46 @@ void InterfaceManager::renderGame() {
 // ------------- Fonctions de textures et themes ---------------- //
 // ---------------------------------------------------------------//
 
-// ---------------------------------------------------------------//
-// ---------------- A MODIFIER POUR ETRE GENERAL ---------------- //
-// ---------------------------------------------------------------//
 void InterfaceManager::loadTextures() {
-    // On charge chaque image et on l'associe à son symbole JSON
-    if (!_textures['P'].loadFromFile("assets/planet.png")) std::cerr << "Erreur : assets/planet.png introuvable" << std::endl;
-    if (!_textures['E'].loadFromFile("assets/star.png")) std::cerr << "Erreur : assets/star.png introuvable" << std::endl;
-    if (!_textures['X'].loadFromFile("assets/black_hole.png")) std::cerr << "Erreur : assets/black_hole.png introuvable" << std::endl;
-    if (!_textures['.'].loadFromFile("assets/space.png")) std::cerr << "Erreur : assets/space.png introuvable" << std::endl;
-    if (!_textures['#'].loadFromFile("assets/border.png")) std::cerr << "Erreur : assets/border.png introuvable" << std::endl;
+    // 1. Textures des tuiles de terrain
+    if (_espaceJson.contains("tiles")) {
+        for (auto& t : _espaceJson["tiles"]) {
+            std::string texturePath = t.value("texture", "");
+            std::string symboleStr = t.value("symbole", "");
+            if (!texturePath.empty() && !symboleStr.empty()) {
+                char symb = symboleStr[0];
+                if (!_textures[symb].loadFromFile(texturePath)) {
+                    std::cerr << "Erreur : Texture terrain introuvable -> " << texturePath << std::endl;
+                }
+            }
+        }
+    }
+    // Tuile de bordure par défaut
+    if (_textures.find('#') == _textures.end()) {
+        _textures['#'].loadFromFile("assets/border.png");
+    }
+
+    // 2. Texture globale de Ville
+    std::string cityTex = _moteur.getTextureVille();
+    if (!cityTex.empty() && !_cityTexture.loadFromFile(cityTex)) {
+        std::cerr << "Erreur : Texture Ville introuvable -> " << cityTex << std::endl;
+    }
+
+    // 3. Textures des Bâtiments
+    for (const auto& [nom, modele] : _moteur.getBatimentFactory().getCatalogue()) {
+        std::string bTex = modele->getTexturePath();
+        if (!bTex.empty() && !_buildingTextures[nom].loadFromFile(bTex)) {
+            std::cerr << "Erreur : Texture Batiment introuvable -> " << bTex << std::endl;
+        }
+    }
+
+    // 4. Textures des Unités
+    for (const auto& [nom, modele] : _moteur.getUniteFactory().getCatalogue()) {
+        std::string uTex = modele->texturePath();
+        if (!uTex.empty() && !_unitTextures[nom].loadFromFile(uTex)) {
+            std::cerr << "Erreur : Texture Unite introuvable -> " << uTex << std::endl;
+        }
+    }
 }
 
 void InterfaceManager::applyCustomTheme() {
@@ -1555,4 +2052,94 @@ void InterfaceManager::renderChatWindow() {
 
     ImGui::End();
     ImGui::PopStyleColor();
+}
+
+float InterfaceManager::getRotationAngle(direction dir) {
+    switch (dir) {
+        case direction::est:        return 0.0f;
+        case direction::sud_est:    return 60.0f;
+        case direction::sud_ouest:  return 120.0f;
+        case direction::ouest:      return 180.0f;
+        case direction::nord_ouest: return 240.0f;
+        case direction::nord_est:   return 300.0f;
+        default:                    return 0.0f;
+    }
+}
+
+void InterfaceManager::renderUnitActions(Unite* u) {
+    if (!u) return;
+
+    ImGui::Dummy(ImVec2(0, 10));
+    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "ROTATION DE L'UNITE");
+    ImGui::Separator();
+
+    bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
+    int localJIdx = isMultiplayer ? _localPlayerIndex : _moteur.getCurrentPlayerTurn();
+
+    int coutRot = _moteur.getCoutRotation();
+    bool peutTourner = (u->point_action() >= coutRot); 
+    
+    if (!peutTourner) {
+        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "PA Insuffisants (%d requis)", coutRot);
+        ImGui::BeginDisabled();
+    } else {
+        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Cout : %d PA", coutRot);
+    }
+
+    auto drawRotBtn = [&](const char* label, direction dir) {
+        // Coloration : Vert si direction actuelle, Jaune si prévisualisation
+        bool isCurrent = (u->regarde() == dir);
+        bool isPreview = (_hasPreviewRotation && _previewDirection == dir);
+        
+        if (isCurrent) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+        else if (isPreview) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.7f, 0.3f, 1.0f));
+        
+        if (ImGui::Button(label, ImVec2(45, 45))) {
+            _hasPreviewRotation = true;
+            _previewDirection = dir; // On enregistre juste la volonté de tourner
+        }
+
+        if (isCurrent || isPreview) ImGui::PopStyleColor();
+    };
+
+    // --- POSITIONNEMENT EN HEXAGONE DES BOUTONS ---
+    ImGui::Dummy(ImVec2(0, 5));
+    
+    // Ligne du haut (NO, NE)
+    ImGui::Indent(65); 
+    drawRotBtn("NO", direction::nord_ouest); 
+    ImGui::SameLine(0, 15); 
+    drawRotBtn("NE", direction::nord_est); 
+    ImGui::Unindent(65);
+    
+    // Ligne du milieu (O, E)
+    ImGui::Indent(35);
+    drawRotBtn(" O", direction::ouest); 
+    ImGui::SameLine(0, 75); 
+    drawRotBtn(" E", direction::est);
+    ImGui::Unindent(35);
+    
+    // Ligne du bas (SO, SE)
+    ImGui::Indent(65); 
+    drawRotBtn("SO", direction::sud_ouest); 
+    ImGui::SameLine(0, 15); 
+    drawRotBtn("SE", direction::sud_est); 
+    ImGui::Unindent(65);
+
+    // --- LE BOUTON DE CONFIRMATION ---
+    if (_hasPreviewRotation && _previewDirection != u->regarde()) {
+        ImGui::Dummy(ImVec2(0, 10));
+        if (ImGui::Button("Confirmer Rotation", ImVec2(150, 40))) {
+            if (_moteur.demanderRotation(localJIdx, _selectedCellX, _selectedCellY, _previewDirection)) {
+                if (isMultiplayer) {
+                    sf::Packet pk;
+                    pk << static_cast<sf::Int32>(PacketType::ACTION_ROTATE) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY << static_cast<sf::Int32>(_previewDirection);
+                    _network.sendData(pk);
+                }
+            }
+            _hasPreviewRotation = false;
+        }
+    }
+
+    if (!peutTourner) ImGui::EndDisabled();
 }

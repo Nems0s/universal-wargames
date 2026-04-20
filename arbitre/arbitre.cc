@@ -1,4 +1,5 @@
 #include "arbitre.hh"
+#include <queue>
 
 // ==========================================================
 // LOGIQUE COMMUNE
@@ -152,7 +153,18 @@ bool Arbitre::validPayRessource(Joueur & j, const Batiment & b) {
 
 bool Arbitre::peutAmeliorerVille(const Joueur & j, const City & city, const GameConfig & config) const {
     if (city.getLevel() >= config.getMaxLevelVille()) return false;
-    else return true;
+    
+    // cout de base * niveau actuel
+    std::map<Ressource*, int> coutAmelioration;
+    for (const auto& [nomRes, qte] : config.getCoutBaseVille()) {
+        for (const auto& [resPtr, invQte] : j.getInventaire()) {
+            if (resPtr->getName() == nomRes) {
+                coutAmelioration[resPtr] = qte * city.getLevel(); 
+            }
+        }
+    }
+    
+    return peutPayer(coutAmelioration, j);
 }
 
 bool Arbitre::peutAmeliorerBatiment(const Joueur & j, const Batiment & b) const {
@@ -162,6 +174,10 @@ bool Arbitre::peutAmeliorerBatiment(const Joueur & j, const Batiment & b) const 
 
 bool Arbitre::estDansTerritoire(const Joueur & j, int x, int y, const board & game, const GameConfig & config) const {
     if (!coordValid(x, y, game)) return false;
+
+    const hexa* cell = game.getCell(x, y);
+    const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(cell);
+    if (tc && tc->getProprietaire() == &j) return true;
 
     for (City* ville : j.getCities()) {
         int vx = ville->getX(); 
@@ -178,9 +194,41 @@ bool Arbitre::estDansTerritoire(const Joueur & j, int x, int y, const board & ga
 bool Arbitre::peutAcheterCase(const Joueur & j, int x, int y, const board & game, const GameConfig & config) const {
     if (!coordValid(x, y, game)) return false;
 
-    if (estDansTerritoire(j,x,y,game,config)) return false;
+    // Si déjà dans le territoire, rien à acheter
+    if (estDansTerritoire(j, x, y, game, config)) return false;
 
-    return true;
+    // Vérifier si un voisin appartient au territoire du joueur
+    bool adjacentATerritoire = false;
+    int dx[] = {-1, 1, 0, 0, -1, 1}; // Simplifié pour l'instant (hexagones à gérer proprement)
+    int dy[] = {0, 0, -1, 1, (x%2==0?-1:1), (x%2==0?-1:1)};
+
+    for (int i = 0; i < 6; ++i) {
+        int nx = x + dx[i];
+        int ny = y + dy[i];
+        if (coordValid(nx, ny, game) && estDansTerritoire(j, nx, ny, game, config)) {
+            adjacentATerritoire = true;
+            break;
+        }
+    }
+
+    if (!adjacentATerritoire) return false;
+
+    return peutPayer(getCostAchatCase(j, config), j);
+}
+
+std::map<Ressource*, int> Arbitre::getCostAchatCase(const Joueur & j, const GameConfig & config) const {
+    auto coutBase = config.getCoutBaseVille();
+    std::map<Ressource*, int> coutActuel;
+    
+    // Application du multiplicateur (progressif selon le nombre de cases déjà achetées)
+    float mult = std::pow(config.getMultiplicateurVille(), (float)j.getNbCasesAchetees() / 5.0f);
+
+    for (auto const& [resPtr, qte] : j.getInventaire()) {
+        if (coutBase.count(resPtr->getName())) {
+            coutActuel[resPtr] = (int)(coutBase.at(resPtr->getName()) * mult);
+        }
+    }
+    return coutActuel;
 }
 
 bool Arbitre::estCaseHabitable(const TuileConfigurable & t, const Joueur & j) const {
@@ -203,6 +251,7 @@ bool Arbitre::peutDetruireBatiment(const Joueur & j, const Batiment & b) const {
 
 
 bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joueur & j, board & game) {
+    if (!b) return false;
     if (!coordValid(x,y,game)) return false;
     
     TuileConfigurable* tuile = const_cast<TuileConfigurable*>(dynamic_cast<const TuileConfigurable*>(game.getCell(x, y)));
@@ -214,18 +263,20 @@ bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joue
     if (!peutPayer(cout, j)) return false;
 
     if (!requisSol.empty()) {
-        if (buildSpecialBuilding(j,game,*b,x,y)) {
+        // Bâtiment spécial (ressource au sol)
+        if (buildSpecialBuilding(j, game, *b, x, y)) {
             j.payer(cout);
             tuile->constrBatimentSpeciale(std::move(b));
             return true;
         }
     } else {
+        // Bâtiment normal (construit dans une ville)
         City* ville = tuile->getCity();
-        if (buildCity(j,game,x,y)) {
-            j.payer(cout);
-            ville->creeBatiment(std::move(b));
-            return true;
-        }
+        if (!ville) return false;
+        if (!buildBuildingInCity(j, *ville, *b)) return false;
+        j.payer(cout);
+        ville->creeBatiment(std::move(b));
+        return true;
     }
 
     return false;
@@ -373,25 +424,61 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
 }
 
 std::vector<std::pair<int, int>> Arbitre::getCasesDeplacementPossibles(const board& game, const Unite& u) const {
-    std::vector<std::pair<int, int>> casesPossibles;
+    if (u.point_action() <= 0) return {};
     
-    int maxMouv = 0;
-    for (auto mov : u.Mobilite()) {
-        if (mov->mov_per_laps() > maxMouv) maxMouv = mov->mov_per_laps();
-    }
+    std::vector<std::pair<int, int>> casesPossibles;
+    std::map<std::pair<int, int>, int> cout_cumule; 
+    std::queue<std::pair<int, int>> a_visiter;
 
-    int ux = u.location().first;
-    int uy = u.location().second;
+    Coord depart = u.location();
+    a_visiter.push(depart);
+    cout_cumule[depart] = 0;
 
-    Joueur dummy;
+    while(!a_visiter.empty()) {
+        Coord curr = a_visiter.front();
+        a_visiter.pop();
 
-    for (int x = std::max(0, ux - maxMouv); x <= std::min(game.getRows() - 1, ux + maxMouv); ++x) {
-        for (int y = std::max(0, uy - maxMouv); y <= std::min(game.getCols() - 1, uy + maxMouv); ++y) {
+        for (auto voisin : Voisins(curr)) {
+            if (!coordValid(voisin.first, voisin.second, game)) continue;
             
-            if (moveUnite(dummy, game, u, x, y)) {
-                casesPossibles.push_back({x, y});
+            const hexa* cell = game.getCell(voisin.first, voisin.second);
+            int cost = cell->getCoutDeplacement();
+            
+            if (cost < 0 || !cell->estFranchissable(u)) continue;
+            if (game.getUnite(voisin.first, voisin.second) != nullptr) continue;
+
+            int next_cost = cout_cumule[curr] + cost;
+            
+            // Si on a assez de PA pour y aller
+            if (next_cost <= u.point_action()) {
+                // Si on n'y est pas encore allé, ou qu'on a trouvé un chemin plus court
+                if (cout_cumule.find(voisin) == cout_cumule.end() || next_cost < cout_cumule[voisin]) {
+                    cout_cumule[voisin] = next_cost;
+                    a_visiter.push(voisin);
+                    
+                    // On l'ajoute à la liste finale (sans doublons)
+                    if (std::find(casesPossibles.begin(), casesPossibles.end(), voisin) == casesPossibles.end()) {
+                        casesPossibles.push_back(voisin);
+                    }
+                }
             }
         }
     }
     return casesPossibles;
+}
+
+std::map<Ressource*, int> Arbitre::getCostNouvelleVille(const Joueur & j, const GameConfig & config) const {
+    auto coutBase = config.getCoutBaseVille();
+    std::map<Ressource*, int> coutActuel;
+    
+    if (j.getNbVilles() == 0) return coutActuel; 
+    
+    int multiplicateur = j.getNbVilles(); 
+
+    for (const auto& [resPtr, qteInventaire] : j.getInventaire()) {
+        if (coutBase.count(resPtr->getName())) {
+            coutActuel[resPtr] = coutBase.at(resPtr->getName()) * multiplicateur;
+        }
+    }
+    return coutActuel;
 }

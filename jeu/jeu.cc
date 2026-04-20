@@ -178,13 +178,16 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     if (it == _unites.end()) return false;
 
     //Test cible valide, avec la portée
+    bool porteeValide = false;
     for(auto const& mouv : u.Mobilite())
     {
         if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
         {
-            return false;
+            porteeValide = true;
+            break;
         }
     }
+    if (!u.Mobilite().empty() && !porteeValide) return false;
 
     //Coord dans la carte
     if (xDest < 0 || xDest >= _height || yDest < 0 || yDest >= _width) return false;
@@ -204,6 +207,9 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     return true;
 }
 
+void board::retirerUnite(int x, int y) {
+    _unites.erase({x, y});
+}
 
 //===================================================================
 //                          Factory/Config

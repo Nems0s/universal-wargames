@@ -28,7 +28,8 @@ bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
     for (size_t i = 0; i < joueurs.size(); ++i) {
         json playerJson;
         playerJson["name"] = joueurs[i].getName();
-        playerJson["brouillard"] = joueurs[i].getBrouillard(); 
+        playerJson["decouvert"] = joueurs[i].getDecouvert(); 
+        playerJson["visible"] = joueurs[i].getVisible();
         
         // --- SAUVEGARDE DES VILLES ---
         json villesJson = json::array();
@@ -60,6 +61,7 @@ bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
             uj["name"] = u->name();
             uj["hp"] = u->health_point();
             uj["pa"] = u->point_action();
+            uj["dir"] = static_cast<int>(u->regarde());
             unitesJson.push_back(uj);
         }
         playerJson["unites"] = unitesJson;
@@ -100,7 +102,11 @@ bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
 
     // 2. Restaurer les paramètres du plateau
     moteur.overrideWorldWeights(ui->_customWeights);
-    moteur.initGame(ui->_mapSeed, ui->_numPlayers, ui->_playerFactions);
+    std::vector<std::string> loadedNames;
+    for (size_t i = 0; i < j["players"].size(); ++i) {
+        loadedNames.push_back(j["players"][i]["name"]);
+    }
+    moteur.initGame(ui->_mapSeed, loadedNames, ui->_playerFactions);
 
     // 3. Restaurer le temps de la sauvegarde
     moteur.setTourActuel(j["game_state"]["turn"]);
@@ -110,8 +116,9 @@ bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
     for (size_t i = 0; i < j["players"].size(); ++i) {
         Joueur& joueurActuel = moteur.getJoueurMutable(i);
         
-        // A. Brouillard
-        joueurActuel.setBrouillard(j["players"][i]["brouillard"].get<std::vector<std::vector<bool>>>());
+        // A. Brouillard (Restauration des deux états)
+        joueurActuel.setDecouvert(j["players"][i]["decouvert"].get<std::vector<std::vector<bool>>>());
+        joueurActuel.setVisible(j["players"][i]["visible"].get<std::vector<std::vector<bool>>>());
         
         // B. Reconstruire les Villes
         for (const auto& cj : j["players"][i]["villes"]) {
@@ -160,6 +167,7 @@ bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
                     u->setHealth_point(uj["hp"]);
                     u->setPoint_action(uj["pa"]); 
                     u->setLocation({x, y});
+                    if (uj.contains("dir")) u->setRegarde(static_cast<direction>(uj["dir"]));
                     
                     // 3. On extrait le pointeur brut pour l'inventaire du joueur
                     Unite* ptrUnite = u.get();

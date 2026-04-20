@@ -10,7 +10,10 @@ enum class PacketType : sf::Int32 {
     CHAT,
     GAME_START,    // L'hôte lance la partie (Seed + Factions)
     ACTION_MOVE,   // Déplacement d'unité
-    ACTION_BUILD,  // Construction de ville/bâtiment
+    ACTION_BUILD,  // Construction de bâtiment
+    ACTION_BUILD_CITY,
+    ACTION_ATTACK, // Attaque d'unité
+    ACTION_ROTATE, // Changement d'orientation d'unité
     SYNC_BUILD,     // Envoie des informations de build PEUT CHEAT AVEC CHEAT ENGINE CAR DANS LA RAM
     END_TURN       // Fin de tour
 };

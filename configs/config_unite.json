@@ -4,6 +4,8 @@
             "nom": "Commandant Allie",
             "hp": 150,
             "action": 2,
+            "vision": 4,
+            "fov": 80,
             "poids": "Moyen",
             "rank": "Commandant",
             "max_unites": 5,
@@ -16,12 +18,15 @@
             ],
             "comportements": [
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 2 }
-            ]
+            ],
+            "texture": ""
         },
         {
             "nom": "Infanterie d'Elite",
             "hp": 100,
             "action": 2,
+            "vision": 3,
+            "fov": 60,
             "poids": "Moyen",
             "rank": "Regulier",
             "cout": {
@@ -30,12 +35,15 @@
             "comportements": [
                 { "type": "AttaqueMelee", "degats": 40 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 3 }
-            ]
+            ],
+            "texture": ""
         },
         {
             "nom": "Tank de Garde",
             "hp": 200,
             "action": 1,
+            "vision": 2,
+            "fov": 60,
             "poids": "Lourd",
             "rank": "Regulier",
             "cout": {
@@ -45,12 +53,15 @@
             "comportements": [
                 { "type": "DefenseArmure", "reduction": 15 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 1 }
-            ]
+            ],
+            "texture": ""
         },
         {
             "nom": "Sniper",
             "hp": 80,
             "action": 2,
+            "vision": 5,
+            "fov": 40,
             "poids": "Leger",
             "rank": "Regulier",
             "cout": {
@@ -60,12 +71,14 @@
             "comportements": [
                 { "type": "SpecialFurtif", "duree": 2, "cooldown": 2 },
                 { "type": "AttaqueDistance", "degats": 30, "portee": 6, "munitions": 5, "portee_mini": 2 }
-            ]
+            ],
+            "texture": ""
         },
         {
             "nom": "Gros Tank",
             "hp": 250,
             "action": 1,
+            "vision": 2,
             "poids": "Lourd",
             "rank": "Regulier",
             "cout": {
@@ -74,12 +87,14 @@
             },
             "comportements": [
                 { "type": "DefenseBouclier", "nombre_bouclier": 3 }
-            ]
+            ],
+            "texture": ""
         },
         {
             "nom": "Medecin",
             "hp": 100,
             "action": 3,
+            "vision": 3,
             "poids": "Moyen",
             "rank": "Regulier",
             "cout": {
@@ -88,18 +103,21 @@
             "comportements": [
                 { "type": "SoinDirect", "soin": 25, "portee": 2, "rayon": 1 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 4 }
-            ]
+            ],
+            "texture": ""
         },
         {
             "nom": "Soldat Blesse",
             "hp": 100,
             "action": 1,
+            "vision": 2,
             "poids": "Moyen",
             "rank": "Regulier",
             "cout": {
                 "Or": 10
             },
-            "comportements": []
+            "comportements": [],
+            "texture": ""
         }
     ]
 }

@@ -18,19 +18,33 @@ private:
     std::list<City*> _cities;
     std::list<Batiment*> _batiments;
 
-    std::vector<std::vector<bool>> _brouillard;
+    std::vector<std::vector<bool>> _decouvert;
+    std::vector<std::vector<bool>> _visible;
+    int _nbCasesAchetees = 0;
 
 public:
 
     // Faction 
     void setName(const std::string& n) { _name = n; }
-    void setFaction(const FactionParams* f) { _faction = f; } // Mise à jour avec const
+    void setFaction(const FactionParams* f) { _faction = f; }
     const FactionParams* getFaction() const { return _faction; }
 
     // Brouillard
-    void initBrouillard(int w, int h);
-    void decouvrirZone(int cx, int cy, int rayon, int w, int h);
-    bool estDecouvert(int x, int y) const;
+    void initBrouillard(int w, int h) {
+        _decouvert.assign(w, std::vector<bool>(h, false));
+        _visible.assign(w, std::vector<bool>(h, false));
+    }
+    bool estDecouvert(int x, int y) const { return _decouvert[x][y]; }
+    bool estVisible(int x, int y) const   { return _visible[x][y]; }
+
+    void resetVision();
+    void decouvrirZoneVision(int x, int y, int rayon, int fov, int w, int h, direction dir, bool circulaire);
+
+    const std::vector<std::vector<bool>>& getDecouvert() const { return _decouvert; }
+    const std::vector<std::vector<bool>>& getVisible() const { return _visible; }
+
+    void setDecouvert(const std::vector<std::vector<bool>>& d) { _decouvert = d; }
+    void setVisible(const std::vector<std::vector<bool>>& v) { _visible = v; }
 
     // Ressources
     const std::map<Ressource*, int>& getInventaire() const { return _inventaire; }
@@ -47,6 +61,7 @@ public:
     void perdreVille(City* c);
     void perdreBatiment(Batiment* b);
     void perdreUnite(Unite* u);
+    void incNbCasesAchetees() { _nbCasesAchetees++; }
 
     // Accesseurs
     std::string getName() const { return _name; }
@@ -54,7 +69,6 @@ public:
     const std::list<City*> & getCities() const { return _cities; }
     const std::list<Unite*> & getUnites() const { return _unites; }
     const std::list<Batiment*> & getBatiments() const { return _batiments; }
-    const std::vector<std::vector<bool>>& getBrouillard() const { return _brouillard; }
-    void setBrouillard(const std::vector<std::vector<bool>>& b) { _brouillard = b; }
+    int getNbCasesAchetees() const { return _nbCasesAchetees; }
 
 };

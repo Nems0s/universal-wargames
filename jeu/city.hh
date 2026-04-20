@@ -15,6 +15,7 @@ class City {
         float _pvCurrent;
         float _pvMax;
         float _damage;
+        int _visionRange;
         size_t _nbBatiments;
         
         std::vector<std::unique_ptr<Batiment>> _batiments;
@@ -40,6 +41,7 @@ class City {
         float getPv() const { return _pvCurrent; }
         float getPvMax() const { return _pvMax; }
         float getDegats() const { return _damage; }
+        int getVisionRange() const { return _visionRange; }
 
         void takeDamage(int d);
 

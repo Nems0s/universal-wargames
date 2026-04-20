@@ -32,9 +32,10 @@ public:
 
     // Init
     void chargerConfiguration(const std::string & configPath);
-    void initGame(int seed, int nbJoueurs, const std::vector<std::string>& factions);
+    void initGame(int seed, const std::vector<std::string>& noms, const std::vector<std::string>& factions);
 
     // mis a jour du jeu
+    void actualiserVisibiliteJoueur(int pIdx);
     void passerTour();
 
     // utilitaires sauvegarde et UI
@@ -44,15 +45,32 @@ public:
     board* getPlateauMutable() { return _plateau.get(); }
 
     // Actions possibles
+    bool demanderFondationVille(int pIdx, int x, int y);
+    bool demanderAchatTerritoire(int pIdx, int x, int y);
     bool demanderConstruction(int pIdx, int x, int y, const std::string& batNom);
+    bool demanderAmeliorationVille(int pIdx, int x, int y);
     bool demanderDeplacement(int pIdx, int xSrc, int ySrc, int xDest, int yDest);
-    bool demanderAmeliorationVille(int joueurIdx, int x, int y);
+    bool demanderRotation(int pIdx, int x, int y, direction d);
+    bool demanderAttaque(int pIdx, int xSrc, int ySrc, int xTarget, int yTarget);
+    bool demanderRecrutementUnite(int pIdx, int x, int y, const std::string& nomUnite);
 
     // Requete état du jeu
     bool peutFonderVille(int joueurIdx, int x, int y) const;
     bool peutAmeliorerVille(int joueurIdx, int x, int y) const;
     bool peutAcheterTerritoire(int joueurIdx, int x, int y) const;
+    bool estDansTerritoire(int pIdx, int x, int y) const;
+    bool estVilleAuJoueur(int pIdx, int x, int y) const;
+    bool peutPayer(int pIdx, const std::map<Ressource*, int>& cout) const;
     std::vector<std::pair<int, int>> getDeplacementsPossibles(int joueurIdx, int x, int y) const;
+    bool peutRecruterUnite(int pIdx, const std::string& nomUnite) const;
+    int getProprietaireUnite(int x, int y) const;
+
+    // Encapsulation de la Config
+    const std::map<std::string, FactionParams>& getFactionsAvailable() const { return _logicConfig.getFactions(); }
+    std::string getTextureVille() const { return _logicConfig.getTextureVille(); }
+    int getCoutRotation() const { return _logicConfig.getCoutRotation(); }
+    std::map<Ressource*, int> getCoutFondationVille(int pIdx) const;
+    std::map<Ressource*, int> getCoutAchatTerritoire(int pIdx) const;
 
     // Getters
     const board* getPlateau() const { return _plateau.get(); }

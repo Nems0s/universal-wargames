@@ -37,6 +37,8 @@ public:
 
     bool estDansTerritoire(const Joueur& j, int x, int y, const board & game, const GameConfig & config) const;
     bool peutAcheterCase(const Joueur & j, int x, int y, const board & game, const GameConfig & config) const;
+    std::map<Ressource*, int> getCostAchatCase(const Joueur & j, const GameConfig & config) const;
+    std::map<Ressource*, int> getCostNouvelleVille(const Joueur & j, const GameConfig & config) const;
 
     bool estCaseHabitable(const TuileConfigurable& t, const Joueur & j) const;
 
