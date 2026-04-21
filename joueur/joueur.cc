@@ -4,9 +4,26 @@
 
 void Joueur::debutTour()
 {
+    int etat_neutre = (MIN_MORAL + MAX_MORAL)/2;
+    int variation = MAX_MORAL * (PETIT_CHANGE/100.0);
+    
     for(auto uni : _unites)
     {
         uni->setPoint_action(uni->point_action_max());
+        uni->update();
+
+        //Pour rendre le moral dinamic et qu'il ne stagne pas 
+        int current_moral = uni->moral_point();
+        if(current_moral < etat_neutre)
+        {
+            //Remonte vers l'état neutre
+            uni->setMoral_point(std::min(etat_neutre, current_moral + variation));
+        }
+        else if(current_moral > etat_neutre)
+        {
+            //Descent vers l'état neutre
+            uni->setMoral_point(std::max(etat_neutre, current_moral - variation));
+        }
     }
 
     for (City* ville : _cities) 

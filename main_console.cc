@@ -499,7 +499,8 @@ int main() {
             std::cout <<"\nVoici le liste de vos villes :";
             for(auto i : joueurActif.getCities())
             {
-               // Créer la fonction d'affichage pour les villes
+               std::cout <<"\n";
+                i->affiche();
             }
         }
         else if (choixMenu == 5) 

@@ -208,6 +208,15 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     return false;
 }
 
+void board::retirerUnite(int x, int y)
+{
+    auto it = _unites.find({x, y});
+
+    if (it != _unites.end()) 
+    {
+        _unites.erase(it);
+    }
+}
 
 //===================================================================
 //                          Factory/Config

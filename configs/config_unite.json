@@ -2,7 +2,7 @@
     "unites": [
         {
             "nom": "Commandant Allie",
-            "hp": 150, "action": 2, "poids": "Moyen", "rank": "Commandant", "symbole": "C",
+            "hp": 150, "action": 2, "poids": "Moyen", "rank": "Commandant", "max_unites" : 4, "symbole": "C",
             "cout": { "Or": 100, "Fer": 50 },
             "buff_commandant": [{ "type": "BonusDegat", "multiplicateur": 15 }],
             "comportements": [

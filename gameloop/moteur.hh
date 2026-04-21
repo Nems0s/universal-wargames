@@ -81,5 +81,7 @@ public:
     ResultatAction actionDesenrolement(Joueur& j, const Action& a);
 
     ResultatAction traiterAction(const Action& action);
+    
     void passerAuJoueurSuivant();
+    void supprimerCadavre(Unite& u);
 };

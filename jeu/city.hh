@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <iostream>
 #include "batiment.hh"
 #include "config.hh"
 #include "config.hh"
@@ -29,6 +30,7 @@ class City {
         void product(Joueur & j);
 
         void upgrade();
+        void affiche();
 
         int getLevel() const { return _level; }
         int getMaxLevel() const { return _maxLevel; }

@@ -245,9 +245,9 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
 
     for(auto const& def : defenses)
     {
-        if(degats_finals > 0) {
+        if(degats_finals > 0) 
+        {
             degats_finals = def->ReductionDegats(degats_finals);
-            newmoralDef = MAX_MORAL * (PETIT_CHANGE / 100.0);
         }
     }
 
@@ -263,8 +263,9 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
         AugmentationMoral(attaquant, newmoralAtt);
     }
 
-    // Vérifier si le défenseur fuit
+    // Vérifier si une des deux unitées fuit
     EffetMoral(defenseur);
+    EffetMoral(attaquant);
 
     defenseur.setHealth_point(defenseur.health_point() - degats_finals);
 

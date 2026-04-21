@@ -108,6 +108,21 @@ ResultatAction GameManager::actionDeplacer(Joueur& j, const Action& action)
     return ResultatAction::ECHEC_ARBITRE_REFUS;
 }
 
+void GameManager::supprimerCadavre(Unite& u)
+{
+    if (u.health_point() <= 0) 
+    {
+        for (auto& joueur : _joueurs) 
+        {
+            joueur->perdreUnite(&u);
+        }
+
+        _plateau.retirerUnite(u.location().first, u.location().second); 
+        
+        std::cout << "[INFO] L'unité " << u.name() << " a été détruite !" << std::endl;
+    }
+}
+
 ResultatAction GameManager::actionAttaquer(Joueur& j, const Action& action) 
 {
     Unite* att = _plateau.getUnite(action.x1, action.y1);
@@ -126,6 +141,7 @@ ResultatAction GameManager::actionAttaquer(Joueur& j, const Action& action)
     if(_arbitre.peutAttaquer(j, *att, *cible, *it)) 
     {
         j.Attaquer(*att, *cible, *it);
+        supprimerCadavre(*cible);
         return ResultatAction::SUCCES;
     }
     return ResultatAction::ECHEC_ARBITRE_REFUS;
@@ -289,3 +305,4 @@ ResultatAction GameManager::traiterAction(const Action& action)
         default:                              return ResultatAction::ECHEC_ARBITRE_REFUS;
     }
 }
+

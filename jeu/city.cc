@@ -42,8 +42,20 @@ void City::takeDamage(int d) {
 }
 
 
- void City::upgrade()
- {
+void City::upgrade()
+{
     //Après faut revoir tout la logique d'évolution sur la production, etc
     if(_level < _maxLevel) ++ _level;
- }
+}
+
+void City::affiche()
+{
+    if(_estCapitale)
+    {
+        std::cout << "=== [Capital, level "<< _level <<"/"<< _maxLevel <<"] ===" << std::endl;
+    }
+    else std::cout << "=== [Ville, level "<< _level <<"/"<< _maxLevel <<"] ===" << std::endl;
+
+    std::cout << "Position: (" << _x << "," << _y << ")" << std::endl;
+    std::cout << "Infos: HP=" << _pvCurrent <<"/"<< _pvMax << ", Dmg=" << _damage << ", Bâtiments="<< _nbBatiments << std::endl;
+}
