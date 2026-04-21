@@ -240,10 +240,24 @@ ResultatAction GameManager::actionDesenrolement(Joueur& j, const Action& action)
 {
     Unite* com = _plateau.getUnite(action.x1, action.y1);
     Unite* reg = _plateau.getUnite(action.x2, action.y2);
-    if (com && reg && _arbitre.peutRejoindreCommandant(j, *com, *reg)) 
+    if (com && reg) 
     {
-        j.QuitterCommandant(*com, *reg); // Assurez-vous que cette méthode existe dans Joueur !
-        return ResultatAction::SUCCES;
+        if (auto* commandant = dynamic_cast<Rank_Commandant*>(com->rank().get()))
+        {
+            auto listeU = commandant->liste_unites();
+            auto it = std::find(listeU.begin(), listeU.end(), reg->shared_from_this());
+
+            if (it != listeU.end()) 
+            {
+                j.QuitterCommandant(*com, *reg);
+                return ResultatAction::SUCCES;
+            } 
+            else 
+            {
+                return ResultatAction::ECHEC_ARBITRE_REFUS;
+            }
+            
+        }
     }
     return ResultatAction::ECHEC_ARBITRE_REFUS;
 }

@@ -183,15 +183,6 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     auto it = _unites.find({xSrc, ySrc});
     if (it == _unites.end()) return false;
 
-    //Test cible valide, avec la portée
-    for(auto const& mouv : u.Mobilite())
-    {
-        if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
-        {
-            return true;
-        }
-    }
-
     //Coord dans la carte
     if (xDest < 0 || xDest >= _height || yDest < 0 || yDest >= _width) return false;
 
@@ -204,10 +195,17 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
         return false;
     }
 
-    _unites[{xDest, yDest}] = std::move(it->second);
-    _unites.erase(it);
-    
-    return true;
+    //Test cible valide, avec la portée
+    for(auto const& mouv : u.Mobilite())
+    {
+        if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
+        {
+            _unites[{xDest, yDest}] = std::move(it->second);
+            _unites.erase(it);
+            return true;
+        }
+    }
+    return false;
 }
 
 

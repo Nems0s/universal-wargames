@@ -56,13 +56,8 @@ void CompMouv::setMov_per_laps(int newMov_per_laps)
 
 bool CompMouv::EstCaseValide(Coord const& actuel, Coord const& cible)
 {
-    // Le Test de franchisemant est fait dans board
-    //Ici on test la porte
-    if((std::abs(actuel.first - cible.first) <= mov_per_laps()) && ((std::abs(actuel.second - cible.second) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
+    std::set<Coord> zonePossible = case_adjascentes(actuel, mov_per_laps());
+    return zonePossible.find(cible) != zonePossible.end();
 }
 
 //===================================================================

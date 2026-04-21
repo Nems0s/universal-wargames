@@ -2,21 +2,13 @@
     "factions": [
         {
             "nom": "Humains",
-            "specifications": {
-                "gravite": 1,
-                "radiation": 0.2,
-                "temperature": 40
-            },
-            "unites": ["Sniper", "Tank de Garde", "Gros Tank"]
+            "specifications": { "gravite": 1, "radiation": 0.2, "temperature": 40 },
+            "unites": ["Commandant Allie", "Sniper", "Tank de Garde", "Gros Tank", "Croiseur de Siege"]
         },
         {
             "nom": "Extraterrestres",
-            "specifications": {
-                "gravite": 2,
-                "radiation": 0.8,
-                "temperature": 120
-            },
-            "unites": ["Infanterie d'Elite", "Soldat Blesse", "Medecin"]
+            "specifications": { "gravite": 2, "radiation": 0.8, "temperature": 120 },
+            "unites": ["Infanterie d'Elite", "Medecin", "Drone Infectieux", "Swarmer", "Pretre de Guerre"]
         }
     ],
     "regles_villes": {
