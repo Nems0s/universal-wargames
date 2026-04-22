@@ -79,19 +79,13 @@ bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
     return false;
 }
 
-
 bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
     std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Erreur: Fichier de sauvegarde introuvable." << std::endl;
-        return false;
-    }
+    if (!file.is_open()) return false;
 
     json j;
     file >> j;
-    MoteurDeJeu& moteur = ui->_moteur;
-
-    // 1. Restaurer l'état global
+    
     ui->_numPlayers = j["game_state"]["num_players"];
     ui->_mapSeed = j["game_state"]["seed"];
     ui->_playerFactions = j["factions"].get<std::vector<std::string>>();
@@ -100,86 +94,7 @@ bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
         ui->_customWeights[el.key()[0]] = el.value();
     }
 
-    // 2. Restaurer les paramètres du plateau
-    moteur.overrideWorldWeights(ui->_customWeights);
-    std::vector<std::string> loadedNames;
-    for (size_t i = 0; i < j["players"].size(); ++i) {
-        loadedNames.push_back(j["players"][i]["name"]);
-    }
-    moteur.initGame(ui->_mapSeed, loadedNames, ui->_playerFactions);
+    ui->_moteur.chargerPartieDepuisJson(j, ui->_playerFactions);
 
-    // 3. Restaurer le temps de la sauvegarde
-    moteur.setTourActuel(j["game_state"]["turn"]);
-    moteur.setCurrentPlayerTurn(j["game_state"]["current_player"]);
-
-    // 4. Restaurer les Joueurs, Villes et Unités
-    for (size_t i = 0; i < j["players"].size(); ++i) {
-        Joueur& joueurActuel = moteur.getJoueurMutable(i);
-        
-        // A. Brouillard (Restauration des deux états)
-        joueurActuel.setDecouvert(j["players"][i]["decouvert"].get<std::vector<std::vector<bool>>>());
-        joueurActuel.setVisible(j["players"][i]["visible"].get<std::vector<std::vector<bool>>>());
-        
-        // B. Reconstruire les Villes
-        for (const auto& cj : j["players"][i]["villes"]) {
-            int x = cj["x"];
-            int y = cj["y"];
-            
-            // On récupère la tuile pour forcer la construction
-            hexa* cell = const_cast<hexa*>(moteur.getPlateau()->getCell(x, y));
-            TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
-            
-            if (tc) {
-                // On construit gratuitement
-                tc->constrVille(x, y, moteur.getLogicConfig(), 5, cj["capitale"]);
-                City* city = tc->getCity();
-                
-                // On restaure les statistiques exactes
-                city->setLevel(cj["level"]);
-                city->setPv(cj["pv"]);
-                
-                // On recrée les bâtiments internes
-                for (const auto& batName : cj["batiments"]) {
-                    auto b = moteur.getBatimentFactory().create(batName.get<std::string>());
-                    if (b) {
-                        city->creeBatiment(std::move(b));
-                    }
-                }
-                
-                // On lie la ville au joueur et au territoire
-                joueurActuel.ajouterVille(city);
-                tc->setProprietaire(&joueurActuel);
-            }
-        }
-
-        // C. Reconstruire les Unités
-        if (j["players"][i].contains("unites")) {
-            for (const auto& uj : j["players"][i]["unites"]) {
-                int x = uj["x"];
-                int y = uj["y"];
-                std::string name = uj["name"];
-                
-                // 1. On recrée la bonne unité dynamiquement via la Factory
-                auto u = moteur.getUniteFactory().create(name);
-                
-                if (u) {
-                    // 2. On restaure ses statistiques exactes
-                    u->setHealth_point(uj["hp"]);
-                    u->setPoint_action(uj["pa"]); 
-                    u->setLocation({x, y});
-                    if (uj.contains("dir")) u->setRegarde(static_cast<direction>(uj["dir"]));
-                    
-                    // 3. On extrait le pointeur brut pour l'inventaire du joueur
-                    Unite* ptrUnite = u.get();
-                    joueurActuel.ajouterUnite(ptrUnite);
-                    
-                    // 4. Le plateau prend possession de l'unité aux bonnes coordonnées
-                    moteur.getPlateauMutable()->placerUnite(x, y, std::move(u));
-                }
-            }
-        }
-    }
-
-    std::cout << "Partie chargee avec succes !" << std::endl;
     return true;
 }

@@ -36,7 +36,7 @@
                 { "type": "AttaqueMelee", "degats": 40 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 3 }
             ],
-            "texture": ""
+            "texture": "assets/tank.png"
         },
         {
             "nom": "Tank de Garde",

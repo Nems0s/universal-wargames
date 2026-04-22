@@ -73,7 +73,7 @@ public:
     bool peutConstrBatiment(const Batiment & b) const;
     bool peutConstrBatimentSpecial(const Batiment & b) const;
 
-    void constrVille(int x, int y, const GameConfig& config, int max, bool capitale);
+    void placerVille(std::unique_ptr<City> c);
     void constrBatimentSpeciale(std::unique_ptr<Batiment> b);
 
     City * getCity() const;
@@ -151,6 +151,7 @@ public:
     Unite * getUnite(int x, int y) const;
     void placerUnite(int x, int y, std::shared_ptr<Unite> u);
     void retirerUnite(int x, int y);
+    std::shared_ptr<Unite> extraireUnite(int x, int y);
 
     int getRows() const { return _matrix.size(); }
     int getCols() const { return _matrix.empty() ? 0 : _matrix[0].size(); }

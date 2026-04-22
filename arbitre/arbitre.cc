@@ -266,7 +266,9 @@ bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joue
         // Bâtiment spécial (ressource au sol)
         if (buildSpecialBuilding(j, game, *b, x, y)) {
             j.payer(cout);
+            j.ajouterBatiment(b.get());
             tuile->constrBatimentSpeciale(std::move(b));
+            tuile->setProprietaire(&j);
             return true;
         }
     } else {
@@ -287,14 +289,8 @@ bool Arbitre::tenterConstruction(int x, int y, std::unique_ptr<Batiment> b, Joue
 // ZONE UNITÉS
 // ==========================================================
 
-bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
-{
-    auto unites_joueur = j.getUnites();
-    if(std::find(unites_joueur.begin(), unites_joueur.end(), &unite) != unites_joueur.end())
-    {
-        return true;
-    }
-    else return false;
+bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite) const {
+    return unite.getProprietaire() == &j;
 }
 
 bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>& cout, const Unite& invocation) const 
@@ -467,18 +463,16 @@ std::vector<std::pair<int, int>> Arbitre::getCasesDeplacementPossibles(const boa
     return casesPossibles;
 }
 
-std::map<Ressource*, int> Arbitre::getCostNouvelleVille(const Joueur & j, const GameConfig & config) const {
-    auto coutBase = config.getCoutBaseVille();
+std::map<Ressource*, int> Arbitre::getCostNouvelleVille(const Joueur & j, const std::map<Ressource*, int>& coutBase) const {
     std::map<Ressource*, int> coutActuel;
     
-    if (j.getNbVilles() == 0) return coutActuel; 
+    if (j.getNbVilles() == 0) return coutBase; 
     
     int multiplicateur = j.getNbVilles(); 
 
-    for (const auto& [resPtr, qteInventaire] : j.getInventaire()) {
-        if (coutBase.count(resPtr->getName())) {
-            coutActuel[resPtr] = coutBase.at(resPtr->getName()) * multiplicateur;
-        }
+    for (const auto& [resPtr, qteBase] : coutBase) {
+        coutActuel[resPtr] = qteBase * multiplicateur;
     }
+    
     return coutActuel;
 }

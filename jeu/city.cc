@@ -1,53 +1,94 @@
 #include "city.hh"
+#include "joueur.hh"
+#include <nlohmann/json.hpp>
+#include <fstream>
+#include <iostream>
 
-//===================================================================
-//                          City
-//===================================================================
-City::City(int x, int y, const GameConfig & config, int max, bool capitale,int level):
-    _x(x),
-    _y(y),
-    _config(config),
-    _maxLevel(max),
-    _estCapitale(capitale),
-    _level(level),
-    _nbBatiments(static_cast<size_t>(max))  // Capacité initiale = max level (5 bâtiments)
-{
-    _pvMax = config.getPvMaxVille() * level;
-    _pvCurrent = _pvMax;
-    _damage = config.getDegatsVille() + (level * 2);
-    _visionRange = config.getPorteeVueVille();
+using json = nlohmann::json;
+
+
+// init
+
+City::City(int x, int y, const std::string& nom, bool capitale, int maxLvl, float pvB, float dmgB, int visB, int rayB, const std::map<Ressource*, int>& coutB, const std::string& tex)
+    : _x(x), _y(y), _nom(nom), _estCapitale(capitale), _level(1), _maxLevel(maxLvl),
+      _pvMaxBase(pvB), _pvCurrent(pvB), _pvMax(pvB),
+      _damageBase(dmgB), _damage(dmgB),
+      _visionRangeBase(visB), _visionRange(visB),
+      _rayonBase(rayB), _coutBase(coutB), _texturePath(tex),
+      _nbBatiments(static_cast<size_t>(maxLvl))
+{}
+
+std::unique_ptr<City> City::clone(int x, int y) const {
+    return std::make_unique<City>(x, y, _nom, _estCapitale, _maxLevel, _pvMaxBase, _damageBase, _visionRangeBase, _rayonBase, _coutBase, _texturePath);
 }
 
-bool City::peutAjouterBatiment() const {
-    return _batiments.size() < _nbBatiments;
-}
 
-void City::creeBatiment(std::unique_ptr<Batiment> b) {
-    if (_batiments.size() >= _nbBatiments) return;
-    if (!b->getRessourcesSolRequired().empty()) return;
-    _batiments.push_back(std::move(b));
-}
+// fonctions
 
-bool City::estCapitale() const {
-    return _estCapitale;
-}
-
-void City::product(Joueur & j) {
-    for (auto & b : _batiments) {
-        b->action(j);
-    }
-}
-
-void City::takeDamage(int d) {
-    _pvCurrent -= d;
-    if (_pvCurrent < 0) _pvCurrent = 0;
-}
+bool City::peutAjouterBatiment() const { return _batiments.size() < _nbBatiments; }
+void City::creeBatiment(std::unique_ptr<Batiment> b) { if (peutAjouterBatiment()) _batiments.push_back(std::move(b)); }
+void City::takeDamage(int d) { _pvCurrent -= d; if (_pvCurrent < 0) _pvCurrent = 0; }
 
 void City::upgrade() {
     if (_level < _maxLevel) {
         _level++;
-        _pvMax = _config.getPvMaxVille() * _level;
+        _pvMax = _pvMaxBase * _level;
         _pvCurrent = _pvMax;
-        _damage = _config.getDegatsVille() + (_level * 2);
+        _damage = _damageBase + (_level * 2);
+        _nbBatiments = static_cast<size_t>(_maxLevel);
     }
+}
+
+void City::product(Joueur & j) {
+    for (auto& b : _batiments) {
+        b->action(j); 
+    }
+}
+
+
+// Json
+
+void JsonCityReader::load(const std::string & chemin, std::map<std::string, std::shared_ptr<City>> & catalogue, const std::map<std::string, Ressource*> & ressourcesDispo) {
+    std::ifstream fichier(chemin);
+    if (!fichier.is_open()) {
+        std::cerr << "Erreur: Impossible d'ouvrir le fichier JSON des villes : " << chemin << std::endl;
+        return;
+    }
+
+    json data;
+    fichier >> data;
+
+    for (auto& item : data["villes"]) {
+        std::string nom = item.value("nom", "VilleInconnue");
+        bool capitale = item.value("est_capitale", false);
+        int maxLvl = item.value("max_level", 5);
+        float pvB = item.value("pv_max_base", 100.0f);
+        float dmgB = item.value("degats_base", 10.0f);
+        int visB = item.value("portee_vue", 2);
+        int rayB = item.value("rayon_base", 1);
+        std::string tex = item.value("texture", "");
+
+        std::map<Ressource*, int> coutMap;
+        if (item.contains("cout_base")) {
+            for (auto& it : item["cout_base"].items()) {
+                if (ressourcesDispo.count(it.key())) {
+                    coutMap[ressourcesDispo.at(it.key())] = it.value();
+                }
+            }
+        }
+
+        catalogue[nom] = std::make_shared<City>(
+            0, 0, nom, capitale, maxLvl, pvB, dmgB, visB, rayB, coutMap, tex
+        );
+    }
+}
+
+void CityFactory::chargerConfiguration(const std::string& chemin, JsonCityReader& lecteur, const std::map<std::string, Ressource*>& ressourcesDispo) {
+    lecteur.load(chemin, _catalogue, ressourcesDispo);
+}
+
+std::unique_ptr<City> CityFactory::create(const std::string& nom, int x, int y) const {
+    auto it = _catalogue.find(nom);
+    if (it != _catalogue.end()) return it->second->clone(x, y);
+    return nullptr;
 }

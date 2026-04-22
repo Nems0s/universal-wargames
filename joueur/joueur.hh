@@ -49,7 +49,6 @@ public:
     // Ressources
     const std::map<Ressource*, int>& getInventaire() const { return _inventaire; }
     void ajouterRessource(Ressource* r, int n);
-    bool consommerRessource(Ressource* r, int n);
     void payer(const std::map<Ressource*, int>& cout);
 
     // Ajout objets

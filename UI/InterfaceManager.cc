@@ -166,7 +166,9 @@ void InterfaceManager::run() {
                         int propDest = _moteur.getProprietaireUnite(targetI, targetJ);
 
                         if (propDest != -1 && propDest != currentTurn) {
-                            if (_moteur.demanderAttaque(currentTurn, _dragSourceX, _dragSourceY, targetI, targetJ)) {
+                            // Attaque
+                            CmdAttaque cmd = { _dragSourceX, _dragSourceY, targetI, targetJ };
+                            if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
                                 if (isMultiplayer) {
                                     sf::Packet pk;
                                     pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _dragSourceX << _dragSourceY << targetI << targetJ;
@@ -174,17 +176,16 @@ void InterfaceManager::run() {
                                 }
                             }
                         } else {
-                            if (_moteur.demanderDeplacement(currentTurn, _dragSourceX, _dragSourceY, targetI, targetJ)) {
+                            // Deplacement
+                            CmdDeplacement cmd = { _dragSourceX, _dragSourceY, targetI, targetJ };
+                            if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
                                 if (isMultiplayer) {
                                     sf::Packet pk;
                                     pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << _dragSourceX << _dragSourceY << targetI << targetJ;
                                     _network.sendData(pk);
                                 }
-                                // Mise à jour de la sélection pour la faire suivre l'unité
-                                _selectedCellX = targetI;
-                                _selectedCellY = targetJ;
-                                _unitSourceX = targetI;
-                                _unitSourceY = targetJ;
+                                _selectedCellX = targetI; _selectedCellY = targetJ;
+                                _unitSourceX = targetI; _unitSourceY = targetJ;
                                 _hasPreviewRotation = false;
                             }
                         }
@@ -882,7 +883,8 @@ void InterfaceManager::updateNetworkLoop() {
                     sf::Int32 pIdx;
                     int xSrc, ySrc, xDest, yDest;
                     if (packet >> pIdx >> xSrc >> ySrc >> xDest >> yDest) {
-                        _moteur.demanderDeplacement(pIdx, xSrc, ySrc, xDest, yDest);
+                        CmdDeplacement cmd = { xSrc, ySrc, xDest, yDest };
+                        _moteur.soumettreCommande(pIdx, cmd);
                     }
                     break;
                 }
@@ -891,9 +893,9 @@ void InterfaceManager::updateNetworkLoop() {
                 case PacketType::ACTION_ATTACK: {
                     int xSrc, ySrc, xDest, yDest;
                     if (packet >> xSrc >> ySrc >> xDest >> yDest) {
-                        // On trouve le joueur à qui c'est le tour
                         int turn = _moteur.getCurrentPlayerTurn();
-                        _moteur.demanderAttaque(turn, xSrc, ySrc, xDest, yDest);
+                        CmdAttaque cmd = { xSrc, ySrc, xDest, yDest };
+                        _moteur.soumettreCommande(turn, cmd);
                     }
                     break;
                 }
@@ -902,7 +904,8 @@ void InterfaceManager::updateNetworkLoop() {
                 case PacketType::ACTION_ROTATE: {
                     sf::Int32 pIdx; int x, y; sf::Int32 dirInt;
                     if (packet >> pIdx >> x >> y >> dirInt) {
-                        _moteur.demanderRotation(pIdx, x, y, static_cast<direction>(dirInt));
+                        CmdRotation cmd = { x, y, static_cast<direction>(dirInt) };
+                        _moteur.soumettreCommande(pIdx, cmd);
                     }
                     break;
                 }
@@ -918,7 +921,8 @@ void InterfaceManager::updateNetworkLoop() {
                 case PacketType::ACTION_BUILD: {
                     sf::Int32 senderIdx; int x, y; std::string batNom;
                     if (_network.isHost() && (packet >> senderIdx >> x >> y >> batNom)) {
-                        if (_moteur.demanderConstruction(senderIdx, x, y, batNom)) {
+                        CmdConstruction cmd = { x, y, batNom };
+                        if (_moteur.soumettreCommande(senderIdx, cmd) == ResultatAction::SUCCES) {
                             sf::Packet p; p << static_cast<sf::Int32>(PacketType::SYNC_BUILD) << senderIdx << x << y << batNom;
                             _network.sendData(p);
                         }
@@ -927,9 +931,10 @@ void InterfaceManager::updateNetworkLoop() {
                 }
 
                 case PacketType::ACTION_BUILD_CITY: {
-                    sf::Int32 pIdx; int x, y;
-                    if (packet >> pIdx >> x >> y) {
-                        _moteur.demanderFondationVille(pIdx, x, y);
+                    sf::Int32 pIdx; int x, y; std::string nomVille;
+                    if (packet >> pIdx >> x >> y >> nomVille) {
+                        CmdFonderVille cmd = { x, y, nomVille };
+                        _moteur.soumettreCommande(pIdx, cmd);
                     }
                     break;
                 }
@@ -937,7 +942,8 @@ void InterfaceManager::updateNetworkLoop() {
                 case PacketType::SYNC_BUILD: {
                     sf::Int32 targetIdx; int x, y; std::string batNom;
                     if (!_network.isHost() && (packet >> targetIdx >> x >> y >> batNom)) {
-                        _moteur.demanderConstruction(targetIdx, x, y, batNom);
+                        CmdConstruction cmd = { x, y, batNom };
+                        _moteur.soumettreCommande(targetIdx, cmd);
                         if (targetIdx == _localPlayerIndex) {
                             _popupMsg = batNom + " construit avec succes !";
                             _showPopup = true;
@@ -1108,11 +1114,10 @@ void InterfaceManager::renderGame() {
                 }
             }
 
-            // Attaque Possible (Rouge)
+           // Attaque Possible (Rouge)
             if (_isDragging) {
-                Unite* uSrc = _moteur.getPlateau()->getUnite(_dragSourceX, _dragSourceY);
-                Unite* uDest = _moteur.getPlateau()->getUnite(i, j);
-                if (uSrc && uDest && !_moteur.getArbitre().appartientJoueur(_moteur.getJoueurs()[viewIndex], *uDest)) {
+                int propTarget = _moteur.getProprietaireUnite(i, j);
+                if (propTarget != -1 && propTarget != viewIndex) { // Si c'est un ennemi
                     // Calcul de distance (pour de vrai dans l'arbitre normalement)
                     int dist = std::abs(i - _dragSourceX) + std::abs(j - _dragSourceY);
                     if (dist <= 2) { // Distance d'attaque arbitraire pour le visuel, à lier aux comp d'unité plus tard
@@ -1134,7 +1139,6 @@ void InterfaceManager::renderGame() {
             };
 
             for (int pIdx = 0; pIdx < (int)_moteur.getJoueurs().size(); ++pIdx) {
-                const Joueur& pj = _moteur.getJoueurs()[pIdx];
                 if (_moteur.estDansTerritoire(pIdx, i, j)) {
                     sf::Color borderCol = playerColors[pIdx % 4];
                     borderCol.a = 200;
@@ -1144,8 +1148,6 @@ void InterfaceManager::renderGame() {
                     const int dy[] = {0, 0, -1, 1, (i%2==0?-1:1), (i%2==0?-1:1)};
 
                     for (int side = 0; side < 6; ++side) {
-                        int ni = i + dx[side];
-                        int nj = j + dy[side];
                         if (!_moteur.estDansTerritoire(pIdx, i, j)) {
                             sf::Vertex v1, v2;
                             v1.position = {posX + R * hexOffsets[side].x, posY + R * hexOffsets[side].y};
@@ -1161,8 +1163,7 @@ void InterfaceManager::renderGame() {
 
             // --- CASES ACHETABLES (S'il y a une sélection de territoire en cours ou simplement visible) ---
             if (joueurValide) {
-                const Joueur& curJ = _moteur.getJoueurs()[viewIndex];
-                if (_moteur.getArbitre().peutAcheterCase(curJ, i, j, *_moteur.getPlateau(), _moteur.getLogicConfig())) {
+                if (_moteur.peutAcheterTerritoire(viewIndex, i, j)) {
                     sf::Color buyColor(0, 255, 100, 30);
                     for (int tri = 0; tri < 6; ++tri) {
                         sf::Vertex v0, v1, v2;
@@ -1210,13 +1211,15 @@ void InterfaceManager::renderGame() {
                 const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(tile);
                 if (tc) {
                     if (tc->getCity()) {
-                        sf::Sprite citySpr;
-                        citySpr.setTexture(_cityTexture);
-                        citySpr.setOrigin(citySpr.getLocalBounds().width / 2.0f, citySpr.getLocalBounds().height / 2.0f);
-                        citySpr.setPosition(posX, posY - 10.0f);
-                        // Teinte dorée si capitale, bleuté si normale
-                        citySpr.setColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(200, 230, 255));
-                        _window.draw(citySpr);
+                        std::string cNom = tc->getCity()->getNom();
+                        if (_cityTextures.count(cNom)) {
+                            sf::Sprite citySpr;
+                            citySpr.setTexture(_cityTextures[cNom]);
+                            citySpr.setOrigin(citySpr.getLocalBounds().width / 2.0f, citySpr.getLocalBounds().height / 2.0f);
+                            citySpr.setPosition(posX, posY - 10.0f);
+                            citySpr.setColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(200, 230, 255));
+                            _window.draw(citySpr);
+                        }
                     }
                     if (tc->getBatimentSpecial()) {
                         std::string bNom = tc->getBatimentSpecial()->getName();
@@ -1600,7 +1603,9 @@ void InterfaceManager::renderGame() {
     
     if (_hasSelection && viewIndex < (int)_moteur.getJoueurs().size()) {
         int localJIdx = isMultiplayer ? _localPlayerIndex : _moteur.getCurrentPlayerTurn();
-        Joueur& localJ = _moteur.getJoueurMutable(localJIdx); 
+        
+        const Joueur& localJ = _moteur.getJoueurs()[localJIdx]; 
+        
         const hexa* h = _moteur.getPlateau()->getCell(_selectedCellX, _selectedCellY);
         const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(h);
 
@@ -1611,76 +1616,88 @@ void InterfaceManager::renderGame() {
         bool actionPossible = false;
 
         if (tc) {
-            // Fonder une ville
-            if (!tc->getCity() && _moteur.peutFonderVille(localJIdx, _selectedCellX, _selectedCellY)) {
-                actionPossible = true;
-                
-                std::map<Ressource*, int> coutVille = _moteur.getCoutFondationVille(localJIdx);
-                bool peutPayer = _moteur.peutPayer(localJIdx, coutVille);
-                
-                std::string textCout = "Cout Fondation : ";
-                if (coutVille.empty()) textCout += "Gratuit";
-                else { for (auto const& [res, qte] : coutVille) textCout += std::to_string(qte) + " " + res->getName() + "  "; }
-                
-                if (!peutPayer) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
-                else ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
-                ImGui::Text("%s", textCout.c_str());
-                ImGui::PopStyleColor();
-
-                if (!peutPayer) ImGui::BeginDisabled();
-                if (ImGui::Button("Fonder une Ville", ImVec2(150, 40))) {
-                    if (_moteur.demanderFondationVille(localJIdx, _selectedCellX, _selectedCellY)) {
-                        _popupMsg = "Ville fondee avec succes !";
-                        if (isMultiplayer) {
-                            sf::Packet p;
-                            p << static_cast<sf::Int32>(PacketType::ACTION_BUILD_CITY) 
-                              << static_cast<sf::Int32>(localJIdx) 
-                              << _selectedCellX << _selectedCellY;
-                            _network.sendData(p);
-                        }
-                    } else {
-                        _popupMsg = "Erreur: Impossible de fonder la ville.";
-                    }
-                    _showPopup = true;
-                }
-                if (!peutPayer) ImGui::EndDisabled();
-                
-                ImGui::SameLine();
-            }
-
             bool estDansTerritoire = _moteur.estDansTerritoire(localJIdx, _selectedCellX, _selectedCellY);
 
-            // B. Si c'est est une Ville
-            if (tc->getCity()) {
-                bool villeAuJoueur = _moteur.estVilleAuJoueur(localJIdx, _selectedCellX, _selectedCellY);
+            // A. Fonder une ville (Totalement dynamique)
+            if (!tc->getCity() && _moteur.peutFonderVille(localJIdx, _selectedCellX, _selectedCellY)) {
+                actionPossible = true;
+                bool isCapitalTurn = (localJ.getNbVilles() == 0); 
+                
+                for (const auto& [nom, modele] : _moteur.getCityFactory().getCatalogue()) {
+                    if (modele->estCapitale() != isCapitalTurn) continue; 
 
-                if (villeAuJoueur) {
-                    actionPossible = true;
-                    if (ImGui::Button("Ameliorer Ville", ImVec2(150, 40))) { 
-                        if (_moteur.demanderAmeliorationVille(localJIdx, _selectedCellX, _selectedCellY)) {
-                            _popupMsg = "Ville amelioree !";
+                    std::map<Ressource*, int> coutVille = _moteur.getCoutFondationVille(localJIdx, nom);
+                    bool peutPayer = _moteur.peutPayer(localJIdx, coutVille);
+                    
+                    std::string textCout = "Cout (" + nom + ") : ";
+                    if (coutVille.empty()) textCout += "Gratuit";
+                    else { for (auto const& [res, qte] : coutVille) textCout += std::to_string(qte) + " " + res->getName() + " "; }
+                    
+                    ImGui::TextColored(peutPayer ? ImVec4(0.8f, 0.8f, 0.8f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", textCout.c_str());
+
+                    if (!peutPayer) ImGui::BeginDisabled();
+                    if (ImGui::Button(("Fonder " + nom).c_str(), ImVec2(150, 40))) {
+                        CmdFonderVille cmd = { _selectedCellX, _selectedCellY, nom };
+                        if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
+                            _popupMsg = nom + " fondee avec succes !";
+                            if (isMultiplayer) {
+                                sf::Packet p;
+                                p << static_cast<sf::Int32>(PacketType::ACTION_BUILD_CITY) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY << nom;
+                                _network.sendData(p);
+                            }
                         } else {
-                            _popupMsg = "Amelioration impossible (Niveau max ou ressources insuffisantes).";
+                            _popupMsg = "Erreur: Impossible de fonder la ville.";
                         }
                         _showPopup = true;
                     }
+                    if (!peutPayer) ImGui::EndDisabled();
+                }
+                ImGui::Separator();
+            }
+
+            // B. Si c'est une Ville
+            if (tc->getCity()) {
+                if (_moteur.estVilleAuJoueur(localJIdx, _selectedCellX, _selectedCellY)) {
+                    actionPossible = true;
+                    
+                    bool canUpgrade = _moteur.peutAmeliorerVille(localJIdx, _selectedCellX, _selectedCellY);
+                    if (!canUpgrade) ImGui::BeginDisabled();
+                    if (ImGui::Button("Ameliorer Ville", ImVec2(150, 40))) { 
+                        CmdAmeliorer cmd = { _selectedCellX, _selectedCellY };
+                        if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
+                            _popupMsg = "Ville amelioree !";
+                        } else {
+                            _popupMsg = "Amelioration impossible.";
+                        }
+                        _showPopup = true;
+                    }
+                    if (!canUpgrade) ImGui::EndDisabled();
+                    
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                         ImGui::BeginTooltip();
+                         if (!canUpgrade) ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Ressources insuffisantes ou Niveau Max !");
+                         ImGui::EndTooltip();
+                    }
+
                     ImGui::SameLine();
                     if (ImGui::Button("Construire Batiment", ImVec2(150, 40))) ImGui::OpenPopup("Menu Construction Batiments");
                     ImGui::SameLine();
                     if (ImGui::Button("Recruter Unite", ImVec2(130, 40))) ImGui::OpenPopup("Menu Recrutement");
                 }
             } 
-            // C. Notre territoire, mais SANS ville
+            // C. Territoire sans ville (Bâtiments Spéciaux)
             else if (estDansTerritoire) {
                 actionPossible = true;
-                if (ImGui::Button("Construire Special", ImVec2(150, 40))) {
-                    ImGui::OpenPopup("Menu Construction Batiments");
+                // affiche le bouton si ressource au sol
+                if (!tc->getRessource().empty()) {
+                    if (ImGui::Button("Construire Special", ImVec2(150, 40))) ImGui::OpenPopup("Menu Construction Batiments");
+                } else {
+                    ImGui::TextDisabled("Aucune ressource a exploiter ici.");
                 }
             }
-            // D. Hors de notre territoire (Acheter la case)
+            // D. Acheter Territoire
             else if (_moteur.peutAcheterTerritoire(localJIdx, _selectedCellX, _selectedCellY)) {
                 actionPossible = true;
-                
                 std::map<Ressource*, int> coutAchat = _moteur.getCoutAchatTerritoire(localJIdx);
                 bool peutPayer = _moteur.peutPayer(localJIdx, coutAchat);
                 
@@ -1690,7 +1707,8 @@ void InterfaceManager::renderGame() {
 
                 if (!peutPayer) ImGui::BeginDisabled();
                 if (ImGui::Button("Acheter Territoire", ImVec2(150, 40))) {
-                    if (_moteur.demanderAchatTerritoire(localJIdx, _selectedCellX, _selectedCellY)) {
+                    CmdAcheterCase cmd = { _selectedCellX, _selectedCellY };
+                    if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                         _popupMsg = "Territoire achete !";
                     } else {
                         _popupMsg = "Erreur lors de l'achat.";
@@ -1707,7 +1725,6 @@ void InterfaceManager::renderGame() {
                 ImGui::Separator();
                 ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "UNITE : %s", uniteSurCase->name().c_str());
                 
-                // Affiche PA et HP
                 ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.9f, 1.0f), "PA : %d / %d   |   HP : %d / %d", 
                                    uniteSurCase->point_action(), uniteSurCase->point_action_max(),
                                    uniteSurCase->health_point(), uniteSurCase->health_point_max());
@@ -1730,7 +1747,7 @@ void InterfaceManager::renderGame() {
 
                 renderUnitActions(uniteSurCase);
             }
-        }
+        } // <-- FIX : On referme bien la protection tc ici !
 
         if (!actionPossible) ImGui::TextDisabled("Aucune action possible sur cette case.");
         if (!isMyTurn) ImGui::EndDisabled();
@@ -1750,24 +1767,62 @@ void InterfaceManager::renderGame() {
                 if (coutText.empty()) coutText = "Gratuit";
                 std::string label = nom + " (Cout: " + coutText + ")";
 
-                if (ImGui::Selectable(label.c_str())) {
+                // --- DIAGNOSTIC DE CONSTRUCTION ---
+                bool peutPayer = _moteur.peutPayer(localJIdx, batimentModele->getResourceConstr());
+                bool estSpecial = !batimentModele->getRessourcesSolRequired().empty();
+                bool locationValide = false;
+
+                if (tc->getCity()) {
+                    // Dans une ville : il faut de la place, et le bâtiment ne doit pas être "Spécial"
+                    locationValide = !estSpecial && tc->getCity()->peutAjouterBatiment();
+                } else {
+                    // Hors d'une ville : le bâtiment DOIT être spécial et la ressource correspondre
+                    locationValide = estSpecial && tc->peutConstrBatimentSpecial(*batimentModele);
+                }
+
+                bool canBuild = peutPayer && locationValide;
+
+                // Affichage du bouton (gris si impossible)
+                if (!canBuild) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                
+                if (ImGui::Selectable(label.c_str(), false, canBuild ? 0 : ImGuiSelectableFlags_Disabled)) {
                     if (isMultiplayer && !_network.isHost()) {
                         sf::Packet p; p << static_cast<sf::Int32>(PacketType::ACTION_BUILD) << static_cast<sf::Int32>(_localPlayerIndex) << _selectedCellX << _selectedCellY << nom; 
                         _network.sendData(p);
                         _popupMsg = "Requete envoyee, en attente de validation...";
                         _showPopup = true;
                     } else {
-                        if (_moteur.demanderConstruction(localJIdx, _selectedCellX, _selectedCellY, nom)) {
+                        CmdConstruction cmd = { _selectedCellX, _selectedCellY, nom };
+                        if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                             _popupMsg = nom + " construit avec succes !";
                             if (isMultiplayer) {
                                 sf::Packet p; p << static_cast<sf::Int32>(PacketType::SYNC_BUILD) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY << nom;
                                 _network.sendData(p);
                             }
                         } else {
-                            _popupMsg = "Construction impossible (Ressources ou terrain).";
+                            _popupMsg = "Erreur critique de construction.";
                         }
                         _showPopup = true;
                     }
+                }
+                
+                if (!canBuild) ImGui::PopStyleColor();
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    ImGui::BeginTooltip();
+                    if (!peutPayer) 
+                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Ressources insuffisantes !");
+                    else if (estSpecial && tc->getCity()) 
+                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Batiment special : a construire en dehors d'une ville !");
+                    else if (!estSpecial && !tc->getCity()) 
+                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Batiment standard : a construire a l'interieur d'une ville !");
+                    else if (tc->getCity() && !tc->getCity()->peutAjouterBatiment()) 
+                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Niveau de ville trop faible (plus d'emplacements) !");
+                    else if (estSpecial && !tc->peutConstrBatimentSpecial(*batimentModele)) 
+                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Ressource requise absente sur cette case !");
+                    else
+                        ImGui::TextColored(ImVec4(0.3f,1.0f,0.3f,1.0f), "Construction possible.");
+                    ImGui::EndTooltip();
                 }
             }
             if (_moteur.getBatimentFactory().getCatalogue().empty()) ImGui::TextDisabled("Aucun batiment dans le catalogue.");
@@ -1788,7 +1843,6 @@ void InterfaceManager::renderGame() {
                 ImGui::TextDisabled("Aucune unite dans le catalogue.");
             } else {
                 for (const auto& [nom, uniteModele] : catalogue) {
-                    // Construire le texte du cout
                     std::string coutText;
                     for (auto const& [res, qte] : uniteModele->cout()) {
                         if (!coutText.empty()) coutText += ", ";
@@ -1796,13 +1850,13 @@ void InterfaceManager::renderGame() {
                     }
                     if (coutText.empty()) coutText = "Gratuit";
 
-                    // Vérifier si le joueur peut se le permettre
                     bool canAfford = _moteur.peutRecruterUnite(localJIdx, nom);
 
                     if (!canAfford) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
                     std::string label = nom + "  [" + coutText + "]  HP:" + std::to_string(uniteModele->health_point());
                     if (ImGui::Selectable(label.c_str(), false, canAfford ? 0 : ImGuiSelectableFlags_Disabled)) {
-                        if (_moteur.demanderRecrutementUnite(localJIdx, _selectedCellX, _selectedCellY, nom)) {
+                        CmdRecrutement cmd = { _selectedCellX, _selectedCellY, nom };
+                        if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                             _popupMsg = nom + " recrute avec succes !";
                         } else {
                             _popupMsg = "Recrutement impossible.";
@@ -1812,7 +1866,6 @@ void InterfaceManager::renderGame() {
                     }
                     if (!canAfford) ImGui::PopStyleColor();
 
-                    // Tooltip avec détails de l'unité
                     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                         ImGui::BeginTooltip();
                         ImGui::Text("HP: %d | PA: %d", uniteModele->health_point(), uniteModele->point_action());
@@ -1913,10 +1966,12 @@ void InterfaceManager::loadTextures() {
         _textures['#'].loadFromFile("assets/border.png");
     }
 
-    // 2. Texture globale de Ville
-    std::string cityTex = _moteur.getTextureVille();
-    if (!cityTex.empty() && !_cityTexture.loadFromFile(cityTex)) {
-        std::cerr << "Erreur : Texture Ville introuvable -> " << cityTex << std::endl;
+    // 2. Textures des Villes (Chargement dynamique)
+    for (const auto& [nom, modele] : _moteur.getCityFactory().getCatalogue()) {
+        std::string cTex = modele->getTexturePath();
+        if (!cTex.empty() && !_cityTextures[nom].loadFromFile(cTex)) {
+            std::cerr << "Erreur : Texture Ville introuvable -> " << cTex << " pour " << nom << std::endl;
+        }
     }
 
     // 3. Textures des Bâtiments
@@ -2130,7 +2185,9 @@ void InterfaceManager::renderUnitActions(Unite* u) {
     if (_hasPreviewRotation && _previewDirection != u->regarde()) {
         ImGui::Dummy(ImVec2(0, 10));
         if (ImGui::Button("Confirmer Rotation", ImVec2(150, 40))) {
-            if (_moteur.demanderRotation(localJIdx, _selectedCellX, _selectedCellY, _previewDirection)) {
+            
+            CmdRotation cmd = { _selectedCellX, _selectedCellY, _previewDirection };
+            if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                 if (isMultiplayer) {
                     sf::Packet pk;
                     pk << static_cast<sf::Int32>(PacketType::ACTION_ROTATE) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY << static_cast<sf::Int32>(_previewDirection);

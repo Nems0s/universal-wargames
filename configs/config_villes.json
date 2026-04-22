@@ -1,0 +1,26 @@
+{
+    "villes": [
+        {
+            "nom": "Capitale",
+            "est_capitale": true,
+            "max_level": 5,
+            "pv_max_base": 500.0,
+            "degats_base": 40.0,
+            "portee_vue": 5,
+            "rayon_base": 3,
+            "cout_base": {},
+            "texture": ""
+        },
+        {
+            "nom": "Colonie",
+            "est_capitale": false,
+            "max_level": 3,
+            "pv_max_base": 200.0,
+            "degats_base": 20.0,
+            "portee_vue": 3,
+            "rayon_base": 2,
+            "cout_base": { "Or": 50, "Fer": 20 },
+            "texture": ""
+        }
+    ]
+}

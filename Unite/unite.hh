@@ -10,6 +10,8 @@
 #include "orientation.hh"
 #include "ressource.hh"
 
+class Joueur;
+
 enum class Poids{Leger, Moyen, Lourd};
 class IComportement;
 class CompMouv;
@@ -23,6 +25,8 @@ class Unite : public std::enable_shared_from_this<Unite>
 {
 private:
     std::string _name;
+
+    Joueur* _proprietaire = nullptr;
 
     int _health_point;
     int _health_point_max; //Qui servira à savoir les points de vie de l'unité initialiser
@@ -58,6 +62,8 @@ public:
     // MODIFIE PAR NAIM
     void setPoint_action(int pa) { _point_action = pa; }
     std::string texturePath() const { return _texturePath; }
+    void setProprietaire(Joueur* j) { _proprietaire = j; }
+    Joueur* getProprietaire() const { return _proprietaire; }
 
     /*Getters*/
     std::string name() const;
@@ -82,7 +88,6 @@ public:
     void setFov(int f) { _fov = f; }
     
     /*Méthodes*/
-    // void movement(Case const& c);
     void affiche() const;
     void ajouterComportement(std::shared_ptr<IComportement> comp);
     void update();

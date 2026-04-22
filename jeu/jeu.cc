@@ -82,9 +82,9 @@ bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
     return true;
 }
 
-void TuileConfigurable::constrVille(int x, int y, const GameConfig& config, int max, bool capitale) {
+void TuileConfigurable::placerVille(std::unique_ptr<City> c) {
     if (peutConstrVille()) {
-        _city = std::make_unique<City>(x, y, config, max, capitale);
+        _city = std::move(c);
     }
 }
 
@@ -209,6 +209,16 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
 
 void board::retirerUnite(int x, int y) {
     _unites.erase({x, y});
+}
+
+std::shared_ptr<Unite> board::extraireUnite(int x, int y) {
+    auto it = _unites.find({x, y});
+    if (it != _unites.end()) {
+        auto u = std::move(it->second);
+        _unites.erase(it);
+        return u;
+    }
+    return nullptr;
 }
 
 //===================================================================

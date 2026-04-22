@@ -36,7 +36,7 @@ private:
     std::map<char, sf::Texture> _textures; // Terrain
     std::map<std::string, sf::Texture> _unitTextures; // Unités
     std::map<std::string, sf::Texture> _buildingTextures; // Batiments
-    sf::Texture _cityTexture; // Ville globale
+    std::map<std::string, sf::Texture> _cityTextures; // Villes
 
     float _tileSize = 64.0f;
     sf::View _gameView;
