@@ -28,9 +28,12 @@ private:
     OptionsTab _currentOptionsTab = OptionsTab::GAME_SETTINGS;
 
     // configuration JSON
-    json _configJson;
+    json _rulesJson;
     json _espaceJson;
-    std::string _configPath = "configs/config_rules.json";
+    json _villesJson;
+    std::string _rulesPath = "configs/config_rules.json";
+    std::string _espacePath = "configs/config_espace.json";
+    std::string _villesPath = "configs/config_villes.json";
 
     // graphismes
     std::map<char, sf::Texture> _textures; // Terrain

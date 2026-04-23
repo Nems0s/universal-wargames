@@ -35,20 +35,30 @@ InterfaceManager::InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteu
 }
 
 void InterfaceManager::loadUIConfig() {
-    std::ifstream fRules(_configPath);
-    if (fRules.is_open()) { fRules >> _configJson; fRules.close(); }
+    std::ifstream fRules(_rulesPath);
+    if (fRules.is_open()) { fRules >> _rulesJson; fRules.close(); }
 
-    std::ifstream fEspace("configs/config_espace.json");
+    std::ifstream fEspace(_espacePath);
     if (fEspace.is_open()) { fEspace >> _espaceJson; fEspace.close(); }
+    
+    std::ifstream fVilles(_villesPath);
+    if (fVilles.is_open()) { fVilles >> _villesJson; fVilles.close(); }
 }
 
 void InterfaceManager::saveConfig() {
-    std::ofstream file(_configPath);
-    if (file.is_open()) {
-        file << _configJson.dump(4);
-        file.close();
-        _moteur.chargerConfiguration(_configPath);
+    std::ofstream fileRules(_rulesPath);
+    if (fileRules.is_open()) {
+        fileRules << _rulesJson.dump(4);
+        fileRules.close();
     }
+
+    std::ofstream fileVilles(_villesPath);
+    if (fileVilles.is_open()) {
+        fileVilles << _villesJson.dump(4);
+        fileVilles.close();
+    }
+    
+    _moteur.chargerConfiguration(_rulesPath);
 }
 
 void InterfaceManager::initGame() {
@@ -384,9 +394,9 @@ void InterfaceManager::renderOptions() {
             ImGui::TableSetColumnIndex(0); ImGui::Text("Map Size:");
             ImGui::TableSetColumnIndex(1); 
             if (DrawArrowSelector("##mapsize", &mapSizeIndex, mapSizes)) {
-                if (mapSizeIndex == 0) { _configJson["taille_plateau"]["x"] = 50; _configJson["taille_plateau"]["y"] = 50; }
-                if (mapSizeIndex == 1) { _configJson["taille_plateau"]["x"] = 100; _configJson["taille_plateau"]["y"] = 100; }
-                if (mapSizeIndex == 2) { _configJson["taille_plateau"]["x"] = 200; _configJson["taille_plateau"]["y"] = 200; }
+                if (mapSizeIndex == 0) { _rulesJson["taille_plateau"]["x"] = 50; _rulesJson["taille_plateau"]["y"] = 50; }
+                if (mapSizeIndex == 1) { _rulesJson["taille_plateau"]["x"] = 100; _rulesJson["taille_plateau"]["y"] = 100; }
+                if (mapSizeIndex == 2) { _rulesJson["taille_plateau"]["x"] = 200; _rulesJson["taille_plateau"]["y"] = 200; }
             }
 
             ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0, 20));
@@ -395,12 +405,31 @@ void InterfaceManager::renderOptions() {
             ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "CITY RULES");
             ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0, 10));
 
-            ImGui::TableNextRow(0);
-            ImGui::TableSetColumnIndex(0); ImGui::Text("Base City Cost:");
-            ImGui::TableSetColumnIndex(1); 
-            int cout = _configJson["regles_villes"]["cout_base"];
-            ImGui::SetNextItemWidth(240.0f);
-            if (ImGui::InputInt("##cout", &cout, 10, 200)) _configJson["regles_villes"]["cout_base"] = cout;
+            if (_villesJson.contains("villes")) {
+                for (auto& ville : _villesJson["villes"]) {
+                    std::string nomVille = ville["nom"];
+                    
+                    if (ville.contains("cout_base") && !ville["cout_base"].empty()) {
+                        ImGui::TableNextRow(0);
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("Cout %s:", nomVille.c_str());
+                        ImGui::TableSetColumnIndex(1);
+
+                        for (auto& it : ville["cout_base"].items()) {
+                            int qte = it.value();
+                            std::string label = "##" + nomVille + it.key();
+                            ImGui::SetNextItemWidth(80.0f);
+                            
+                            if (ImGui::InputInt(label.c_str(), &qte, 1, 10)) {
+                                ville["cout_base"][it.key()] = qte;
+                            }
+                            ImGui::SameLine();
+                            ImGui::Text("%s", it.key().c_str());
+                            ImGui::SameLine(0, 10);
+                        }
+                    }
+                }
+            }
 
         } 
         else if (_currentOptionsTab == OptionsTab::GRAPHICS) {
@@ -569,8 +598,8 @@ void InterfaceManager::renderMapConfig() {
         ImGui::Text("Map Size:"); ImGui::SameLine(150);
         if (DrawArrowSelector("##msize", &sizeIdx, sizes)) {
             int s = (sizeIdx == 0) ? 50 : (sizeIdx == 1) ? 100 : 200;
-            _configJson["taille_plateau"]["x"] = s;
-            _configJson["taille_plateau"]["y"] = s;
+            _rulesJson["taille_plateau"]["x"] = s;
+            _rulesJson["taille_plateau"]["y"] = s;
         }
 
         ImGui::Text("Random Seed:"); ImGui::SameLine(150);
@@ -619,7 +648,7 @@ void InterfaceManager::renderMapConfig() {
         if (_network.getState() == NetworkState::CONNECTED && _network.isHost()) {
             sf::Packet startPacket;
             startPacket << static_cast<sf::Int32>(PacketType::GAME_START) << _mapSeed << _numPlayers; 
-            startPacket << static_cast<sf::Int32>(_configJson["taille_plateau"]["x"]) << static_cast<sf::Int32>(_configJson["taille_plateau"]["y"]);
+            startPacket << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["x"]) << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["y"]);
             startPacket << static_cast<sf::Int32>(_customWeights.size());
             for (auto const& [symb, weight] : _customWeights) {
                 startPacket << static_cast<sf::Int32>(symb) << static_cast<sf::Int32>(weight);
@@ -823,8 +852,8 @@ void InterfaceManager::updateNetworkLoop() {
                         sf::Int32 sizeX, sizeY, weightsCount;
                         packet >> sizeX >> sizeY >> weightsCount;
                         
-                        _configJson["taille_plateau"]["x"] = sizeX;
-                        _configJson["taille_plateau"]["y"] = sizeY;
+                        _rulesJson["taille_plateau"]["x"] = sizeX;
+                        _rulesJson["taille_plateau"]["y"] = sizeY;
                         saveConfig();
 
                         _customWeights.clear();
