@@ -38,7 +38,7 @@ struct TuileData {
     MouvementData mouv;
     GenerationData gen;
     EnvironnementData env;
-    std::vector<Ressource*> ressourceSpeciale;
+    std::vector<const Ressource*> ressourceSpeciale;
     std::map<std::string, float> properties;
 };
 
@@ -65,7 +65,7 @@ public:
     std::string getType() const override;
     char getSymbole() const override;
     int getCoutDeplacement() const override;
-    std::vector<Ressource*> getRessource() const;
+    std::vector<const Ressource*> getRessource() const;
     
     bool estFranchissable(const Unite& u) const override;
 
@@ -120,19 +120,19 @@ class WorldConfigReader {
 public:
     virtual ~WorldConfigReader() = default;
 
-    virtual void chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& ressourcesDispo, WorldFactory& factory) = 0;
+    virtual void chargerConfig(std::string chemin, const std::map<std::string, const Ressource*>& ressourcesDispo, WorldFactory& factory) = 0;
 };
 
 class TxtWorldReader : public WorldConfigReader
 {
 public:
-    void chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo, WorldFactory& factory) override;
+    void chargerConfig(std::string cheminFichier, const std::map<std::string, const Ressource*> & ressourcesDispo, WorldFactory& factory) override;
 };
 
 class JsonWorldReader : public WorldConfigReader
 {
 public:
-    void chargerConfig(std::string cheminFichier, const std::map<std::string, Ressource*> & ressourcesDispo, WorldFactory& factory) override;
+    void chargerConfig(std::string cheminFichier, const std::map<std::string, const Ressource*> & ressourcesDispo, WorldFactory& factory) override;
 };
 
 //===================================================================

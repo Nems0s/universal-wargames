@@ -21,7 +21,7 @@ int TuileConfigurable::getCoutDeplacement() const {
     return _d->cout;
 }
 
-std::vector<Ressource *> TuileConfigurable::getRessource() const {
+std::vector<const Ressource*> TuileConfigurable::getRessource() const {
     return _d->ressourceSpeciale;
 }
 
@@ -68,9 +68,9 @@ bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
     const auto& requis = br->getRessourcesSolRequired();
     if (requis.empty()) return true;
 
-    for (Ressource* req : requis) {
+    for (const Ressource* req : requis) {
         bool trouve = false;
-        for (Ressource* rTuile : _d->ressourceSpeciale) {
+        for (const Ressource* rTuile : _d->ressourceSpeciale) {
             if (rTuile == req) {
                 trouve = true;
                 break;
@@ -314,7 +314,7 @@ void WorldFactory::overrideWeights(const std::map<char, int>& overrides) {
     }
 }
 
-void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
+void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::string, const Ressource*>& resDispo, WorldFactory& factory) {
     std::ifstream fichier(chemin);
     std::string mot, ligne;
 
@@ -375,7 +375,7 @@ void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::strin
     }
 }
 
-void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
+void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::string, const Ressource*>& resDispo, WorldFactory& factory) {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {
         throw std::runtime_error("Impossible d'ouvrir le fichier JSON : " + chemin);

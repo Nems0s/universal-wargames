@@ -39,7 +39,7 @@ private:
     Coord _location;
     std::shared_ptr<IRank> _rank;
     std::list<std::shared_ptr<IComportement>> _liste_comportements;
-    std::map<Ressource*, int> _cout;
+    std::map<const Ressource*, int> _cout;
 
     int _temporary_health;
     int _temporary_damage;
@@ -47,7 +47,7 @@ private:
     int _fov;
     std::string _texturePath;
 public:
-    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout, const std::string& texturePath = "");
+    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, const std::string& texturePath = "");
     virtual ~Unite() = default;
 
     /*Setters*/
@@ -77,7 +77,7 @@ public:
     Coord location() const;
     std::shared_ptr<IRank> rank() const;
     std::list<std::shared_ptr<IComportement>> liste_comportements() const;
-    std::map<Ressource*, int> cout() const;
+    std::map<const Ressource*, int> cout() const;
     int temporary_health() const;
     int temporary_damage() const;
 
@@ -110,19 +110,19 @@ public:
 class UniteConfigReader {
 public:
     virtual ~UniteConfigReader() = default;
-    virtual void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue,const std::map<std::string, Ressource*>& ressources) = 0;
+    virtual void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue,const std::map<std::string, const Ressource*>& ressources) = 0;
 };
 
 class JsonUniteReader : public UniteConfigReader {
 public:
-    void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue,const std::map<std::string, Ressource*>& ressources) override;
+    void load(const std::string& chemin,std::map<std::string, std::shared_ptr<Unite>>& catalogue,const std::map<std::string, const Ressource*>& ressources) override;
 };
 
 class UniteFactory {
 private:
     std::map<std::string, std::shared_ptr<Unite>> _catalogue;
 public:
-    void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur,const std::map<std::string, Ressource*>& ressources);
+    void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur,const std::map<std::string, const Ressource*>& ressources);
     // MODIFIE PAR NAIM
     std::shared_ptr<Unite> create(std::string type) const;
     const std::map<std::string, std::shared_ptr<Unite>>& getCatalogue() const { return _catalogue; }

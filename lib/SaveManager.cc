@@ -65,6 +65,15 @@ bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
             unitesJson.push_back(uj);
         }
         playerJson["unites"] = unitesJson;
+
+        // --- SAUVEGARDE DE L'INVENTAIRE ---
+        json inventaireJson = json::object();
+        for (auto const& [res, qte] : joueurs[i].getInventaire()) {
+            if (res) {
+                inventaireJson[res->getName()] = qte; 
+            }
+        }
+        playerJson["inventaire"] = inventaireJson;
         
         j["players"].push_back(playerJson);
     }

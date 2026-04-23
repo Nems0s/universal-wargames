@@ -17,6 +17,26 @@
             }
         }
     ],
+    "presets_world": {
+        "GALAXY (Balanced)": {
+            ".": 90,
+            "E": 3,
+            "P": 5,
+            "X": 2
+        },
+        "NEBULA (Dense)": {
+            ".": 60,
+            "E": 15,
+            "P": 20,
+            "X": 5
+        },
+        "TEST": {
+            ".": 50,
+            "E": 50,
+            "P": 50,
+            "X": 50
+        }
+    },
     "production_capitale": {
         "Or": 10
     },

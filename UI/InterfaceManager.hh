@@ -12,6 +12,7 @@
 #include "imgui-SFML.h"
 #include "NetworkManager.hh"
 #include "moteur.hh"
+#include "SaveManager.hh"
 
 using json = nlohmann::json;
 
@@ -25,7 +26,9 @@ private:
     MoteurDeJeu & _moteur;
 
     GameState _currentState;
+    GameState _previousState = GameState::MENU;
     OptionsTab _currentOptionsTab = OptionsTab::GAME_SETTINGS;
+    bool _gameConfigLocked = false;
 
     // configuration JSON
     json _rulesJson;
@@ -40,6 +43,7 @@ private:
     std::map<std::string, sf::Texture> _unitTextures; // Unités
     std::map<std::string, sf::Texture> _buildingTextures; // Batiments
     std::map<std::string, sf::Texture> _cityTextures; // Villes
+    std::map<std::string, sf::Texture> _resourceIcons; // Ressources
 
     float _tileSize = 64.0f;
     sf::View _gameView;
@@ -66,6 +70,7 @@ private:
     int _portBuffer = 5000;
     char _playerNameBuffer[64] = "NomGenerique1";
     int _localPlayerIndex = 0;
+    void sendLobbySync();
 
     struct NetPlayer { 
         std::string name; 

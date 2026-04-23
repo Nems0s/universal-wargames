@@ -7,6 +7,7 @@ UI/imgui/
 UI/imgui-sfml/
 imgui.ini
 sfml-win/
+saves/
 
 # Prerequisites
 *.d

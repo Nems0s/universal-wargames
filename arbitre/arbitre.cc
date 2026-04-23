@@ -4,7 +4,7 @@
 // ==========================================================
 // LOGIQUE COMMUNE
 // ==========================================================
-bool Arbitre::peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const {
+bool Arbitre::peutPayer(const std::map<const Ressource*, int>& cout, const Joueur& j) const {
     for (auto const& [res, qte] : cout) 
     {
         auto it = j.getInventaire().find(res);
@@ -155,7 +155,7 @@ bool Arbitre::peutAmeliorerVille(const Joueur & j, const City & city, const Game
     if (city.getLevel() >= config.getMaxLevelVille()) return false;
     
     // cout de base * niveau actuel
-    std::map<Ressource*, int> coutAmelioration;
+    std::map<const Ressource*, int> coutAmelioration;
     for (const auto& [nomRes, qte] : config.getCoutBaseVille()) {
         for (const auto& [resPtr, invQte] : j.getInventaire()) {
             if (resPtr->getName() == nomRes) {
@@ -216,9 +216,9 @@ bool Arbitre::peutAcheterCase(const Joueur & j, int x, int y, const board & game
     return peutPayer(getCostAchatCase(j, config), j);
 }
 
-std::map<Ressource*, int> Arbitre::getCostAchatCase(const Joueur & j, const GameConfig & config) const {
+std::map<const Ressource*, int> Arbitre::getCostAchatCase(const Joueur & j, const GameConfig & config) const {
     auto coutBase = config.getCoutBaseVille();
-    std::map<Ressource*, int> coutActuel;
+    std::map<const Ressource*, int> coutActuel;
     
     // Application du multiplicateur (progressif selon le nombre de cases déjà achetées)
     float mult = std::pow(config.getMultiplicateurVille(), (float)j.getNbCasesAchetees() / 5.0f);
@@ -293,7 +293,7 @@ bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite) const {
     return unite.getProprietaire() == &j;
 }
 
-bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>& cout, const Unite& invocation) const 
+bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
 {
     if (!peutPayer(cout, j)) {
         return false;
@@ -463,8 +463,8 @@ std::vector<std::pair<int, int>> Arbitre::getCasesDeplacementPossibles(const boa
     return casesPossibles;
 }
 
-std::map<Ressource*, int> Arbitre::getCostNouvelleVille(const Joueur & j, const std::map<Ressource*, int>& coutBase) const {
-    std::map<Ressource*, int> coutActuel;
+std::map<const Ressource*, int> Arbitre::getCostNouvelleVille(const Joueur & j, const std::map<const Ressource*, int>& coutBase) const {
+    std::map<const Ressource*, int> coutActuel;
     
     if (j.getNbVilles() == 0) return coutBase; 
     

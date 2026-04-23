@@ -9,7 +9,7 @@ using json = nlohmann::json;
 
 // init
 
-City::City(int x, int y, const std::string& nom, bool capitale, int maxLvl, float pvB, float dmgB, int visB, int rayB, const std::map<Ressource*, int>& coutB, const std::string& tex)
+City::City(int x, int y, const std::string& nom, bool capitale, int maxLvl, float pvB, float dmgB, int visB, int rayB, const std::map<const Ressource*, int>& coutB, const std::string& tex)
     : _x(x), _y(y), _nom(nom), _estCapitale(capitale), _level(1), _maxLevel(maxLvl),
       _pvMaxBase(pvB), _pvCurrent(pvB), _pvMax(pvB),
       _damageBase(dmgB), _damage(dmgB),
@@ -48,7 +48,7 @@ void City::product(Joueur & j) {
 
 // Json
 
-void JsonCityReader::load(const std::string & chemin, std::map<std::string, std::shared_ptr<City>> & catalogue, const std::map<std::string, Ressource*> & ressourcesDispo) {
+void JsonCityReader::load(const std::string & chemin, std::map<std::string, std::shared_ptr<City>> & catalogue, const std::map<std::string, const Ressource*> & ressourcesDispo) {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {
         std::cerr << "Erreur: Impossible d'ouvrir le fichier JSON des villes : " << chemin << std::endl;
@@ -68,7 +68,7 @@ void JsonCityReader::load(const std::string & chemin, std::map<std::string, std:
         int rayB = item.value("rayon_base", 1);
         std::string tex = item.value("texture", "");
 
-        std::map<Ressource*, int> coutMap;
+        std::map<const Ressource*, int> coutMap;
         if (item.contains("cout_base")) {
             for (auto& it : item["cout_base"].items()) {
                 if (ressourcesDispo.count(it.key())) {
@@ -83,7 +83,7 @@ void JsonCityReader::load(const std::string & chemin, std::map<std::string, std:
     }
 }
 
-void CityFactory::chargerConfiguration(const std::string& chemin, JsonCityReader& lecteur, const std::map<std::string, Ressource*>& ressourcesDispo) {
+void CityFactory::chargerConfiguration(const std::string& chemin, JsonCityReader& lecteur, const std::map<std::string, const Ressource*>& ressourcesDispo) {
     lecteur.load(chemin, _catalogue, ressourcesDispo);
 }
 

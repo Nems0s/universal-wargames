@@ -72,5 +72,33 @@ Améliorations à faire sur le jeu :
 
 
 
+Nouveaux bugs :
+1. Colonie qui coute 0
+2. Cela n'affiche pas ma prod correctement car ma capitale me produit de l'or et ce n'est pas affiché dans la prod
+3. Bug sur les tuiles vertes qui s'update mal quand j'achete une nouvelle colonie etc
+4. Les colonies ne produisent plus rien alors que la config doit mettre que si
+5. Mauvaise update des cases autour de l'unité en jaune où elles peuvent se déplacer les cases 
+6. Le client peut save alors que cela doit être juste l'hôte
+7. Le client peut continuer même sans l'host après avoir leave et fait continuer
+8. Les boutons Game Settings et Graphics afficher dans la config des joueurs au niveau des factions
+9. Délimitation des planetes mal affichés (couleur correct mais affiché un point de couleur)
+10. On ne voit pas les troupes ennemis (point de couleur)
+11. Afficher message que la ville est au level max
+12. Les troupes ennemis peuvent aller sur la même case sans engager un combat, qui doit être vu par les deux joueurs
+13. Panneau de combat pour voir les stats et historique des actions
+14. Différence entre les boutons Continuer et Reprendre la partie
+15. Quand le client essaye de créer une nouvelle partie en étant dans ma partie :
+
+Program: E:\eux\Space Wargames\main.exe
+File: Ul/imgui/imgui.cpp
+Line: 9777
+
+Expression: SizeOfDisabledStack == g.DisabledStackSize &&
+"BeginDisabled/EndDisabled Mismatch!"
+
+For information on how your program can cause an assertion
+failure, see the Visual C++ documentation on asserts
+
+(Press Retry to debug the application - JIT must be enabled)
 
 

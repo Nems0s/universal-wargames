@@ -49,14 +49,28 @@ void NetworkManager::disconnect() {
 
 bool NetworkManager::sendData(sf::Packet& packet) {
     if (_state == NetworkState::CONNECTED) {
-        return _socket.send(packet) == sf::Socket::Done;
+        sf::Socket::Status status = _socket.send(packet);
+        if (status == sf::Socket::Disconnected) {
+            if (_isHost) {
+                _socket.disconnect();
+                _state = NetworkState::HOSTING;
+            } else disconnect();
+        }
+        return status == sf::Socket::Done;
     }
     return false;
 }
 
 bool NetworkManager::receiveData(sf::Packet& packet) {
     if (_state == NetworkState::CONNECTED) {
-        return _socket.receive(packet) == sf::Socket::Done;
+        sf::Socket::Status status = _socket.receive(packet);
+        if (status == sf::Socket::Disconnected) {
+            if (_isHost) {
+                _socket.disconnect();
+                _state = NetworkState::HOSTING;
+            } else disconnect();
+        }
+        return status == sf::Socket::Done;
     }
     return false;
 }

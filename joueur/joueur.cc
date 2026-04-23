@@ -2,11 +2,11 @@
 #include <set>
 #include <cmath>
 
-void Joueur::ajouterRessource(Ressource* r, int n) {
+void Joueur::ajouterRessource(const Ressource* r, int n) {
     _inventaire[r] += n;
 }
 
-void Joueur::payer(const std::map<Ressource*, int>& cout) {
+void Joueur::payer(const std::map<const Ressource*, int>& cout) {
     for (auto const& [res, qte] : cout) {
         _inventaire[res] -= qte;
     }

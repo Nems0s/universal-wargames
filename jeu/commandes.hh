@@ -16,6 +16,7 @@ struct CmdCamoufler { int x, y; };
 struct CmdCharger { int xPassager, yPassager, xTransport, yTransport; };
 struct CmdDecharger { int xTransport, yTransport, indexPassager, xDest, yDest; };
 struct CmdEnroler { int xCommandant, yCommandant, xRecrue, yRecrue; };
+struct CmdDetruireUnite { int x, y; };
 struct CmdFinTour {};
 
 // variant : contient un seule des structures suivantes
@@ -33,6 +34,7 @@ using CommandeJeu = std::variant<
     CmdCharger,
     CmdDecharger,
     CmdEnroler,
+    CmdDetruireUnite,
     CmdFinTour
 >;
 

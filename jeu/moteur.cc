@@ -14,7 +14,12 @@ void MoteurDeJeu::chargerConfiguration(const std::string& configPath) {
 
     try {
         JsonRessourceReader resReader;
-        resReader.load("configs/config_ressources.json", _ressourcesDispo);
+        _ressourceFactory.chargerConfiguration("configs/config_ressources.json", resReader);
+        
+        _ressourcesDispo.clear();
+        for (const auto& [nom, resPtr] : _ressourceFactory.getCatalogue()) {
+            _ressourcesDispo[nom] = resPtr.get();
+        }
 
         JsonBatimentReader batReader;
         _batimentFactory.chargerConfiguration("configs/config_batiments.json", batReader, _ressourcesDispo);
@@ -56,32 +61,37 @@ void MoteurDeJeu::initGame(int seed, const std::vector<std::string>& noms, const
             if (_ressourcesDispo.count(resName)) j.ajouterRessource(_ressourcesDispo.at(resName), qt);
         }
 
-        std::string nomCapitale = "";
-        for (const auto& [nom, cityModele] : _cityFactory.getCatalogue()) {
-            if (cityModele->estCapitale()) {
-                nomCapitale = nom;
-                break;
-            }
+        _joueurs.push_back(j);
+    }
+
+    std::string nomCapitale = "";
+    for (const auto& [nom, cityModele] : _cityFactory.getCatalogue()) {
+        if (cityModele->estCapitale()) {
+            nomCapitale = nom;
+            break;
         }
+    }
+
+    for (int i = 0; i < nbJoueurs; ++i) {
+        Joueur& joueur = _joueurs[i];
 
         bool placed = false;
         int attempts = 0;
         while (!placed && attempts < 1000) {
             int rx = std::rand() % _plateau->getRows();
             int ry = std::rand() % _plateau->getCols();
-            if (_arbitre.buildCity(j, *_plateau, rx, ry)) {
+            if (_arbitre.buildCity(joueur, *_plateau, rx, ry)) {
                 hexa* cell = const_cast<hexa*>(_plateau->getCell(rx, ry));
                 TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
                 if (tc && tc->getStat("spawn_capitale") > 0.0f && !nomCapitale.empty()) {
                     tc->placerVille(_cityFactory.create(nomCapitale, rx, ry));
-                    j.ajouterVille(tc->getCity());
-                    tc->setProprietaire(&j);
+                    joueur.ajouterVille(tc->getCity());
+                    tc->setProprietaire(&joueur);
                     placed = true;
                 }
             }
             attempts++;
         }
-        _joueurs.push_back(j); 
     }
 
     for (int i = 0; i < nbJoueurs; ++i) {
@@ -218,6 +228,20 @@ void MoteurDeJeu::chargerPartieDepuisJson(const nlohmann::json& j, const std::ve
                 }
             }
         }
+
+        // D. Reconstruire les inventaires
+        if (j["players"][i].contains("inventaire")) {
+            for (auto& el : j["players"][i]["inventaire"].items()) {
+                const std::string& nomRessource = el.key();
+                int quantite = el.value();
+                
+                const Ressource* resPtr = _ressourceFactory.getRessource(nomRessource);
+                
+                if (resPtr) {
+                    joueurActuel.ajouterRessource(resPtr, quantite);
+                }
+            }
+        }
     }
 }
 
@@ -244,6 +268,24 @@ ResultatAction MoteurDeJeu::soumettreCommande(int pIdx, const CommandeJeu& comma
 // -------------------------------------------------- //
 // ------- Execution des commandes de variant ------- //
 // -------------------------------------------------- //
+
+ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDetruireUnite& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
+    Joueur& joueur = _joueurs[pIdx];
+    Unite* u = _plateau->getUnite(cmd.x, cmd.y);
+    
+    // Vérifier que l'unité existe et appartient au joueur
+    if (!u || getProprietaireUnite(cmd.x, cmd.y) != pIdx) {
+        return ResultatAction::ECHEC_ARBITRE_REFUS;
+    }
+
+    // Retirer l'unité du joueur et du plateau
+    joueur.perdreUnite(u);
+    _plateau->retirerUnite(cmd.x, cmd.y);
+    
+    return ResultatAction::SUCCES;
+}
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdFinTour& cmd) {
     passerTour();
@@ -311,7 +353,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAmeliorer& cmd) {
     if (!tc || !tc->getCity() || !_arbitre.peutAmeliorerVille(j, *tc->getCity(), _logicConfig)) 
         return ResultatAction::ECHEC_ARBITRE_REFUS;
 
-    std::map<Ressource*, int> coutAmelioration;
+    std::map<const Ressource*, int> coutAmelioration;
     for (const auto& [nomRes, qte] : _logicConfig.getCoutBaseVille()) {
         for (const auto& [resPtr, invQte] : j.getInventaire()) {
             if (resPtr->getName() == nomRes) coutAmelioration[resPtr] = qte * tc->getCity()->getLevel(); 
@@ -552,12 +594,12 @@ bool MoteurDeJeu::estVilleAuJoueur(int pIdx, int x, int y) const {
     return false;
 }
 
-bool MoteurDeJeu::peutPayer(int pIdx, const std::map<Ressource*, int>& cout) const {
+bool MoteurDeJeu::peutPayer(int pIdx, const std::map<const Ressource*, int>& cout) const {
     if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return false;
     return _arbitre.peutPayer(cout, _joueurs[pIdx]);
 }
 
-std::map<Ressource*, int> MoteurDeJeu::getCoutFondationVille(int pIdx, const std::string& nomVille) const {
+std::map<const Ressource*, int> MoteurDeJeu::getCoutFondationVille(int pIdx, const std::string& nomVille) const {
     if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return {};
     
     auto it = _cityFactory.getCatalogue().find(nomVille);
@@ -566,7 +608,7 @@ std::map<Ressource*, int> MoteurDeJeu::getCoutFondationVille(int pIdx, const std
     return _arbitre.getCostNouvelleVille(_joueurs[pIdx], it->second->getCoutBase());
 }
 
-std::map<Ressource*, int> MoteurDeJeu::getCoutAchatTerritoire(int pIdx) const {
+std::map<const Ressource*, int> MoteurDeJeu::getCoutAchatTerritoire(int pIdx) const {
     if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return {};
     return _arbitre.getCostAchatCase(_joueurs[pIdx], _logicConfig);
 }

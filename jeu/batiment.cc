@@ -12,15 +12,15 @@ std::string Batiment::getName() const
 {
     return _name;
 }
-const std::map<Ressource*, int> & Batiment::getResourceConstr() const
+const std::map<const Ressource*, int> & Batiment::getResourceConstr() const
 {
     return _cout;
 }
 
 
-const std::vector<Ressource*>& Batiment::getRessourcesSolRequired() const
+const std::vector<const Ressource*>& Batiment::getRessourcesSolRequired() const
 {
-    static const std::vector<Ressource*> vide;
+    static const std::vector<const Ressource*> vide;
     return vide;
 };
 
@@ -33,7 +33,7 @@ std::unique_ptr<Batiment> BatimentRessource::clone() const
     return std::make_unique<BatimentRessource>(*this);
 }
 
-const std::vector<Ressource*>& BatimentRessource::getRessourcesSolRequired() const
+const std::vector<const Ressource*>& BatimentRessource::getRessourcesSolRequired() const
 {
     return _ressourcesSolRequises; 
 }
@@ -50,7 +50,7 @@ void BatimentRessource::action(Joueur & j) {
 //===================================================================
 void TxtBatimentReader::load(const std::string& chemin, 
                 std::map<std::string, std::unique_ptr<Batiment>>& catalogue,
-                const std::map<std::string, Ressource*>& ressourcesDispo) {
+                const std::map<std::string, const Ressource*>& ressourcesDispo) {
             
     std::ifstream fichier(chemin);
     std::string ligne;
@@ -68,15 +68,15 @@ void TxtBatimentReader::load(const std::string& chemin,
 
         if (ressourcesDispo.count(nomResCout) == 0) continue;
 
-        std::map<Ressource*, int> coutMap;
+        std::map<const Ressource*, int> coutMap;
         coutMap[ressourcesDispo.at(nomResCout)] = qCout;
         
-        std::map<Ressource*, int> prodMap;
-        std::vector<Ressource*> solReq;
+        std::map<const Ressource*, int> prodMap;
+        std::vector<const Ressource*> solReq;
     
         if (ss >> nomResProd >> qProd) {
             if (ressourcesDispo.count(nomResProd)) {
-                Ressource* res = ressourcesDispo.at(nomResProd);
+                const Ressource* res = ressourcesDispo.at(nomResProd);
                 prodMap[res] = qProd;
                 solReq.push_back(res);
             }
@@ -90,7 +90,7 @@ void TxtBatimentReader::load(const std::string& chemin,
 
 void JsonBatimentReader::load(const std::string& chemin, 
                 std::map<std::string, std::unique_ptr<Batiment>>& catalogue,
-                const std::map<std::string, Ressource*>& ressourcesDispo) {
+                const std::map<std::string, const Ressource*>& ressourcesDispo) {
     
     std::ifstream fichier(chemin);
     json data;
@@ -99,14 +99,14 @@ void JsonBatimentReader::load(const std::string& chemin,
     for (auto& item : data["batiments"]) {
         std::string nom = item["nom"];
         
-        std::map<Ressource*, int> coutMap;
+        std::map<const Ressource*, int> coutMap;
         for (auto& it : item["cout"].items()) {
             if (ressourcesDispo.count(it.key())) {
                 coutMap[ressourcesDispo.at(it.key())] = it.value();
             }
         }
 
-        std::map<Ressource*, int> prodMap;
+        std::map<const Ressource*, int> prodMap;
         for (auto& prodItem : item["production"]) {
             std::string rNom = prodItem["ressource"];
             if (ressourcesDispo.count(rNom)) {
@@ -114,7 +114,7 @@ void JsonBatimentReader::load(const std::string& chemin,
             }
         }
 
-        std::vector<Ressource*> solsRequis;
+        std::vector<const Ressource*> solsRequis;
         for (std::string sNom : item["ressources_sol_requises"]) {
             if (ressourcesDispo.count(sNom)) {
                 solsRequis.push_back(ressourcesDispo.at(sNom));
@@ -128,7 +128,7 @@ void JsonBatimentReader::load(const std::string& chemin,
 }
 
 
-void BatimentFactory::chargerConfiguration(const std::string& chemin, BatimentConfigReader& lecteur, const std::map<std::string, Ressource*>& ressourcesDispo)
+void BatimentFactory::chargerConfiguration(const std::string& chemin, BatimentConfigReader& lecteur, const std::map<std::string, const Ressource*>& ressourcesDispo)
 {
     lecteur.load(chemin, _catalogue, ressourcesDispo);
 }

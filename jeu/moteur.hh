@@ -4,6 +4,7 @@
 #include "jeu.hh"
 #include "config.hh"
 #include "batiment.hh"
+#include "ressource.hh"
 #include "commandes.hh"
 
 #include <vector>
@@ -21,7 +22,7 @@ private:
     // Jeu
     std::unique_ptr<board> _plateau;
     std::vector<Joueur> _joueurs;
-    std::map<std::string, Ressource*> _ressourcesDispo;
+    std::map<std::string, const Ressource*> _ressourcesDispo;
 
     // Config
     GameConfig _logicConfig;
@@ -29,6 +30,7 @@ private:
     BatimentFactory _batimentFactory;
     CityFactory _cityFactory;
     UniteFactory _uniteFactory;
+    RessourceFactory _ressourceFactory;
 
     // Logique
     Arbitre _arbitre;
@@ -49,6 +51,7 @@ private:
     ResultatAction executer(int pIdx, const CmdCharger& cmd);
     ResultatAction executer(int pIdx, const CmdDecharger& cmd);
     ResultatAction executer(int pIdx, const CmdEnroler& cmd);
+    ResultatAction executer(int pIdx, const CmdDetruireUnite& cmd);
     ResultatAction executer(int pIdx, const CmdFinTour & cmd);
 
 public:
@@ -77,7 +80,7 @@ public:
     bool peutAcheterTerritoire(int joueurIdx, int x, int y) const;
     bool estDansTerritoire(int pIdx, int x, int y) const;
     bool estVilleAuJoueur(int pIdx, int x, int y) const;
-    bool peutPayer(int pIdx, const std::map<Ressource*, int> & cout) const;
+    bool peutPayer(int pIdx, const std::map<const Ressource*, int> & cout) const;
     bool peutRecruterUnite(int pIdx, const std::string& nomUnite) const;
     int getProprietaireUnite(int x, int y) const;
     std::vector<std::pair<int, int>> getDeplacementsPossibles(int joueurIdx, int x, int y) const;
@@ -87,8 +90,8 @@ public:
     // Encapsulation de la Config
     const std::map<std::string, FactionParams>& getFactionsAvailable() const { return _logicConfig.getFactions(); }
     int getCoutRotation() const { return _logicConfig.getCoutRotation(); }
-    std::map<Ressource*, int> getCoutFondationVille(int pIdx, const std::string& nomVille) const;
-    std::map<Ressource*, int> getCoutAchatTerritoire(int pIdx) const;
+    std::map<const Ressource*, int> getCoutFondationVille(int pIdx, const std::string& nomVille) const;
+    std::map<const Ressource*, int> getCoutAchatTerritoire(int pIdx) const;
 
     // Getters
     const board* getPlateau() const { return _plateau.get(); }
@@ -97,6 +100,7 @@ public:
     const BatimentFactory& getBatimentFactory() const { return _batimentFactory; }
     const CityFactory& getCityFactory() const { return _cityFactory; }
     const UniteFactory& getUniteFactory() const { return _uniteFactory; }
+    const RessourceFactory& getRessourceFactory() const { return _ressourceFactory; }
     const GameConfig& getLogicConfig() const { return _logicConfig; }
     int getTourActuel() const { return _tourActuel; }
     int getCurrentPlayerTurn() const { return _currentPlayerTurn; }

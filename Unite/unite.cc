@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
-Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<Ressource*, int> cout, const std::string& texturePath)
+Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, const std::string& texturePath)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
@@ -104,7 +104,7 @@ std::list<std::shared_ptr<IComportement> > Unite::liste_comportements() const
     return _liste_comportements;
 }
 
-std::map<Ressource*, int> Unite::cout() const
+std::map<const Ressource*, int> Unite::cout() const
 {
     return _cout;
 }
@@ -347,7 +347,7 @@ std::shared_ptr<IComportement> createComp(const json& jComp)
     return nullptr;
 }
 
-void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std::shared_ptr<Unite>>& catalogue, const std::map<std::string, Ressource*>& ressources)
+void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std::shared_ptr<Unite>>& catalogue, const std::map<std::string, const Ressource*>& ressources)
 {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {
@@ -367,7 +367,7 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         Poids poids = Poids::Moyen;
         if(item.contains("poids")) poids = stringToPoids(item["poids"]);
 
-        std::map<Ressource*, int> coutUnite;
+        std::map<const Ressource*, int> coutUnite;
         bool toutesRessourcesExistantes = true;
 
         if (item.contains("cout")) 
@@ -442,7 +442,7 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
 // ==========================================
 //                 Factory
 // ==========================================
-void UniteFactory::chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur, const std::map<std::string, Ressource*>& ressources)
+void UniteFactory::chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur, const std::map<std::string, const Ressource*>& ressources)
 {
     lecteur.load(chemin, _catalogue, ressources);
 }
