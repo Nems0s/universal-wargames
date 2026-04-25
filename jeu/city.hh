@@ -27,13 +27,14 @@ class City {
 
         int _rayonBase;
         std::map<const Ressource*, int> _coutBase;
+        std::map<const Ressource*, int> _productionBase;
         std::string _texturePath;
 
         size_t _nbBatiments;
         std::vector<std::unique_ptr<Batiment>> _batiments;
 
     public:
-        City(int x, int y, const std::string & nom, bool capitale, int maxLvl, float pvB, float dmgB, int visB, int rayB, const std::map<const Ressource*, int> & coutB, const std::string & tex);
+        City(int x, int y, const std::string & nom, bool capitale, int maxLvl, float pvB, float dmgB, int visB, int rayB, const std::map<const Ressource*, int> & coutB, const std::map<const Ressource*, int> & prodB, const std::string & tex);
 
         std::unique_ptr<City> clone(int x, int y) const;
 
@@ -51,6 +52,7 @@ class City {
         int getRayonTerritoire() const { return _rayonBase + _level - 1; }
         std::string getTexturePath() const { return _texturePath; }
         const std::map<const Ressource*, int>& getCoutBase() const { return _coutBase; }
+        const std::map<const Ressource*, int>& getProduits() const { return _productionBase; }
 
         bool peutAjouterBatiment() const;
         void creeBatiment(std::unique_ptr<Batiment> b);

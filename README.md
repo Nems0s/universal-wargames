@@ -102,3 +102,14 @@ failure, see the Visual C++ documentation on asserts
 (Press Retry to debug the application - JIT must be enabled)
 
 
+
+- Ajout de soin passif des villes ?
+dans city product :
+if (_pvCurrent < _pvMax) {
+  _pvCurrent += _pvMax * 0.05f;
+  if (_pvCurrent > _pvMax) _pvCurrent = _pvMax;
+}
+
+- Ajout d'un cout d'entretien des unités ?
+Cout en ressource ou en PA etc à chaque tour
+(passerTour dans moteur faire currentJ.getUnites() ?)

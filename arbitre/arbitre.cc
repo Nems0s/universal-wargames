@@ -463,6 +463,27 @@ std::vector<std::pair<int, int>> Arbitre::getCasesDeplacementPossibles(const boa
     return casesPossibles;
 }
 
+std::vector<std::pair<int, int>> Arbitre::getCasesAttaquePossibles(const Joueur& j, const board& game, const Unite& u) const {
+    std::vector<std::pair<int, int>> ciblesPossibles;
+    if (u.point_action() <= 0) return ciblesPossibles;
+
+    for (int i = 0; i < game.getRows(); ++i) {
+        for (int y = 0; y < game.getCols(); ++y) {
+            Unite* cible = game.getUnite(i, y);
+            
+            if (cible && !appartientJoueur(j, *cible)) {
+                for (CompAtt* attComp : u.Offensive()) {
+                    if (peutAttaquer(j, u, *cible, attComp)) {
+                        ciblesPossibles.push_back({i, y});
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return ciblesPossibles;
+}
+
 std::map<const Ressource*, int> Arbitre::getCostNouvelleVille(const Joueur & j, const std::map<const Ressource*, int>& coutBase) const {
     std::map<const Ressource*, int> coutActuel;
     

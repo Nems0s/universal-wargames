@@ -171,6 +171,34 @@ void InterfaceManager::run() {
                     }
 
                     if (bestI != -1 && isMyTurn) {
+                        if (_isTargetingMove || _isTargetingAttack) {
+                            if (_isTargetingMove) {
+                                CmdDeplacement cmd = { _unitSourceX, _unitSourceY, bestI, bestJ };
+                                if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
+                                    if (isMultiplayer) {
+                                        sf::Packet pk; pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << _unitSourceX << _unitSourceY << bestI << bestJ;
+                                        _network.sendData(pk);
+                                    }
+                                }
+                            } else if (_isTargetingAttack) {
+                                CmdAttaque cmd = { _unitSourceX, _unitSourceY, bestI, bestJ };
+                                if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
+                                    if (isMultiplayer) {
+                                        sf::Packet pk; pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _unitSourceX << _unitSourceY << bestI << bestJ;
+                                        _network.sendData(pk);
+                                    }
+                                }
+                            }
+                            
+                            _isTargetingMove = false;
+                            _isTargetingAttack = false;
+                            _casesPossibles.clear();
+                            _casesAttaquePossibles.clear();
+                            _selectedCellX = bestI; _selectedCellY = bestJ;
+                            _hasSelection = true;
+                            continue;
+                        }
+
                         if (_moteur.getProprietaireUnite(bestI, bestJ) == currentTurn) {
                             _isDragging = true;
                             _dragSourceX = bestI;
@@ -178,6 +206,7 @@ void InterfaceManager::run() {
                             _unitSourceX = bestI;
                             _unitSourceY = bestJ;
                             _casesPossibles = _moteur.getDeplacementsPossibles(currentTurn, bestI, bestJ);
+                            _casesAttaquePossibles = _moteur.getAttaquesPossibles(currentTurn, bestI, bestJ);
                             _hasSelection = true;
                             _selectedCellX = bestI;
                             _selectedCellY = bestJ;
@@ -219,13 +248,47 @@ void InterfaceManager::run() {
 
                         if (propDest != -1 && propDest != currentTurn) {
                             // Attaque
-                            CmdAttaque cmd = { _dragSourceX, _dragSourceY, targetI, targetJ };
-                            if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
-                                if (isMultiplayer) {
-                                    sf::Packet pk;
-                                    pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _dragSourceX << _dragSourceY << targetI << targetJ;
-                                    _network.sendData(pk);
+
+                            bool cibleValide = false;
+                            for (const auto& pos : _casesAttaquePossibles) {
+                                if (pos.first == targetI && pos.second == targetJ) {
+                                    cibleValide = true;
+                                    break;
                                 }
+                            }
+
+                            if (cibleValide) {
+                                // Stockez les PV avant l'attaque (pour le Combat Log)
+                                Unite* uAtt = _moteur.getPlateau()->getUnite(_dragSourceX, _dragSourceY);
+                                Unite* uDef = _moteur.getPlateau()->getUnite(targetI, targetJ);
+                                std::string nomAtt = uAtt ? uAtt->name() : "Unite";
+                                std::string nomDef = uDef ? uDef->name() : "Cible";
+                                int pvDefAvant = uDef ? uDef->health_point() : 0;
+                                int pvAttAvant = uAtt ? uAtt->health_point() : 0;
+
+                                CmdAttaque cmd = { _dragSourceX, _dragSourceY, targetI, targetJ };
+                                if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
+                                    
+                                    // Combat Log
+                                    Unite* uDefApres = _moteur.getPlateau()->getUnite(targetI, targetJ);
+                                    Unite* uAttApres = _moteur.getPlateau()->getUnite(_dragSourceX, _dragSourceY);
+                                    int pvDefPerdus = pvDefAvant - (uDefApres ? uDefApres->health_point() : 0);
+                                    int pvAttPerdus = pvAttAvant - (uAttApres ? uAttApres->health_point() : 0);
+                                    std::string rapport = nomAtt + " inflige -" + std::to_string(pvDefPerdus) + " a " + nomDef;
+                                    if (pvAttPerdus > 0) rapport += " (Riposte: -" + std::to_string(pvAttPerdus) + ")";
+                                    if (!uDefApres) rapport += " [" + nomDef + " DETRUIT !]";
+                                    addCombatLog(rapport, sf::Color(255, 100, 100));
+
+                                    // Synchro réseau
+                                    if (isMultiplayer) {
+                                        sf::Packet pk;
+                                        pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _dragSourceX << _dragSourceY << targetI << targetJ;
+                                        _network.sendData(pk);
+                                    }
+                                }
+                            } else {
+                                _popupMsg = "Cible hors de portee ou non valide !";
+                                _showPopup = true;
                             }
                         } else {
                             // Deplacement
@@ -258,13 +321,27 @@ void InterfaceManager::run() {
                     }
                     _isDragging = false;
                     _casesPossibles.clear();
+                    _casesAttaquePossibles.clear();
                 }
             }
 
 
             // Zoom et Déplacement (Clic droit)
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right && !ImGui::GetIO().WantCaptureMouse) {
-                _isPanning = true; _lastMousePos = sf::Mouse::getPosition(_window);
+                if (_isTargetingMove || _isTargetingAttack || _hasPreviewRotation || _isDragging) {
+                    _isTargetingMove = false;
+                    _isTargetingAttack = false;
+                    _isDragging = false;
+                    _hasPreviewRotation = false;
+                    _casesPossibles.clear();
+                    _casesAttaquePossibles.clear();
+                    
+                    addCombatLog("Action annulee.", sf::Color(150, 150, 150));
+                } 
+                else {
+                    _isPanning = true; 
+                    _lastMousePos = sf::Mouse::getPosition(_window);
+                }
             }
             if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Right) {
                 _isPanning = false;
@@ -383,15 +460,15 @@ void InterfaceManager::renderMenu() {
 
     if (_previousState == GameState::IN_GAME) {
         ImGui::SetCursorPos(ImVec2(btnX, startY));
-        if (ImGui::Button("REPRENDRE LA PARTIE", buttonSize)) {
+        if (ImGui::Button("REPRENDRE LE JEU", buttonSize)) {
             _currentState = GameState::IN_GAME;
         }
-        startY += buttonSize.y + 20;
+        startY += buttonSize.y + 20.0f;
     }
 
     if (std::filesystem::exists("saves/last_save.json")) {
         ImGui::SetCursorPos(ImVec2(btnX, startY));
-        if (ImGui::Button("CONTINUER", buttonSize)) {
+        if (ImGui::Button("CHARGER SAUVEGARDE", buttonSize)) {
             if (SaveManager::loadGame("saves/last_save.json", this)) {
                 _previousState = GameState::MENU;
                 _currentState = GameState::IN_GAME;
@@ -399,7 +476,7 @@ void InterfaceManager::renderMenu() {
                 std::cerr << "Erreur: Impossible de charger saves/last_save.json" << std::endl;
             }
         }
-        startY += buttonSize.y + 20;
+        startY += buttonSize.y + 20.0f;
     }
 
     ImGui::SetCursorPos(ImVec2(btnX, startY));
@@ -491,7 +568,7 @@ void InterfaceManager::renderOptions() {
 
             ImGui::TableNextRow(0);
             ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "GENERAL");
-            ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0, 10));
+            ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
             static int diffIndex = 1;
             std::vector<std::string> difficulties = {"Settler", "Viceroy", "Emperor", "Deity"};
@@ -501,7 +578,7 @@ void InterfaceManager::renderOptions() {
 
             static int mapSizeIndex = 1;
             std::vector<std::string> mapSizes = {"Tiny (50x50)", "Standard (100x100)", "Huge (200x200)"};
-            ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0, 5));
+            ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0.0f, 5.0f));
             ImGui::TableNextRow(0);
             ImGui::TableSetColumnIndex(0); ImGui::Text("Map Size:");
             ImGui::TableSetColumnIndex(1); 
@@ -511,7 +588,37 @@ void InterfaceManager::renderOptions() {
                 if (mapSizeIndex == 2) { _rulesJson["taille_plateau"]["x"] = 200; _rulesJson["taille_plateau"]["y"] = 200; }
             }
 
-            ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0, 20));
+            ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0.0f, 20.0f));
+
+            ImGui::TableNextRow(0);
+            ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "CITY RULES");
+            ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+            if (_villesJson.contains("villes")) {
+                for (auto& ville : _villesJson["villes"]) {
+                    std::string nomVille = ville["nom"];
+                    
+                    if (ville.contains("cout_base") && !ville["cout_base"].empty()) {
+                        ImGui::TableNextRow(0);
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("Cout %s:", nomVille.c_str());
+                        ImGui::TableSetColumnIndex(1);
+
+                        for (auto& it : ville["cout_base"].items()) {
+                            int qte = it.value();
+                            std::string label = "##" + nomVille + it.key();
+                            ImGui::SetNextItemWidth(80.0f);
+                            
+                            if (ImGui::InputInt(label.c_str(), &qte, 1, 10)) {
+                                ville["cout_base"][it.key()] = qte;
+                            }
+                            ImGui::SameLine();
+                            ImGui::Text("%s", it.key().c_str());
+                            ImGui::SameLine(0.0f, 10.0f);
+                        }
+                    }
+                }
+            }
 
             if (_gameConfigLocked) {
                 ImGui::EndDisabled();
@@ -1216,8 +1323,45 @@ void InterfaceManager::updateNetworkLoop() {
                     int xSrc, ySrc, xDest, yDest;
                     if (packet >> xSrc >> ySrc >> xDest >> yDest) {
                         int turn = _moteur.getCurrentPlayerTurn();
+                        
+                        // Etat avant l'attaque par le réseau
+                        Unite* uAtt = _moteur.getPlateau()->getUnite(xSrc, ySrc);
+                        Unite* uDef = _moteur.getPlateau()->getUnite(xDest, yDest);
+                        std::string nomAtt = uAtt ? uAtt->name() : "Ennemi";
+                        std::string nomDef = uDef ? uDef->name() : "Allie";
+                        int pvDefAvant = uDef ? uDef->health_point() : 0;
+                        int pvAttAvant = uAtt ? uAtt->health_point() : 0;
+
                         CmdAttaque cmd = { xSrc, ySrc, xDest, yDest };
-                        _moteur.soumettreCommande(turn, cmd);
+                        if (_moteur.soumettreCommande(turn, cmd) == ResultatAction::SUCCES) {
+                            
+                            // Etat après l'attaque
+                            Unite* uDefApres = _moteur.getPlateau()->getUnite(xDest, yDest);
+                            Unite* uAttApres = _moteur.getPlateau()->getUnite(xSrc, ySrc);
+                            
+                            int pvDefPerdus = pvDefAvant - (uDefApres ? uDefApres->health_point() : 0);
+                            int pvAttPerdus = pvAttAvant - (uAttApres ? uAttApres->health_point() : 0);
+
+                            // Combat Log pour le joueur qui subit l'attaque
+                            std::string rapport = nomAtt + " inflige -" + std::to_string(pvDefPerdus) + " a " + nomDef;
+                            if (pvAttPerdus > 0) rapport += " (Riposte: -" + std::to_string(pvAttPerdus) + ")";
+                            if (!uDefApres) rapport += " [" + nomDef + " DETRUIT !]";
+                            
+                            addCombatLog(rapport, sf::Color(255, 150, 50));
+                        }
+                    }
+                    break;
+                }
+
+                // L'autre joueur a détruit une de ses unités
+                case PacketType::ACTION_DESTROY_UNIT: {
+                    sf::Int32 pIdx; 
+                    int x, y;
+                    if (packet >> pIdx >> x >> y) {
+                        CmdDetruireUnite cmd = { x, y };
+                        if (_moteur.soumettreCommande(pIdx, cmd) == ResultatAction::SUCCES) {
+                            addCombatLog("Une unite ennemie s'est sabordee.", sf::Color(150, 150, 150));
+                        }
                     }
                     break;
                 }
@@ -1261,6 +1405,28 @@ void InterfaceManager::updateNetworkLoop() {
                     break;
                 }
 
+                case PacketType::ACTION_UPGRADE_CITY: {
+                    sf::Int32 pIdx; 
+                    int x, y;
+                    
+                    if (packet >> pIdx >> x >> y) {
+                        CmdAmeliorer cmd = { x, y };
+                        _moteur.soumettreCommande(pIdx, cmd);
+                    }
+                    break;
+                }
+
+                case PacketType::ACTION_BUY_TILE: {
+                    sf::Int32 pIdx;
+                    int x, y;
+                    
+                    if (packet >> pIdx >> x >> y) {
+                        CmdAcheterCase cmd = { x, y };
+                        _moteur.soumettreCommande(pIdx, cmd);
+                    }
+                    break;
+                }
+
                 case PacketType::SYNC_BUILD: {
                     sf::Int32 targetIdx; int x, y; std::string batNom;
                     if (!_network.isHost() && (packet >> targetIdx >> x >> y >> batNom)) {
@@ -1289,6 +1455,12 @@ void InterfaceManager::updateNetworkLoop() {
             _currentState == GameState::MAP_CONFIG) {
             _previousState = GameState::MENU;
             _currentState = GameState::MENU;
+
+            if (!_network.isHost()) { 
+                if (std::filesystem::exists("saves/last_save.json")) {
+                    std::filesystem::remove("saves/last_save.json");
+                }
+            }
         }
     } else if (_network.isHost() && _network.getState() == NetworkState::HOSTING && _connectedPlayers.size() > 1) {
         _connectedPlayers.resize(1);
@@ -1314,6 +1486,12 @@ void InterfaceManager::renderGame() {
     bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
     int viewIndex = isMultiplayer ? _localPlayerIndex : _moteur.getCurrentPlayerTurn(); 
     bool isMyTurn = !isMultiplayer || (_moteur.getCurrentPlayerTurn() == _localPlayerIndex);
+
+    // -- DETECTION CHANGEMENT DE TOUR ---
+    if (isMyTurn && !_wasMyTurn) {
+        _turnNotificationTimer = 2.5f;
+    }
+    _wasMyTurn = isMyTurn;
 
     float R = _tileSize / 2.0f;
     float W = std::sqrt(3.0f) * R;
@@ -1353,7 +1531,7 @@ void InterfaceManager::renderGame() {
     // VertexArray pour le brouillard (triangles simples, pas de texture)
     sf::VertexArray moveBatch(sf::Triangles);
     sf::VertexArray attackBatch(sf::Triangles);
-    sf::VertexArray territoryBatch(sf::Lines);
+    sf::VertexArray territoryBatch(sf::Quads);
     sf::VertexArray buyBatch(sf::Triangles);
     sf::VertexArray fogBlackBatch(sf::Triangles);  // Inexploré (opaque)
     sf::VertexArray shroudBatch(sf::Triangles);    // Exploré mais hors de vue (semi-transparent)
@@ -1361,6 +1539,7 @@ void InterfaceManager::renderGame() {
 
     // Ensemble des cases possibles en set pour accès O(1)
     std::set<std::pair<int,int>> casesSet(_casesPossibles.begin(), _casesPossibles.end());
+    std::set<std::pair<int,int>> casesAttaqueSet(_casesAttaquePossibles.begin(), _casesAttaquePossibles.end());
 
     const bool joueurValide = viewIndex < (int)_moteur.getJoueurs().size();
 
@@ -1449,7 +1628,7 @@ void InterfaceManager::renderGame() {
             }
 
             // Mouvement Possible (Jaune)
-            if (_isDragging && casesSet.count({i, j})) {
+            if ((_isDragging || _isTargetingMove) && casesSet.count({i, j})) {
                 sf::Color moveCol(255, 255, 0, 70);
                 for (int tri = 0; tri < 6; ++tri) {
                     sf::Vertex v0, v1, v2;
@@ -1460,22 +1639,15 @@ void InterfaceManager::renderGame() {
                 }
             }
 
-           // Attaque Possible (Rouge)
-            if (_isDragging) {
-                int propTarget = _moteur.getProprietaireUnite(i, j);
-                if (propTarget != -1 && propTarget != viewIndex) { // Si c'est un ennemi
-                    // Calcul de distance (pour de vrai dans l'arbitre normalement)
-                    int dist = std::abs(i - _dragSourceX) + std::abs(j - _dragSourceY);
-                    if (dist <= 2) { // Distance d'attaque arbitraire pour le visuel, à lier aux comp d'unité plus tard
-                        sf::Color attCol(255, 0, 0, 80);
-                        for (int tri = 0; tri < 6; ++tri) {
-                            sf::Vertex v0, v1, v2;
-                            v0.position = {posX, posY}; v0.color = attCol;
-                            v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = attCol;
-                            v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = attCol;
-                            attackBatch.append(v0); attackBatch.append(v1); attackBatch.append(v2);
-                        }
-                    }
+            // Attaque Possible (Rouge)
+            if ((_isDragging || _isTargetingAttack) && casesAttaqueSet.count({i, j})) { 
+                sf::Color attCol(255, 0, 0, 80);
+                for (int tri = 0; tri < 6; ++tri) {
+                    sf::Vertex v0, v1, v2;
+                    v0.position = {posX, posY}; v0.color = attCol;
+                    v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = attCol;
+                    v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = attCol;
+                    attackBatch.append(v0); attackBatch.append(v1); attackBatch.append(v2);
                 }
             }
 
@@ -1502,22 +1674,32 @@ void InterfaceManager::renderGame() {
                         int ni = i + neigh[side][0];
                         int nj = j + neigh[side][1];
 
-                        // Tracer le segment si le voisin est hors-limites ou hors du territoire
                         bool neighborInTerritory = (ni >= 0 && ni < rows && nj >= 0 && nj < cols)
                                                    && _moteur.estDansTerritoire(pIdx, ni, nj);
+                        
                         if (!neighborInTerritory) {
-                            sf::Vertex v1, v2;
-                            v1.position = {posX + R * hexOffsets[side].x, posY + R * hexOffsets[side].y};
-                            v1.color = borderCol;
-                            v2.position = {posX + R * hexOffsets[(side+1)%6].x, posY + R * hexOffsets[(side+1)%6].y};
-                            v2.color = borderCol;
-                            territoryBatch.append(v1);
-                            territoryBatch.append(v2);
+                            sf::Vector2f p1(posX + R * hexOffsets[side].x, posY + R * hexOffsets[side].y);
+                            sf::Vector2f p2(posX + R * hexOffsets[(side+1)%6].x, posY + R * hexOffsets[(side+1)%6].y);
+
+                            sf::Vector2f dir = p2 - p1;
+                            float len = std::sqrt(dir.x*dir.x + dir.y*dir.y);
+                            dir.x /= len; dir.y /= len;
+                            sf::Vector2f normal(-dir.y, dir.x);
+                            
+                            float thickness = 4.0f;
+
+                            sf::Vertex q1, q2, q3, q4;
+                            q1.position = p1 - normal * (thickness / 2.0f); q1.color = borderCol;
+                            q2.position = p2 - normal * (thickness / 2.0f); q2.color = borderCol;
+                            q3.position = p2 + normal * (thickness / 2.0f); q3.color = borderCol;
+                            q4.position = p1 + normal * (thickness / 2.0f); q4.color = borderCol;
+
+                            territoryBatch.append(q1); territoryBatch.append(q2);
+                            territoryBatch.append(q3); territoryBatch.append(q4);
                         }
                     }
                 }
             }
-
 
             // --- CASES ACHETABLES (S'il y a une sélection de territoire en cours ou simplement visible) ---
             if (joueurValide) {
@@ -1691,6 +1873,33 @@ void InterfaceManager::renderGame() {
                     }
 
                     _window.draw(uSpr);
+
+                    // DESSIN DE LA BARRE DE HP
+                    float hpPercent = std::max(0.0f, (float)u->health_point() / (float)u->health_point_max());
+                    float barWidth = R * 0.9f;
+                    float barHeight = 6.0f;
+                    
+                    // Fond de la jauge
+                    sf::RectangleShape bgBar(sf::Vector2f(barWidth, barHeight));
+                    bgBar.setOrigin(barWidth / 2.0f, barHeight / 2.0f);
+                    bgBar.setPosition(posX, posY - R * 0.65f); 
+                    bgBar.setFillColor(sf::Color(40, 10, 10, 220));
+                    bgBar.setOutlineThickness(1.0f);
+                    bgBar.setOutlineColor(sf::Color::Black);
+                    _window.draw(bgBar);
+
+                    // Jauge de vie restante
+                    if (hpPercent > 0.0f) {
+                        sf::RectangleShape hpBar(sf::Vector2f(barWidth * hpPercent, barHeight));
+                        hpBar.setPosition(posX - barWidth / 2.0f, posY - R * 0.65f - barHeight / 2.0f);
+                        
+                        sf::Color hpColor = sf::Color(50, 255, 50);
+                        if (hpPercent <= 0.5f) hpColor = sf::Color(255, 200, 0);
+                        if (hpPercent <= 0.25f) hpColor = sf::Color(255, 50, 50);
+                        
+                        hpBar.setFillColor(hpColor);
+                        _window.draw(hpBar);
+                    }
                 }
             }
         }
@@ -1780,6 +1989,21 @@ void InterfaceManager::renderGame() {
             _popupMsg = "Erreur lors de la sauvegarde !";
         }
         _showPopup = true;
+    }
+
+    bool isClient = (_network.getState() == NetworkState::CONNECTED && !_network.isHost());
+    
+    if (!isClient) {
+        ImGui::SameLine(static_cast<float>(_window.getSize().x) - 170.0f);
+        if (ImGui::Button("Sauvegarder")) {
+            std::filesystem::create_directories("saves");
+            if (SaveManager::saveGame("saves/last_save.json", this)) {
+                _popupMsg = "Partie sauvegardee avec succes !";
+            } else {
+                _popupMsg = "Erreur lors de la sauvegarde !";
+            }
+            _showPopup = true;
+        }
     }
 
     ImGui::SameLine(_window.getSize().x - 80);
@@ -1899,6 +2123,17 @@ void InterfaceManager::renderGame() {
         for (Batiment* b : _moteur.getJoueurs()[viewIndex].getBatiments()) {
             for (auto const& [res, qte] : b->getProduits()) {
                 totalProd[res] += qte;
+            }
+        }
+
+        // 3. Collecte de la production de la capitale
+        const Joueur& localJ = _moteur.getJoueurs()[viewIndex];
+        if (!localJ.getCities().empty()) {
+            for (const auto& [resName, qty] : _moteur.getLogicConfig().getProductionCapitale()) {
+                const Ressource* resPtr = _moteur.getRessourceFactory().getRessource(resName);
+                if (resPtr) {
+                    totalProd[resPtr] += qty;
+                }
             }
         }
 
@@ -2248,6 +2483,18 @@ void InterfaceManager::renderGame() {
                 
                 // Dessin du pixel/carré représentant la case
                 minimapDrawList->AddRectFilled(ImVec2(cx - R_mini*0.8f, cy - R_mini*0.8f), ImVec2(cx + R_mini*0.8f, cy + R_mini*0.8f), color);
+            
+                Unite* u = _moteur.getPlateau()->getUnite(i, j);
+                if (u && localJ.estVisible(i, j)) {
+                    int propIdx = _moteur.getProprietaireUnite(i, j);
+                    ImU32 uColor = IM_COL32(200, 200, 200, 255);
+                    
+                    if (propIdx == viewIndex) uColor = IM_COL32(50, 255, 50, 255); // Allié (Vert)
+                    else if (propIdx != -1)   uColor = IM_COL32(255, 50, 50, 255); // Ennemi (Rouge)
+
+                    minimapDrawList->AddCircleFilled(ImVec2(cx, cy), R_mini * 0.5f, uColor);
+                    minimapDrawList->AddCircle(ImVec2(cx, cy), R_mini * 0.5f, IM_COL32(0, 0, 0, 255), 0, 1.0f);
+                }
             }
         }
 
@@ -2338,6 +2585,12 @@ void InterfaceManager::renderGame() {
                     
                     ImGui::TextColored(peutPayer ? ImVec4(0.8f, 0.8f, 0.8f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", textCout.c_str());
 
+                    if (!modele->getProduits().empty()) {
+                        std::string textProd = "Produit : ";
+                        for (auto const& [res, qte] : modele->getProduits()) textProd += "+" + std::to_string(qte) + " " + res->getName() + " ";
+                        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%s", textProd.c_str());
+                    }
+
                     if (!peutPayer) ImGui::BeginDisabled();
                     if (ImGui::Button(("Fonder " + nom).c_str(), ImVec2(150, 40))) {
                         CmdFonderVille cmd = { _selectedCellX, _selectedCellY, nom };
@@ -2362,24 +2615,38 @@ void InterfaceManager::renderGame() {
             if (tc->getCity()) {
                 if (_moteur.estVilleAuJoueur(localJIdx, _selectedCellX, _selectedCellY)) {
                     actionPossible = true;
-                    
-                    bool canUpgrade = _moteur.peutAmeliorerVille(localJIdx, _selectedCellX, _selectedCellY);
-                    if (!canUpgrade) ImGui::BeginDisabled();
-                    if (ImGui::Button("Ameliorer Ville", ImVec2(150, 40))) { 
-                        CmdAmeliorer cmd = { _selectedCellX, _selectedCellY };
-                        if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
-                            _popupMsg = "Ville amelioree !";
-                        } else {
-                            _popupMsg = "Amelioration impossible.";
+
+                    bool isMaxLevel = (tc->getCity()->getLevel() >= tc->getCity()->getMaxLevel());
+
+                    if (isMaxLevel) {
+                        ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "VILLE AU NIVEAU MAXIMUM");
+                    } else {
+                        bool canUpgrade = _moteur.peutAmeliorerVille(localJIdx, _selectedCellX, _selectedCellY);
+                        if (!canUpgrade) ImGui::BeginDisabled();
+                        if (ImGui::Button("Ameliorer Ville", ImVec2(150, 40))) { 
+                            CmdAmeliorer cmd = { _selectedCellX, _selectedCellY };
+                            if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
+                                _popupMsg = "Ville amelioree !";
+                                if (isMultiplayer) {
+                                    sf::Packet p;
+                                    p << static_cast<sf::Int32>(PacketType::ACTION_UPGRADE_CITY) 
+                                      << static_cast<sf::Int32>(localJIdx) 
+                                      << _selectedCellX 
+                                      << _selectedCellY;
+                                    _network.sendData(p);
+                                }
+                            } else {
+                                _popupMsg = "Amelioration impossible.";
+                            }
+                            _showPopup = true;
                         }
-                        _showPopup = true;
-                    }
-                    if (!canUpgrade) ImGui::EndDisabled();
-                    
-                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                         ImGui::BeginTooltip();
-                         if (!canUpgrade) ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Ressources insuffisantes ou Niveau Max !");
-                         ImGui::EndTooltip();
+                        if (!canUpgrade) ImGui::EndDisabled();
+                        
+                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                            ImGui::BeginTooltip();
+                            if (!canUpgrade) ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Ressources insuffisantes ou Niveau Max !");
+                            ImGui::EndTooltip();
+                        }
                     }
 
                     ImGui::SameLine(0.0f, -1.0f);
@@ -2432,10 +2699,18 @@ void InterfaceManager::renderGame() {
                     CmdAcheterCase cmd = { _selectedCellX, _selectedCellY };
                     if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                         _popupMsg = "Territoire achete !";
+
+                        if (isMultiplayer) {
+                            sf::Packet p;
+                            p << static_cast<sf::Int32>(PacketType::ACTION_BUY_TILE) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY;
+                            _network.sendData(p);
+                        }
                     } else {
                         _popupMsg = "Erreur lors de l'achat.";
                     }
                     _showPopup = true;
+                    _casesPossibles.clear();
+                    _casesAttaquePossibles.clear();
                 }
                 if (!peutPayer) ImGui::EndDisabled();
             }
@@ -2491,14 +2766,22 @@ void InterfaceManager::renderGame() {
                         if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                             _popupMsg = "Unite detruite.";
                             if (isMultiplayer) {
-                                // A AJOUTER PLUS TARD : Synchro réseau pour la destruction
-                                // sf::Packet p; p << etc...
+                                sf::Packet p; 
+                                p << static_cast<sf::Int32>(PacketType::ACTION_DESTROY_UNIT) 
+                                  << static_cast<sf::Int32>(localJIdx) 
+                                  << _selectedCellX 
+                                  << _selectedCellY;
+                                _network.sendData(p);
                             }
                         } else {
                             _popupMsg = "Erreur lors de la destruction.";
                         }
                         _showPopup = true;
                         ImGui::CloseCurrentPopup();
+
+                        _hasSelection = false;
+                        _casesPossibles.clear();
+                        _casesAttaquePossibles.clear();
                     }
                     ImGui::SetItemDefaultFocus();
                     ImGui::SameLine(0.0f, -1.0f);
@@ -2514,11 +2797,41 @@ void InterfaceManager::renderGame() {
                     renderUnitActions(uniteSurCase);
                 } else if (_isTargetingAttack) {
                     if (ImGui::Button("CONFIRMER ATTAQUE", ImVec2(150, 40))) {
+                        // On mémorise les PV avant l'attaque
+                        Unite* uAtt = _moteur.getPlateau()->getUnite(_unitSourceX, _unitSourceY);
+                        Unite* uDef = _moteur.getPlateau()->getUnite(_selectedCellX, _selectedCellY);
+                        std::string nomAtt = uAtt ? uAtt->name() : "Unite";
+                        std::string nomDef = uDef ? uDef->name() : "Cible";
+                        int pvDefAvant = uDef ? uDef->health_point() : 0;
+                        int pvAttAvant = uAtt ? uAtt->health_point() : 0;
+
                         CmdAttaque cmd = { _unitSourceX, _unitSourceY, _selectedCellX, _selectedCellY };
-                        _moteur.soumettreCommande(localJIdx, cmd);
+                        if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
+                            
+                            // On vérifie les PV après
+                            Unite* uDefApres = _moteur.getPlateau()->getUnite(_selectedCellX, _selectedCellY);
+                            Unite* uAttApres = _moteur.getPlateau()->getUnite(_unitSourceX, _unitSourceY);
+                            
+                            int pvDefPerdus = pvDefAvant - (uDefApres ? uDefApres->health_point() : 0);
+                            int pvAttPerdus = pvAttAvant - (uAttApres ? uAttApres->health_point() : 0);
+
+                            std::string rapport = nomAtt + " inflige -" + std::to_string(pvDefPerdus) + " a " + nomDef;
+                            if (pvAttPerdus > 0) rapport += " (Riposte: -" + std::to_string(pvAttPerdus) + ")";
+                            if (!uDefApres) rapport += " [" + nomDef + " DETRUIT !]";
+                            
+                            addCombatLog(rapport, sf::Color(255, 100, 100));
+
+                            // Synchro Réseau
+                            if (isMultiplayer) {
+                                sf::Packet pk; pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _unitSourceX << _unitSourceY << _selectedCellX << _selectedCellY;
+                                _network.sendData(pk);
+                            }
+                            _popupMsg = "L'attaque a ete lancee !";
+                        } else {
+                            _popupMsg = "L'attaque a echoue.";
+                        }
                         _isTargetingAttack = false;
                         _showPopup = true;
-                        _popupMsg = "L'attaque a ete lancee !";
                     }
                 }
             }
@@ -2667,6 +2980,8 @@ void InterfaceManager::renderGame() {
         int localJIdx = isMultiplayer ? _localPlayerIndex : _moteur.getCurrentPlayerTurn();
         bool isDiscovered = _moteur.getJoueurs()[localJIdx].estDecouvert(_selectedCellX, _selectedCellY);
         
+        bool isVisible = _moteur.getJoueurs()[localJIdx].estVisible(_selectedCellX, _selectedCellY);
+
         if (tc && isDiscovered && (tc->getCity() || tc->getBatimentSpecial())) {
             bool isMine = (tc->getProprietaire() == &_moteur.getJoueurs()[localJIdx]);
 
@@ -2674,77 +2989,87 @@ void InterfaceManager::renderGame() {
             ImGui::SetNextWindowSize(ImVec2(250, 300), ImGuiCond_FirstUseEver);
             ImGui::Begin("TileInfo", nullptr, ImGuiWindowFlags_NoTitleBar);
             
-            if (tc->getCity()) {
-                City* city = tc->getCity();
-                ImGui::TextColored(isMine ? ImVec4(0.3f, 0.8f, 1.0f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "VILLE %s NIVEAU %d", isMine ? "ALLIEE" : "ENNEMIE", city->getLevel());
+            if (!isMine && !isVisible) {
+                ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "DONNEES OBSOLETES");
                 ImGui::Separator();
-                ImGui::Text("PV: %.0f/%.0f", city->getPv(), city->getPvMax());
+                if (tc->getCity()) ImGui::Text("Ville : %s", tc->getCity()->getNom().c_str());
+                else ImGui::Text("Batiment special detecte.");
+                
+                ImGui::Dummy(ImVec2(0, 20));
+                ImGui::TextDisabled("Envoyez une unite a proximite\npour actualiser l'intelligence.");
+            } else {
+                if (tc->getCity()) {
+                    City* city = tc->getCity();
+                    ImGui::TextColored(isMine ? ImVec4(0.3f, 0.8f, 1.0f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "VILLE %s NIVEAU %d", isMine ? "ALLIEE" : "ENNEMIE", city->getLevel());
+                    ImGui::Separator();
+                    ImGui::Text("PV: %.0f/%.0f", city->getPv(), city->getPvMax());
 
-                if (isMine) {
-                    ImGui::Text("Degats: %.0f", city->getDegats());
-                    ImGui::Dummy(ImVec2(0, 10));
+                    if (isMine) {
+                        ImGui::Text("Degats: %.0f", city->getDegats());
+                        ImGui::Dummy(ImVec2(0, 10));
 
-                    ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "BATIMENTS ACTUELS :");
-                    if (city->getBatiments().empty()) {
-                        ImGui::TextDisabled("  Aucun batiment.");
-                    } else {
-                        for (auto& b : city->getBatiments()) {
-                            ImGui::BulletText("%s", b->getName().c_str());
-                            if (ImGui::IsItemHovered()) {
-                                ImGui::BeginTooltip();
-                                ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "Production par tour:");
-                                ImGui::Separator();
-                                bool hasProd = false;
-                                for (auto const& [res, qte] : b->getProduits()) {
-                                    std::string resName = res->getName();
-                                    if (_resourceIcons.count(resName) > 0) {
-                                        ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
-                                        ImGui::SameLine(0.0f, -1.0f);
+                        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "BATIMENTS ACTUELS :");
+                        if (city->getBatiments().empty()) {
+                            ImGui::TextDisabled("  Aucun batiment.");
+                        } else {
+                            for (auto& b : city->getBatiments()) {
+                                ImGui::BulletText("%s", b->getName().c_str());
+                                if (ImGui::IsItemHovered()) {
+                                    ImGui::BeginTooltip();
+                                    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "Production par tour:");
+                                    ImGui::Separator();
+                                    bool hasProd = false;
+                                    for (auto const& [res, qte] : b->getProduits()) {
+                                        std::string resName = res->getName();
+                                        if (_resourceIcons.count(resName) > 0) {
+                                            ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
+                                            ImGui::SameLine(0.0f, -1.0f);
+                                        }
+                                        ImGui::Text("+%d %s", qte, resName.c_str());
+                                        hasProd = true;
                                     }
-                                    ImGui::Text("+%d %s", qte, resName.c_str());
-                                    hasProd = true;
+                                    if (!hasProd) ImGui::TextDisabled("Aucune production directe.");
+                                    ImGui::EndTooltip();
                                 }
-                                if (!hasProd) ImGui::TextDisabled("Aucune production directe.");
-                                ImGui::EndTooltip();
                             }
                         }
                     }
-                }
-            } 
-            else if (tc->getBatimentSpecial()) {
-                const Batiment* bat = tc->getBatimentSpecial();
-                ImGui::TextColored(isMine ? ImVec4(0.9f, 0.5f, 0.2f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "BATIMENT SPECIAL");
-                ImGui::Separator();
-                ImGui::Text("%s (Niv %d)", bat->getName().c_str(), bat->getLevel());
-                
-                if (isMine) {
-                    ImGui::Dummy(ImVec2(0, 10));
-                    ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "COUT CONSTRUCTION :");
-                    for (auto const& [res, qte] : bat->getResourceConstr()) {
-                        std::string resName = res->getName();
-                        if (_resourceIcons.count(resName) > 0) {
-                            ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
-                            ImGui::SameLine(0.0f, -1.0f);
+                } 
+                else if (tc->getBatimentSpecial()) {
+                    const Batiment* bat = tc->getBatimentSpecial();
+                    ImGui::TextColored(isMine ? ImVec4(0.9f, 0.5f, 0.2f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "BATIMENT SPECIAL");
+                    ImGui::Separator();
+                    ImGui::Text("%s (Niv %d)", bat->getName().c_str(), bat->getLevel());
+                    
+                    if (isMine) {
+                        ImGui::Dummy(ImVec2(0, 10));
+                        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "COUT CONSTRUCTION :");
+                        for (auto const& [res, qte] : bat->getResourceConstr()) {
+                            std::string resName = res->getName();
+                            if (_resourceIcons.count(resName) > 0) {
+                                ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
+                                ImGui::SameLine(0.0f, -1.0f);
+                            }
+                            ImGui::Text("%d %s", qte, resName.c_str());
                         }
-                        ImGui::Text("%d %s", qte, resName.c_str());
-                    }
 
-                    ImGui::Dummy(ImVec2(0, 5));
-                    ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "PRODUCTION STATUT :");
-                    bool hasProd = false;
-                    for (auto const& [res, qte] : bat->getProduits()) {
-                        std::string resName = res->getName();
-                        if (_resourceIcons.count(resName) > 0) {
-                            ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
-                            ImGui::SameLine(0.0f, -1.0f);
+                        ImGui::Dummy(ImVec2(0, 5));
+                        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "PRODUCTION STATUT :");
+                        bool hasProd = false;
+                        for (auto const& [res, qte] : bat->getProduits()) {
+                            std::string resName = res->getName();
+                            if (_resourceIcons.count(resName) > 0) {
+                                ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
+                                ImGui::SameLine(0.0f, -1.0f);
+                            }
+                            ImGui::Text("+%d %s / tour", qte, resName.c_str());
+                            hasProd = true;
                         }
-                        ImGui::Text("+%d %s / tour", qte, resName.c_str());
-                        hasProd = true;
+                        if (!hasProd) ImGui::TextDisabled("  Aucune production.");
                     }
-                    if (!hasProd) ImGui::TextDisabled("  Aucune production.");
                 }
+                ImGui::End();
             }
-            ImGui::End();
         }
     }
 
@@ -2778,7 +3103,115 @@ void InterfaceManager::renderGame() {
         _hasSelection = false;
     }
 
+    // RENDU DU COMBAT LOG FLOTTANT
+    if (!_combatLogs.empty()) {
+        ImGui::SetNextWindowPos(ImVec2(_window.getSize().x - 320, 200), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(300, 0), ImGuiCond_Always);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.6f));
+        ImGui::Begin("Journal de Combat", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs);
+        
+        float dt = ImGui::GetIO().DeltaTime;
+        for (auto it = _combatLogs.begin(); it != _combatLogs.end(); ) {
+            it->timer -= dt;
+            
+            sf::Color c = it->color;
+            if (it->timer < 1.0f) c.a = static_cast<sf::Uint8>(std::max(0.0f, it->timer * 255.0f));
+            
+            ImGui::TextColored(ImVec4(c.r/255.f, c.g/255.f, c.b/255.f, c.a/255.f), "⚔ %s", it->message.c_str());
+            
+            if (it->timer <= 0.0f) it = _combatLogs.erase(it);
+            else ++it;
+        }
+        ImGui::End();
+        ImGui::PopStyleColor();
+    }
+
     renderChatWindow();
+
+    // --------------------------------------------------------
+    // 7. VÉRIFICATION ET ÉCRAN DE VICTOIRE
+    // --------------------------------------------------------
+    static std::string winnerName = "";
+    static bool gameOver = false;
+
+    // Vérifie la victoire à chaque frame
+    if (!gameOver && _moteur.getPlateau()) {
+        for (const Joueur& j : _moteur.getJoueurs()) {
+            if (_moteur.getArbitre().verifierVictoire(j, _moteur.getLogicConfig())) {
+                winnerName = j.getName();
+                gameOver = true;
+                break;
+            }
+        }
+    }
+
+    // Ecran titre
+    if (gameOver) {
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImVec2(_window.getSize().x, _window.getSize().y));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
+        ImGui::Begin("GameOverOverlay", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGui::End();
+        ImGui::PopStyleColor();
+
+        // Fenêtre de Victoire
+        ImVec2 winSize(500, 250);
+        ImGui::SetNextWindowPos(ImVec2((_window.getSize().x - winSize.x) / 2.0f, (_window.getSize().y - winSize.y) / 2.0f));
+        ImGui::SetNextWindowSize(winSize);
+        ImGui::Begin("Victoire", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings);
+        
+        ImGui::Dummy(ImVec2(0, 20));
+        ImGui::SetCursorPosX((winSize.x - ImGui::CalcTextSize("FIN DE LA PARTIE").x) / 2.0f);
+        ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "FIN DE LA PARTIE");
+        ImGui::Separator();
+        
+        ImGui::Dummy(ImVec2(0, 20));
+        std::string winText = "VICTOIRE DU COMMANDANT " + winnerName + " !";
+        ImGui::SetCursorPosX((winSize.x - ImGui::CalcTextSize(winText.c_str()).x) / 2.0f);
+        ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "%s", winText.c_str());
+        
+        ImGui::Dummy(ImVec2(0, 50));
+        ImGui::SetCursorPosX((winSize.x - 250) / 2.0f);
+        if (ImGui::Button("RETOURNER AU MENU PRINCIPAL", ImVec2(250, 50))) {
+            gameOver = false;
+            winnerName = "";
+            _network.disconnect();
+            _hasSelection = false;
+            _casesPossibles.clear();
+            _casesAttaquePossibles.clear();
+            
+            if (std::filesystem::exists("saves/last_save.json")) {
+                std::filesystem::remove("saves/last_save.json");
+            }
+            
+            _previousState = GameState::MENU;
+            _currentState = GameState::MENU;
+        }
+        ImGui::End();
+    }
+
+    // --------------------------------------------------------
+    // 8. NOTIFICATION "C'EST VOTRE TOUR"
+    // --------------------------------------------------------
+    if (_turnNotificationTimer > 0.0f) {
+        _turnNotificationTimer -= ImGui::GetIO().DeltaTime;
+        
+        ImVec2 centerUi = ImVec2(_window.getSize().x * 0.5f, _window.getSize().y * 0.3f);
+        ImGui::SetNextWindowPos(centerUi, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        
+        float alpha = std::min(1.0f, _turnNotificationTimer); 
+        
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f * alpha));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.7f, 0.3f, alpha));
+        ImGui::Begin("TurnNotification", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+        
+        ImGui::Dummy(ImVec2(20, 10));
+        ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, alpha), ">>> C'EST VOTRE TOUR DE COMMANDEMENT ! <<<");
+        ImGui::Dummy(ImVec2(20, 10));
+        
+        ImGui::End();
+        ImGui::PopStyleColor(2);
+    }
 }
 
 
@@ -3078,5 +3511,12 @@ void InterfaceManager::sendLobbySync() {
         }
 
         _network.sendData(p);
+    }
+}
+
+void InterfaceManager::addCombatLog(const std::string& msg, sf::Color col) {
+    _combatLogs.push_back({msg, col, 8.0f});
+    if (_combatLogs.size() > 10) {
+        _combatLogs.erase(_combatLogs.begin());
     }
 }

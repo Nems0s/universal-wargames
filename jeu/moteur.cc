@@ -106,6 +106,9 @@ void MoteurDeJeu::passerTour() {
     Joueur& currentJ = _joueurs[_currentPlayerTurn];
     for (City* v : currentJ.getCities()) {
         v->product(currentJ);
+        for (const auto& [resPtr, qty] : v->getProduits()) {
+            currentJ.ajouterRessource(resPtr, qty);
+        }
     }
     if (!currentJ.getCities().empty()) {
         for (const auto& [resName, qty] : _logicConfig.getProductionCapitale()) {
@@ -306,7 +309,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdFonderVille& cmd) {
 
     if (modeleVille->estCapitale() && j.getNbVilles() > 0) return ResultatAction::ECHEC_ARBITRE_REFUS;
 
-    auto coutVille = _arbitre.getCostNouvelleVille(j, modeleVille->getCoutBase());
+    auto coutVille = getCoutFondationVille(pIdx, cmd.nomVille);
     if (!_arbitre.peutPayer(coutVille, j)) return ResultatAction::ECHEC_FONDS_INSUFFISANTS;
     
     j.payer(coutVille);
@@ -605,6 +608,15 @@ std::map<const Ressource*, int> MoteurDeJeu::getCoutFondationVille(int pIdx, con
     auto it = _cityFactory.getCatalogue().find(nomVille);
     if (it == _cityFactory.getCatalogue().end()) return {};
 
+    std::map<const Ressource*, int> coutBase = it->second->getCoutBase();
+    if (coutBase.empty() && !it->second->estCapitale()) {
+        for (const auto& [nomRes, qte] : _logicConfig.getCoutBaseVille()) {
+            if (_ressourcesDispo.count(nomRes)) {
+                coutBase[_ressourcesDispo.at(nomRes)] = qte;
+            }
+        }
+    }
+
     return _arbitre.getCostNouvelleVille(_joueurs[pIdx], it->second->getCoutBase());
 }
 
@@ -634,6 +646,15 @@ std::vector<std::pair<int, int>> MoteurDeJeu::getDeplacementsPossibles(int joueu
     Unite* u = _plateau->getUnite(x, y);
     if (u && _arbitre.appartientJoueur(_joueurs[joueurIdx], *u)) {
         return _arbitre.getCasesDeplacementPossibles(*_plateau, *u);
+    }
+    return {};
+}
+
+std::vector<std::pair<int, int>> MoteurDeJeu::getAttaquesPossibles(int joueurIdx, int x, int y) const {
+    if (joueurIdx < 0 || joueurIdx >= (int)_joueurs.size()) return {};
+    Unite* u = _plateau->getUnite(x, y);
+    if (u && _arbitre.appartientJoueur(_joueurs[joueurIdx], *u)) {
+        return _arbitre.getCasesAttaquePossibles(_joueurs[joueurIdx], *_plateau, *u);
     }
     return {};
 }

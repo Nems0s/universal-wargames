@@ -84,6 +84,7 @@ public:
     bool peutRecruterUnite(int pIdx, const std::string& nomUnite) const;
     int getProprietaireUnite(int x, int y) const;
     std::vector<std::pair<int, int>> getDeplacementsPossibles(int joueurIdx, int x, int y) const;
+    std::vector<std::pair<int, int>> getAttaquesPossibles(int joueurIdx, int x, int y) const;
     bool peutPivoter(int pIdx, int x, int y) const;
     bool peutAttaquer(int pIdx, int xSrc, int ySrc, int xDest, int yDest) const;
 

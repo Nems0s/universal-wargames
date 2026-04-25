@@ -9,17 +9,17 @@ using json = nlohmann::json;
 
 // init
 
-City::City(int x, int y, const std::string& nom, bool capitale, int maxLvl, float pvB, float dmgB, int visB, int rayB, const std::map<const Ressource*, int>& coutB, const std::string& tex)
+City::City(int x, int y, const std::string& nom, bool capitale, int maxLvl, float pvB, float dmgB, int visB, int rayB, const std::map<const Ressource*, int>& coutB, const std::map<const Ressource*, int>& prodB, const std::string& tex)
     : _x(x), _y(y), _nom(nom), _estCapitale(capitale), _level(1), _maxLevel(maxLvl),
       _pvMaxBase(pvB), _pvCurrent(pvB), _pvMax(pvB),
       _damageBase(dmgB), _damage(dmgB),
       _visionRangeBase(visB), _visionRange(visB),
-      _rayonBase(rayB), _coutBase(coutB), _texturePath(tex),
+      _rayonBase(rayB), _coutBase(coutB), _productionBase(prodB), _texturePath(tex),
       _nbBatiments(static_cast<size_t>(maxLvl))
 {}
 
 std::unique_ptr<City> City::clone(int x, int y) const {
-    return std::make_unique<City>(x, y, _nom, _estCapitale, _maxLevel, _pvMaxBase, _damageBase, _visionRangeBase, _rayonBase, _coutBase, _texturePath);
+    return std::make_unique<City>(x, y, _nom, _estCapitale, _maxLevel, _pvMaxBase, _damageBase, _visionRangeBase, _rayonBase, _coutBase, _productionBase, _texturePath);
 }
 
 
@@ -42,6 +42,9 @@ void City::upgrade() {
 void City::product(Joueur & j) {
     for (auto& b : _batiments) {
         b->action(j); 
+    }
+    for (auto const& [res, qte] : _productionBase) {
+        j.ajouterRessource(res, qte);
     }
 }
 
@@ -77,8 +80,17 @@ void JsonCityReader::load(const std::string & chemin, std::map<std::string, std:
             }
         }
 
+        std::map<const Ressource*, int> prodMap;
+        if (item.contains("production_base")) {
+            for (auto& it : item["production_base"].items()) {
+                if (ressourcesDispo.count(it.key())) {
+                    prodMap[ressourcesDispo.at(it.key())] = it.value();
+                }
+            }
+        }
+
         catalogue[nom] = std::make_shared<City>(
-            0, 0, nom, capitale, maxLvl, pvB, dmgB, visB, rayB, coutMap, tex
+            0, 0, nom, capitale, maxLvl, pvB, dmgB, visB, rayB, coutMap, prodMap, tex
         );
     }
 }

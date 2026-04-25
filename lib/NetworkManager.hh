@@ -15,6 +15,9 @@ enum class PacketType : sf::Int32 {
     ACTION_BUILD_CITY,
     ACTION_ATTACK, // Attaque d'unité
     ACTION_ROTATE, // Changement d'orientation d'unité
+    ACTION_UPGRADE_CITY, 
+    ACTION_BUY_TILE,
+    ACTION_DESTROY_UNIT,
     SYNC_BUILD,     // Envoie des informations de build PEUT CHEAT AVEC CHEAT ENGINE CAR DANS LA RAM
     END_TURN       // Fin de tour
 };

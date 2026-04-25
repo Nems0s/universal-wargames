@@ -95,6 +95,10 @@ private:
     int _unitSourceX = -1;
     int _unitSourceY = -1;
     std::vector<std::pair<int, int>> _casesPossibles;
+    std::vector<std::pair<int, int>> _casesAttaquePossibles;
+
+    bool _wasMyTurn = true;
+    float _turnNotificationTimer = 0.0f;
 
     // Drag and Drop
     bool _isDragging = false;
@@ -104,6 +108,15 @@ private:
     // Rotation et Apercu
     bool _hasPreviewRotation = false;
     direction _previewDirection = direction::est;
+
+    // Système de log de combat
+    struct CombatLogEntry {
+        std::string message;
+        sf::Color color;
+        float timer;
+    };
+    std::vector<CombatLogEntry> _combatLogs;
+    void addCombatLog(const std::string& msg, sf::Color col = sf::Color::White);
 
 public:
     InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur);
