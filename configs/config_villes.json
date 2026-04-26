@@ -12,19 +12,19 @@
             "texture": ""
         },
         {
-            "nom": "Colonie",
             "cout_base": {
                 "Fer": 0,
-                "Or": 150
-            },
-            "production_base": {
-                "Fer": 0,
-                "Or": 10
+                "Or": 0
             },
             "degats_base": 20.0,
             "est_capitale": false,
             "max_level": 3,
+            "nom": "Colonie",
             "portee_vue": 3,
+            "production_base": {
+                "Fer": 0,
+                "Or": 10
+            },
             "pv_max_base": 200.0,
             "rayon_base": 2,
             "texture": ""

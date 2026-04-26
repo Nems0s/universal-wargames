@@ -66,11 +66,22 @@ void GameConfig::loadRules(const std::string& chemin) {
             _productionCapitale[resName] = qty;
         }
     }
+
+    if (data.contains("regles_entretien")) {
+        if (data["regles_entretien"].contains("cout_defaut")) {
+            for (auto& [res, qte] : data["regles_entretien"]["cout_defaut"].items()) {
+                _entretienCoutDefaut[res] = qte;
+            }
+        }
+        _capaciteBase = data["regles_entretien"].value("capacite_ville", 5);
+        _capaciteVilleNiveau = data["regles_entretien"].value("capacite_ville_niveau", 3);
+    }
 }
 
 void GameConfig::loadWins(const std::string & chemin) {
     std::ifstream f(chemin);
     json data = json::parse(f);
+    _victorySets.clear();
 
     for (auto& setJson : data["victory_set"]) {
         VictorySet vSet;
@@ -85,6 +96,7 @@ void GameConfig::loadWins(const std::string & chemin) {
             else if (typeStr == "city_count") cond.type = WinType::CITY_COUNT;
             else if (typeStr == "unit_count") cond.type = WinType::UNIT_COUNT;
             else if (typeStr == "require_capital") cond.type = WinType::CAPITAL_REQ;
+            else if (typeStr == "capital_conquest") cond.type = WinType::CAPITAL_CONQUEST;
 
             cond.resourceName = item.value("target", "");
             cond.targetAmount = item.value("amount", 0);

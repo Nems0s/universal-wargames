@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
-Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, const std::string& texturePath)
+Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
@@ -18,6 +18,7 @@ Unite::Unite(const std::string &name, int hp, int point_action, int vision, int 
     _rank(r),
     _liste_comportements(liste_comportements),
     _cout(cout),
+    _cout_entretien(cout_entretien),
     _visionRange(vision),
     _fov(fov),
     _texturePath(texturePath)
@@ -390,6 +391,13 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
             }
         }
 
+        std::map<const Ressource*, int> coutEntretienUnite;
+        if (item.contains("cout_entretien")) {
+            for (auto it = item["cout_entretien"].begin(); it != item["cout_entretien"].end(); ++it) {
+                if (ressources.count(it.key())) coutEntretienUnite[ressources.at(it.key())] = it.value();
+            }
+        }
+
         std::shared_ptr<IRank> rank = stringToRank("Regulier");
         if(item.contains("rank"))
         {
@@ -433,7 +441,7 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
             std::string tex = item.value("texture", "");
             int vision = item.value("vision", 2);
             int fov = item.value("fov", 80);
-            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, vision, fov, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, tex);
+            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, vision, fov, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, coutEntretienUnite, tex);
         }   
     }
 }

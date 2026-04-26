@@ -117,9 +117,49 @@ void MoteurDeJeu::passerTour() {
             }
         }
     }
-    if (_arbitre.verifierVictoire(currentJ, _logicConfig)) {
-        std::cout << "Victoire de " << currentJ.getName() << std::endl;
+
+    std::map<const Ressource*, int> factureTotale;
+    for (Unite* u : currentJ.getUnites()) {
+        if (!u) continue;
+        auto coutU = u->getCoutEntretien();
+        
+        if (coutU.empty()) {
+            for (auto const& [nomRes, qte] : _logicConfig.getEntretienCoutDefaut()) {
+                const Ressource* r = _ressourceFactory.getRessource(nomRes);
+                if (r) factureTotale[r] += qte;
+            }
+        } else {
+            for (auto const& [resPtr, qte] : coutU) {
+                factureTotale[resPtr] += qte;
+            }
+        }
     }
+
+    if (!factureTotale.empty()) {
+        if (_arbitre.peutPayer(factureTotale, currentJ)) {
+            currentJ.payer(factureTotale);
+        } else {
+            std::map<const Ressource*, int> fondDeTiroir;
+            for (auto const& [resPtr, qteDemandee] : factureTotale) {
+                auto invIt = currentJ.getInventaire().find(resPtr);
+                if (invIt != currentJ.getInventaire().end()) {
+                    fondDeTiroir[resPtr] = invIt->second;
+                }
+            }
+            currentJ.payer(fondDeTiroir); 
+            
+            for (Unite* u : currentJ.getUnites()) {
+                if (u) {
+                    int degats = std::max(1, (int)(u->health_point_max() * 0.15f));
+                    u->setHealth_point(u->health_point() - degats);
+                    if (u->health_point() <= 0) u->setHealth_point(1); 
+                }
+            }
+        }
+    }
+
+    verifierVictoireGlobale();
+
     for (Unite* u : currentJ.getUnites()) {
         if (u) u->setPoint_action(u->point_action_max());
     }
@@ -166,7 +206,12 @@ void MoteurDeJeu::chargerPartieDepuisJson(const nlohmann::json& j, const std::ve
     _tourActuel = j["game_state"]["turn"];
     _currentPlayerTurn = j["game_state"]["current_player"];
 
-    // 2. Restaurer les Joueurs, Villes et Unités
+    // 2. Restaurer les conditions de victoire
+    if (j["game_state"].contains("victory_set")) {
+        _logicConfig.setActiveVictorySet(j["game_state"]["victory_set"]);
+    }
+
+    // 3. Restaurer les Joueurs, Villes et Unités
     for (size_t i = 0; i < j["players"].size(); ++i) {
         Joueur& joueurActuel = _joueurs[i];
         
@@ -263,6 +308,8 @@ ResultatAction MoteurDeJeu::soumettreCommande(int pIdx, const CommandeJeu& comma
     if (res == ResultatAction::SUCCES) {
         actualiserVisibiliteJoueur(pIdx);
     }
+
+    verifierVictoireGlobale();
 
     return res;
 }
@@ -428,6 +475,16 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAttaque& cmd) {
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRecrutement& cmd) {
     Joueur& j = _joueurs[pIdx];
+
+    int capaciteMax = _logicConfig.getCapaciteBase();
+    for (City* c : j.getCities()) {
+        if (c) capaciteMax += c->getLevel() * _logicConfig.getCapaciteVilleNiveau();
+    }
+    
+    if ((int)j.getUnites().size() >= capaciteMax) {
+        return ResultatAction::ECHEC_ARBITRE_REFUS;
+    }
+
     auto unite = _uniteFactory.create(cmd.nomUnite);
     if (!unite) return ResultatAction::ECHEC_ARBITRE_REFUS;
     if (_plateau->getUnite(cmd.x, cmd.y) != nullptr) return ResultatAction::ECHEC_COORD_INVALIDE;
@@ -676,4 +733,31 @@ bool MoteurDeJeu::peutAttaquer(int pIdx, int xSrc, int ySrc, int xDest, int yDes
         if (_arbitre.peutAttaquer(_joueurs[pIdx], *att, *def, attComp)) return true;
     }
     return false;
+}
+
+std::vector<std::pair<int, int>> MoteurDeJeu::getTerritoireJoueur(int pIdx) const {
+    std::vector<std::pair<int, int>> territoire;
+    if (!_plateau || pIdx < 0 || pIdx >= (int)_joueurs.size()) return territoire;
+
+    for (int i = 0; i < _plateau->getRows(); ++i) {
+        for (int y = 0; y < _plateau->getCols(); ++y) {
+            if (estDansTerritoire(pIdx, i, y)) {
+                territoire.push_back({i, y});
+            }
+        }
+    }
+    return territoire;
+}
+
+void MoteurDeJeu::verifierVictoireGlobale() {
+    if (_partieTerminee) return;
+
+    for (const Joueur& j : _joueurs) {
+        if (_arbitre.verifierVictoire(j, _logicConfig)) {
+            _partieTerminee = true;
+            _nomVainqueur = j.getName();
+            std::cout << "VICTOIRE DETECTEE : " << _nomVainqueur << " REMPORTE LA PARTIE" << std::endl;
+            break;
+        }
+    }
 }

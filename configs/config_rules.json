@@ -1,6 +1,7 @@
 {
     "factions": [
         {
+            "image": "assets/human.png",
             "nom": "Humains",
             "specifications": {
                 "gravite": 1,
@@ -9,6 +10,7 @@
             }
         },
         {
+            "image": "",
             "nom": "Extraterrestres",
             "specifications": {
                 "gravite": 2,
@@ -39,6 +41,13 @@
     },
     "production_capitale": {
         "Or": 10
+    },
+    "regles_entretien": {
+        "capacite_ville": 5,
+        "capacite_ville_niveau": 3,
+        "cout_defaut": {
+            "Or": 1
+        }
     },
     "regles_unites": {
         "cout_rotation": 1

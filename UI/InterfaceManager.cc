@@ -143,15 +143,12 @@ void InterfaceManager::run() {
             // CLIC GAUCHE ET DRAG AND DROP
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                 bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
-                
                 bool isWaitingForPlayer = (isMultiplayer && _network.isHost() && (int)_connectedPlayers.size() < _numPlayers);
-
                 int currentTurn = _moteur.getCurrentPlayerTurn();
-
-                // En local = toujours notre tour, en Multi = vérifie l'index
                 bool isMyTurn = !isMultiplayer || (currentTurn == _localPlayerIndex);
+                bool canInteract = (!_gameOver ||_gameContinuesAfterWin);
 
-                if (_currentState == GameState::IN_GAME && !ImGui::GetIO().WantCaptureMouse && !isWaitingForPlayer) {
+                if (_currentState == GameState::IN_GAME && canInteract && !ImGui::GetIO().WantCaptureMouse && !isWaitingForPlayer) {
                     sf::Vector2i pixelPos = sf::Mouse::getPosition(_window);
                     sf::Vector2f worldPos = _window.mapPixelToCoords(pixelPos, _gameView);
                     float R = _tileSize / 2.0f; float W = std::sqrt(3.0f) * R;
@@ -469,7 +466,7 @@ void InterfaceManager::renderMenu() {
     if (std::filesystem::exists("saves/last_save.json")) {
         ImGui::SetCursorPos(ImVec2(btnX, startY));
         if (ImGui::Button("CHARGER SAUVEGARDE", buttonSize)) {
-            if (SaveManager::loadGame("saves/last_save.json", this)) {
+            if (SaveManager::saveGame("saves/last_save.json", _moteur)) {
                 _previousState = GameState::MENU;
                 _currentState = GameState::IN_GAME;
             } else {
@@ -719,17 +716,6 @@ void InterfaceManager::renderFactionSelect() {
     ImGui::SetColumnWidth(0, 600);
 
     bool isClient = (_network.getState() == NetworkState::CONNECTED && !_network.isHost());
-    ImGui::SetCursorPosX((menuSize.x - 420) * 0.5f);
-    if (isClient) ImGui::BeginDisabled();
-    if (ImGui::Button("GAME SETTINGS", ImVec2(200, 35))) _currentOptionsTab = OptionsTab::GAME_SETTINGS;
-    if (isClient) ImGui::EndDisabled();
-    
-    ImGui::SameLine(0, 20);
-    if (ImGui::Button("GRAPHICS", ImVec2(200, 35))) _currentOptionsTab = OptionsTab::GRAPHICS;
-
-    if (isClient && _currentOptionsTab == OptionsTab::GAME_SETTINGS) {
-        _currentOptionsTab = OptionsTab::GRAPHICS;
-    }
     
     bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
 
@@ -811,6 +797,23 @@ void InterfaceManager::renderFactionSelect() {
             ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "%s", myFaction.c_str());
             ImGui::Dummy(ImVec2(0, 10));
             
+            if (_factionTextures.count(myFaction)) {
+                sf::Texture& tex = _factionTextures[myFaction];
+                
+                float maxImgHeight = 180.0f;
+                float ratio = (float)tex.getSize().x / (float)tex.getSize().y;
+                float imgWidth = maxImgHeight * ratio;
+                
+                if (imgWidth > 350.0f) {
+                    imgWidth = 350.0f;
+                    maxImgHeight = imgWidth / ratio;
+                }
+                
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (350.0f - imgWidth) * 0.5f);
+                ImGui::Image(tex, sf::Vector2f(imgWidth, maxImgHeight));
+                ImGui::Dummy(ImVec2(0, 10));
+            }
+            
             const auto& factionParams = factions[myFaction];
             if (factionParams.params.empty()) {
                 ImGui::TextDisabled("Aucune specification particuliere.");
@@ -833,9 +836,19 @@ void InterfaceManager::renderFactionSelect() {
     ImGui::Separator();
     
     if (ImGui::Button("RETOUR", ImVec2(150, 40))) {
-        if (isMultiplayer) _currentState = GameState::HOST_LOBBY;
-        else _currentState = GameState::PLAY_MENU;
-        sendLobbySync();
+        if (isMultiplayer) {
+            if (isClient) {
+                _network.disconnect();
+                _connectedPlayers.clear();
+                _hasSentName = false;
+                _currentState = GameState::MULTI_MENU;
+            } else {
+                _currentState = GameState::HOST_LOBBY;
+                sendLobbySync();
+            }
+        } else {
+            _currentState = GameState::PLAY_MENU;
+        }
     }
     
     ImGui::SameLine(menuSize.x - 165);
@@ -886,6 +899,18 @@ void InterfaceManager::renderMapConfig() {
             _rulesJson["taille_plateau"]["x"] = s;
             _rulesJson["taille_plateau"]["y"] = s;
             sendLobbySync();
+        }
+
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+        ImGui::Text("Condition de Victoire:"); ImGui::SameLine(150);
+        
+        std::vector<std::string> vicNames;
+        for (const auto& vs : _moteur.getLogicConfig().getVictorySets()) {
+            vicNames.push_back(vs.name);
+        }
+        
+        if (DrawArrowSelector("##vicSelect", &_selectedVictoryIndex, vicNames)) {
+            sendLobbySync(); 
         }
 
         ImGui::Text("Random Seed:"); ImGui::SameLine(150);
@@ -969,11 +994,12 @@ void InterfaceManager::renderMapConfig() {
     if (ImGui::Button("LAUNCH SECTOR", ImVec2(150, 40))) {
         // Lancement classique
         saveConfig();
+        _moteur.setActiveVictorySet(_selectedVictoryIndex);
         initGame();
         
         if (_network.getState() == NetworkState::CONNECTED && _network.isHost()) {
             sf::Packet startPacket;
-            startPacket << static_cast<sf::Int32>(PacketType::GAME_START) << _mapSeed << _numPlayers; 
+            startPacket << static_cast<sf::Int32>(PacketType::GAME_START) << static_cast<sf::Int32>(_mapSeed) << static_cast<sf::Int32>(_numPlayers) << static_cast<sf::Int32>(_selectedVictoryIndex); 
             startPacket << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["x"]) << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["y"]);
             startPacket << static_cast<sf::Int32>(_customWeights.size());
             for (auto const& [symb, weight] : _customWeights) {
@@ -1089,7 +1115,7 @@ void InterfaceManager::renderHostLobby() {
         ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Pret a lancer !");
         
         ImGui::SetCursorPos(ImVec2(200, 250));
-        if (ImGui::Button("CONFIGURER LA CARTE", ImVec2(200, 50))) {
+        if (ImGui::Button("CONFIGURER LA PARTIE", ImVec2(200, 50))) {
             _numPlayers = _connectedPlayers.size(); 
             _currentState = GameState::FACTION_SELECT; 
         }
@@ -1224,7 +1250,12 @@ void InterfaceManager::updateNetworkLoop() {
                         }
                         
                         // C. Synchroniser la config
-                        packet >> _mapSeed >> _numPlayers;
+                        sf::Int32 s_seed, s_numP, s_vicIdx;
+                        if (packet >> s_seed >> s_numP >> s_vicIdx) {
+                            _mapSeed = s_seed;
+                            _numPlayers = s_numP;
+                            _selectedVictoryIndex = s_vicIdx;
+                        }
 
                         sf::Int32 sizeX, sizeY;
                         packet >> sizeX >> sizeY;
@@ -1245,8 +1276,10 @@ void InterfaceManager::updateNetworkLoop() {
                 
                 // L'Hôte lance la partie
                 case PacketType::GAME_START: {
-                    if (packet >> _mapSeed >> _numPlayers) {
-                        
+                    sf::Int32 vicIdx;
+                    if (packet >> _mapSeed >> _numPlayers >> vicIdx) {
+                        _moteur.setActiveVictorySet(vicIdx);
+
                         sf::Int32 sizeX, sizeY, weightsCount;
                         packet >> sizeX >> sizeY >> weightsCount;
                         
@@ -1313,6 +1346,16 @@ void InterfaceManager::updateNetworkLoop() {
                     int xSrc, ySrc, xDest, yDest;
                     if (packet >> pIdx >> xSrc >> ySrc >> xDest >> yDest) {
                         CmdDeplacement cmd = { xSrc, ySrc, xDest, yDest };
+                        _moteur.soumettreCommande(pIdx, cmd);
+                    }
+                    break;
+                }
+
+                // L'autre joueur a recruté une unité
+                case PacketType::ACTION_RECRUIT: {
+                    sf::Int32 pIdx; int x, y; std::string nomUnite;
+                    if (packet >> pIdx >> x >> y >> nomUnite) {
+                        CmdRecrutement cmd = { x, y, nomUnite };
                         _moteur.soumettreCommande(pIdx, cmd);
                     }
                     break;
@@ -1653,40 +1696,48 @@ void InterfaceManager::renderGame() {
 
             // --- TRACÉ DES TERRITOIRES ---
             static const sf::Color playerColors[] = {
-                sf::Color(80, 180, 255), sf::Color(255, 80, 80), sf::Color(80, 255, 80), sf::Color(255, 200, 0)
+                sf::Color(80, 180, 255, 255), sf::Color(255, 80, 80, 255), sf::Color(80, 255, 80, 255), sf::Color(255, 200, 0, 255)
             };
 
             for (int pIdx = 0; pIdx < (int)_moteur.getJoueurs().size(); ++pIdx) {
-                if (_moteur.estDansTerritoire(pIdx, i, j)) {
-                    sf::Color borderCol = playerColors[pIdx % 4];
-                    borderCol.a = 200;
+                auto territoireVec = _moteur.getTerritoireJoueur(pIdx);
+                if (territoireVec.empty()) continue;
 
-                    // Voisins hexagonaux : offsets dépendant de la parité de la ligne
-                    // L'ordre correspond aux 6 côtés de l'hexagone (indices de hexOffsets)
-                    const int neighEven[6][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {0, -1}};
-                    const int neighOdd[6][2]  = {{-1, -1}, {-1, 0}, {0, 1}, {1, 0}, {1, -1}, {0, -1}};
+                std::set<std::pair<int, int>> territoireMap(territoireVec.begin(), territoireVec.end());
+                
+                const int neighEven[6][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 0}, {0, -1}, {-1, -1}};
+                const int neighOdd[6][2]  = {{-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+
+                for (const auto& tuile : territoireVec) {
+                    int i = tuile.first;
+                    int j = tuile.second;
+                    
+                    if (i < startRow - 2 || i > endRow + 2 || j < startCol - 2 || j > endCol + 2) continue;
+
+                    float posX = W * j + W * 0.5f * (std::abs(i) % 2);
+                    float posY = 1.5f * R * i;
+
                     const auto& neigh = (std::abs(i) % 2 == 0) ? neighEven : neighOdd;
-
-                    int rows = _moteur.getPlateau()->getRows();
-                    int cols = _moteur.getPlateau()->getCols();
 
                     for (int side = 0; side < 6; ++side) {
                         int ni = i + neigh[side][0];
                         int nj = j + neigh[side][1];
 
-                        bool neighborInTerritory = (ni >= 0 && ni < rows && nj >= 0 && nj < cols)
-                                                   && _moteur.estDansTerritoire(pIdx, ni, nj);
-                        
-                        if (!neighborInTerritory) {
-                            sf::Vector2f p1(posX + R * hexOffsets[side].x, posY + R * hexOffsets[side].y);
-                            sf::Vector2f p2(posX + R * hexOffsets[(side+1)%6].x, posY + R * hexOffsets[(side+1)%6].y);
+                        if (territoireMap.find({ni, nj}) == territoireMap.end()) {
+                            sf::Color borderCol = playerColors[pIdx % 4];
+
+                            sf::Vector2f p1(posX + R * std::cos(PI/180.0f * (60.0f * side - 30.0f)), posY + R * std::sin(PI/180.0f * (60.0f * side - 30.0f)));
+                            sf::Vector2f p2(posX + R * std::cos(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)), posY + R * std::sin(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)));
 
                             sf::Vector2f dir = p2 - p1;
                             float len = std::sqrt(dir.x*dir.x + dir.y*dir.y);
                             dir.x /= len; dir.y /= len;
                             sf::Vector2f normal(-dir.y, dir.x);
                             
-                            float thickness = 4.0f;
+                            float thickness = 3.0f;
+                            float extension = thickness / 1.732f;
+                            p1 -= dir * extension;
+                            p2 += dir * extension;
 
                             sf::Vertex q1, q2, q3, q4;
                             q1.position = p1 - normal * (thickness / 2.0f); q1.color = borderCol;
@@ -1734,9 +1785,7 @@ void InterfaceManager::renderGame() {
     if (attackBatch.getVertexCount() > 0) _window.draw(attackBatch);
     if (selectBatch.getVertexCount() > 0) _window.draw(selectBatch);
     if (territoryBatch.getVertexCount() > 0) {
-        sf::RenderStates states;
-        states.blendMode = sf::BlendAdd;
-        _window.draw(territoryBatch, states);
+        _window.draw(territoryBatch);
     }
 
     // ==========================================================
@@ -1983,7 +2032,7 @@ void InterfaceManager::renderGame() {
     ImGui::SameLine(_window.getSize().x - 170);
     if (ImGui::Button("Sauvegarder")) {
         std::filesystem::create_directories("saves");
-        if (SaveManager::saveGame("saves/last_save.json", this)) {
+        if (SaveManager::saveGame("saves/last_save.json", _moteur)) {
             _popupMsg = "Partie sauvegardee avec succes !";
         } else {
             _popupMsg = "Erreur lors de la sauvegarde !";
@@ -1992,12 +2041,12 @@ void InterfaceManager::renderGame() {
     }
 
     bool isClient = (_network.getState() == NetworkState::CONNECTED && !_network.isHost());
-    
+        
     if (!isClient) {
         ImGui::SameLine(static_cast<float>(_window.getSize().x) - 170.0f);
         if (ImGui::Button("Sauvegarder")) {
             std::filesystem::create_directories("saves");
-            if (SaveManager::saveGame("saves/last_save.json", this)) {
+            if (SaveManager::saveGame("saves/last_save.json", _moteur)) {
                 _popupMsg = "Partie sauvegardee avec succes !";
             } else {
                 _popupMsg = "Erreur lors de la sauvegarde !";
@@ -2006,7 +2055,8 @@ void InterfaceManager::renderGame() {
         }
     }
 
-    ImGui::SameLine(_window.getSize().x - 80);
+    float menuPosOffset = isClient ? 80.0f : 80.0f; 
+    ImGui::SameLine(static_cast<float>(_window.getSize().x) - menuPosOffset);
     if (ImGui::Button("Menu")) {
         _previousState = GameState::IN_GAME;
         _currentState = GameState::MENU;
@@ -2026,7 +2076,15 @@ void InterfaceManager::renderGame() {
     if (viewIndex < (int)_moteur.getJoueurs().size()) {
         const Joueur& joueurCourant = _moteur.getJoueurs()[viewIndex];
 
+        int maxRessourcesAffichees = 6;
+        int nbAffiche = 0;
+
         for (const auto& item : joueurCourant.getInventaire()) {
+            if (nbAffiche >= maxRessourcesAffichees) {
+                ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "... (+%d)", (int)joueurCourant.getInventaire().size() - maxRessourcesAffichees);
+                break;
+            }
+
             const Ressource* resPtr = item.first;
             int quantite = item.second;
             std::string resName = resPtr->getName();
@@ -2034,16 +2092,20 @@ void InterfaceManager::renderGame() {
             if (_resourceIcons.count(resName) > 0) {
                 ImGui::Image(_resourceIcons[resName], sf::Vector2f(20.f, 20.f));
                 ImGui::SameLine(0.0f, -1.0f);
+                ImGui::Text("%d", quantite);
+            } else {
+                ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s:", resName.c_str());
+                ImGui::SameLine(0.0f, 5.0f);
+                ImGui::Text("%d", quantite);
             }
-            
-            ImGui::Text("%d", quantite);
             
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::Text("%s", resName.c_str());
                 ImGui::EndTooltip();
             }
-            ImGui::SameLine(0, 25.0f); 
+            ImGui::SameLine(0, 25.0f);
+            nbAffiche++;
         }
     }
     ImGui::End();
@@ -2118,15 +2180,63 @@ void InterfaceManager::renderGame() {
                 }
             }
         }
+
+        // 2. Affichage des dépenses (Entretien de l'armée)
+        std::map<const Ressource*, int> factureProdTotale;
+        for (Unite* u : _moteur.getJoueurs()[viewIndex].getUnites()) {
+            if (u) {
+                auto coutU = u->getCoutEntretien();
+                if (coutU.empty()) {
+                    for (auto const& [nomRes, qte] : _moteur.getLogicConfig().getEntretienCoutDefaut()) {
+                        const Ressource* r = _moteur.getRessourceFactory().getRessource(nomRes);
+                        if (r) factureProdTotale[r] += qte;
+                    }
+                } else {
+                    for (auto const& [resPtr, qte] : coutU) {
+                        factureProdTotale[resPtr] += qte;
+                    }
+                }
+            }
+        }
         
-        // 2. Collecte de la production des bâtiments spéciaux
+        if (!factureProdTotale.empty()) {
+            for (auto const& [resPtr, qte] : factureProdTotale) {
+                std::string resName = resPtr->getName();
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                if (_resourceIcons.count(resName) > 0) {
+                    ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
+                    ImGui::SameLine(0.0f, -1.0f);
+                }
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s (Entretien)", resName.c_str());
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "-%d", qte);
+            }
+        }
+        ImGui::EndTable();
+                
+        // 3. Avertissement visuel de famine
+        bool warningFamine = false;
+        for (auto const& [resPtr, qte] : factureProdTotale) {
+            auto invIt = _moteur.getJoueurs()[viewIndex].getInventaire().find(resPtr);
+            int stock = (invIt != _moteur.getJoueurs()[viewIndex].getInventaire().end()) ? invIt->second : 0;
+            if (stock + totalProd[resPtr] < qte) warningFamine = true;
+        }
+        
+        if (warningFamine) {
+            ImGui::Dummy(ImVec2(0, 10));
+            ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "ATTENTION : PENURIE IMMINENTE !");
+            ImGui::TextDisabled("Vos troupes vont subir des degats d'usure.");
+        }
+        
+        // 4. Collecte de la production des bâtiments spéciaux
         for (Batiment* b : _moteur.getJoueurs()[viewIndex].getBatiments()) {
             for (auto const& [res, qte] : b->getProduits()) {
                 totalProd[res] += qte;
             }
         }
 
-        // 3. Collecte de la production de la capitale
+        // 5. Collecte de la production de la capitale
         const Joueur& localJ = _moteur.getJoueurs()[viewIndex];
         if (!localJ.getCities().empty()) {
             for (const auto& [resName, qty] : _moteur.getLogicConfig().getProductionCapitale()) {
@@ -2920,10 +3030,24 @@ void InterfaceManager::renderGame() {
         // ========================================================
         // SOUS-MENU : RECRUTEMENT D'UNITÉS
         // ========================================================
+        
         if (ImGui::BeginPopup("Menu Recrutement")) {
             ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "RECRUTEMENT D'UNITES");
             ImGui::Separator();
-            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "L'unite sera placee sur la case selectionnee.");
+            
+            const Joueur& localJ = _moteur.getJoueurs()[localJIdx];
+            int capMax = _moteur.getLogicConfig().getCapaciteBase();
+            for (City* c : localJ.getCities()) {
+                if (c) capMax += c->getLevel() * _moteur.getLogicConfig().getCapaciteVilleNiveau();
+            }
+            int popActuelle = localJ.getUnites().size();
+
+            ImGui::TextColored(popActuelle >= capMax ? ImVec4(1.0f, 0.3f, 0.3f, 1.0f) : ImVec4(0.3f, 1.0f, 0.3f, 1.0f), 
+                               "Capacite Logistique : %d / %d", popActuelle, capMax);
+            
+            if (popActuelle >= capMax) {
+                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Ameliorez des villes pour recruter !");
+            }
             ImGui::Dummy(ImVec2(0, 5));
 
             const auto& catalogue = _moteur.getUniteFactory().getCatalogue();
@@ -2939,25 +3063,55 @@ void InterfaceManager::renderGame() {
                     if (coutText.empty()) coutText = "Gratuit";
 
                     bool canAfford = _moteur.peutRecruterUnite(localJIdx, nom);
+                    bool canRecruit = canAfford && (popActuelle < capMax);
 
-                    if (!canAfford) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                    if (!canRecruit) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
                     std::string label = nom + "  [" + coutText + "]  HP:" + std::to_string(uniteModele->health_point());
-                    if (ImGui::Selectable(label.c_str(), false, canAfford ? 0 : ImGuiSelectableFlags_Disabled)) {
+                    
+                    if (ImGui::Selectable(label.c_str(), false, canRecruit ? 0 : ImGuiSelectableFlags_Disabled)) {
                         CmdRecrutement cmd = { _selectedCellX, _selectedCellY, nom };
                         if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                             _popupMsg = nom + " recrute avec succes !";
+                            
+                            if (isMultiplayer) {
+                                sf::Packet p;
+                                p << static_cast<sf::Int32>(PacketType::ACTION_RECRUIT) 
+                                  << static_cast<sf::Int32>(localJIdx) 
+                                  << _selectedCellX 
+                                  << _selectedCellY 
+                                  << nom;
+                                _network.sendData(p);
+                            }
                         } else {
                             _popupMsg = "Recrutement impossible.";
                         }
                         _showPopup = true;
                         ImGui::CloseCurrentPopup();
                     }
-                    if (!canAfford) ImGui::PopStyleColor(1);
+                    if (!canRecruit) ImGui::PopStyleColor(1);
 
                     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                         ImGui::BeginTooltip();
+                        
                         ImGui::Text("HP: %d | PA: %d", uniteModele->health_point(), uniteModele->point_action());
+                        ImGui::Separator();
+                        
+                        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.3f, 1.0f), "Entretien par tour :");
+                        auto coutU = uniteModele->getCoutEntretien();
+                        if (coutU.empty()) {
+                            for (auto const& [nomRes, qte] : _moteur.getLogicConfig().getEntretienCoutDefaut()) {
+                                ImGui::Text(" -%d %s", qte, nomRes.c_str());
+                            }
+                        } else {
+                            for (auto const& [resPtr, qte] : coutU) {
+                                ImGui::Text(" -%d %s", qte, resPtr->getName().c_str());
+                            }
+                        }
+                        
+                        ImGui::Separator();
                         if (!canAfford) ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Ressources insuffisantes !");
+                        if (popActuelle >= capMax) ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Limite logistique atteinte !");
+                        
                         ImGui::EndTooltip();
                     }
                 }
@@ -3131,22 +3285,15 @@ void InterfaceManager::renderGame() {
     // --------------------------------------------------------
     // 7. VÉRIFICATION ET ÉCRAN DE VICTOIRE
     // --------------------------------------------------------
-    static std::string winnerName = "";
-    static bool gameOver = false;
 
-    // Vérifie la victoire à chaque frame
-    if (!gameOver && _moteur.getPlateau()) {
-        for (const Joueur& j : _moteur.getJoueurs()) {
-            if (_moteur.getArbitre().verifierVictoire(j, _moteur.getLogicConfig())) {
-                winnerName = j.getName();
-                gameOver = true;
-                break;
-            }
-        }
+    if (!_gameOver && _moteur.isPartieTerminee()) {
+        _winnerName = _moteur.getNomVainqueur();
+        _gameOver = true;
+        _gameContinuesAfterWin = false;
     }
 
     // Ecran titre
-    if (gameOver) {
+    if (_gameOver && !_gameContinuesAfterWin) {
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(_window.getSize().x, _window.getSize().y));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
@@ -3166,15 +3313,30 @@ void InterfaceManager::renderGame() {
         ImGui::Separator();
         
         ImGui::Dummy(ImVec2(0, 20));
-        std::string winText = "VICTOIRE DU COMMANDANT " + winnerName + " !";
+        std::string winText = "VICTOIRE DU COMMANDANT " + _winnerName + " !";
         ImGui::SetCursorPosX((winSize.x - ImGui::CalcTextSize(winText.c_str()).x) / 2.0f);
         ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "%s", winText.c_str());
         
-        ImGui::Dummy(ImVec2(0, 50));
+        ImGui::Dummy(ImVec2(0, 40));
+        float btnX = (winSize.x - 300) / 2.0f;
+
+        ImGui::SetCursorPosX(btnX);
+        if (ImGui::Button("CONTINUER A JOUER", ImVec2(300, 40))) {
+            _gameContinuesAfterWin = true;
+        }
+
+        ImGui::Dummy(ImVec2(0, 10));
+        ImGui::SetCursorPosX(btnX);
+        if (ImGui::Button("RESUME DES SCORES", ImVec2(300, 40))) {
+            _showSummaryPopup = true;
+        }
+
+        ImGui::Dummy(ImVec2(0, 10));
         ImGui::SetCursorPosX((winSize.x - 250) / 2.0f);
-        if (ImGui::Button("RETOURNER AU MENU PRINCIPAL", ImVec2(250, 50))) {
-            gameOver = false;
-            winnerName = "";
+        if (ImGui::Button("RETOURNER AU MENU PRINCIPAL", ImVec2(300, 40))) {
+            _gameOver = false;
+            _winnerName = "";
+            _gameContinuesAfterWin = false;
             _network.disconnect();
             _hasSelection = false;
             _casesPossibles.clear();
@@ -3188,6 +3350,51 @@ void InterfaceManager::renderGame() {
             _currentState = GameState::MENU;
         }
         ImGui::End();
+
+        // --- POPUP RÉSUMÉ DES SCORES ---
+        if (_showSummaryPopup) ImGui::OpenPopup("Resume des Scores");
+        
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        if (ImGui::BeginPopupModal("Resume des Scores", &_showSummaryPopup, ImGuiWindowFlags_NoSavedSettings)) {
+            if (ImGui::BeginTable("ScoreTable", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)) {
+                ImGui::TableSetupColumn("Commandant"); ImGui::TableSetupColumn("Villes");
+                ImGui::TableSetupColumn("Armee"); ImGui::TableSetupColumn("Economie");
+                ImGui::TableHeadersRow();
+                
+                for (const Joueur& j : _moteur.getJoueurs()) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0); ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%s", j.getName().c_str());
+                    ImGui::TableSetColumnIndex(1); ImGui::Text("%d", j.getNbVilles());
+                    ImGui::TableSetColumnIndex(2); ImGui::Text("%d", (int)j.getUnites().size());
+                    
+                    int totalRessources = 0;
+                    for (auto const& [resPtr, qte] : j.getInventaire()) totalRessources += qte;
+                    ImGui::TableSetColumnIndex(3); ImGui::Text("%d res.", totalRessources);
+                }
+                ImGui::EndTable();
+            }
+            ImGui::Dummy(ImVec2(0, 20));
+            ImGui::SetCursorPosX((ImGui::GetWindowSize().x - 120) * 0.5f);
+            if (ImGui::Button("Fermer", ImVec2(120, 30))) {
+                ImGui::CloseCurrentPopup();
+                _showSummaryPopup = false;
+            }
+            ImGui::EndPopup();
+        }
+    }
+    
+    if (_gameOver && _gameContinuesAfterWin) {
+        ImGui::SetNextWindowPos(ImVec2((_window.getSize().x - 400) / 2.0f, 50));
+        ImGui::SetNextWindowSize(ImVec2(400, 40));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.6f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.7f, 0.3f, 1.0f));
+        ImGui::Begin("WinnerBanner", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings);
+        std::string text = "--- VICTOIRE DE " + _winnerName + " ---";
+        ImGui::SetCursorPosX((400 - ImGui::CalcTextSize(text.c_str()).x) / 2.0f);
+        ImGui::SetCursorPosY(10);
+        ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "%s", text.c_str());
+        ImGui::End();
+        ImGui::PopStyleColor(2);
     }
 
     // --------------------------------------------------------
@@ -3269,6 +3476,19 @@ void InterfaceManager::loadTextures() {
             if (tex.loadFromFile(resPtr->getIconPath())) {
                 tex.setSmooth(true);
                 _resourceIcons[resName] = tex;
+            }
+        }
+    }
+
+    // 6. Texture des factions
+    if (_rulesJson.contains("factions")) {
+        for (const auto& f : _rulesJson["factions"]) {
+            std::string nomFac = f.value("nom", "");
+            std::string imgPath = f.value("image", "");
+            if (!nomFac.empty() && !imgPath.empty()) {
+                if (!_factionTextures[nomFac].loadFromFile(imgPath)) {
+                    std::cerr << "Erreur : Texture Faction introuvable -> " << imgPath << std::endl;
+                }
             }
         }
     }
@@ -3500,7 +3720,7 @@ void InterfaceManager::sendLobbySync() {
         }
 
         // 3. Les paramètres de la carte
-        p << _mapSeed << _numPlayers;
+        p << static_cast<sf::Int32>(_mapSeed) << static_cast<sf::Int32>(_numPlayers) << static_cast<sf::Int32>(_selectedVictoryIndex);
         p << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["x"].get<int>());
         p << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["y"].get<int>());
         

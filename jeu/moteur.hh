@@ -38,6 +38,10 @@ private:
     int _currentPlayerTurn;
     int _mapSeed;
 
+    // Wins
+    bool _partieTerminee = false;
+    std::string _nomVainqueur = "";
+
     ResultatAction executer(int pIdx, const CmdFonderVille & cmd);
     ResultatAction executer(int pIdx, const CmdAcheterCase & cmd);
     ResultatAction executer(int pIdx, const CmdAmeliorer & cmd);
@@ -70,6 +74,7 @@ public:
     void setTourActuel(int t) { _tourActuel = t; }
     void setCurrentPlayerTurn(int c) { _currentPlayerTurn = c; }
     void overrideWorldWeights(const std::map<char, int>& w) { _worldFactory.overrideWeights(w); }
+    void setActiveVictorySet(int index) { _logicConfig.setActiveVictorySet(index); }
 
     // Pour modifier le jeu
     ResultatAction soumettreCommande(int pIdx, const CommandeJeu& commande);
@@ -106,4 +111,10 @@ public:
     int getTourActuel() const { return _tourActuel; }
     int getCurrentPlayerTurn() const { return _currentPlayerTurn; }
     int getMapSeed() const { return _mapSeed; }
+    std::vector<std::pair<int, int>> getTerritoireJoueur(int pIdx) const;
+    int getActiveVictorySet() const { return _logicConfig.getActiveVictorySet(); }
+
+    bool isPartieTerminee() const { return _partieTerminee; }
+    std::string getNomVainqueur() const { return _nomVainqueur; }
+    void verifierVictoireGlobale();
 };

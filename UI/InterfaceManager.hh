@@ -44,6 +44,7 @@ private:
     std::map<std::string, sf::Texture> _buildingTextures; // Batiments
     std::map<std::string, sf::Texture> _cityTextures; // Villes
     std::map<std::string, sf::Texture> _resourceIcons; // Ressources
+    std::map<std::string, sf::Texture> _factionTextures; // Factions
 
     float _tileSize = 64.0f;
     sf::View _gameView;
@@ -60,6 +61,7 @@ private:
     std::map<char, int> _customWeights;
     int _mapSeed = 42;
     int _numPlayers = 2;
+    int _selectedVictoryIndex = 0;
     std::vector<std::string> _playerFactions;
 
     // réseau
@@ -117,6 +119,13 @@ private:
     };
     std::vector<CombatLogEntry> _combatLogs;
     void addCombatLog(const std::string& msg, sf::Color col = sf::Color::White);
+
+    // Gestion écran de fin
+    bool _gameOver = false;
+    bool _gameContinuesAfterWin = false;
+    std::string _winnerName = "";
+    bool _showSummaryPopup = false;
+
 
 public:
     InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur);

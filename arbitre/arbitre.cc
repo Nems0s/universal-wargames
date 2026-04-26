@@ -50,35 +50,49 @@ bool Arbitre::checkWin(const Joueur& j, const WinConditions & win) const {
 }
 
 bool Arbitre::verifierVictoire(const Joueur& j, const GameConfig & config) const {
-    const auto & wins = config.getVictorySets();
-
-    for (const auto & win : wins) {
-        bool winValide;
-
-        if (win.mode == WinMode::ALL) {
-            winValide = true;
-            for (const auto & cond : win.conditions) {
-                if (!checkWin(j,cond)) {
-                    winValide = false;
-                    break;
-                }
+    if (config.getVictorySets().empty()) return false;
+    
+    int activeIndex = config.getActiveVictorySet();
+    if (activeIndex < 0 || activeIndex >= config.getVictorySets().size()) return false;
+    
+    const VictorySet& vSet = config.getVictorySets()[activeIndex];
+    
+    int conditionsMet = 0;
+    for (const auto& cond : vSet.conditions) {
+        bool met = false;
+        
+        if (cond.type == WinType::RESOURCE) {
+            int qte = 0;
+            for (auto const& [res, val] : j.getInventaire()) {
+                if (res->getName() == cond.resourceName) qte = val;
             }
-        } else {
-            winValide = false;
-            for (const auto & cond : win.conditions) {
-                if (checkWin(j,cond)) {
-                    winValide = true;
-                    break;
-                }
+            if (qte >= cond.targetAmount) met = true;
+        } 
+        else if (cond.type == WinType::CITY_COUNT) {
+            if (j.getNbVilles() >= cond.targetAmount) met = true;
+        }
+        else if (cond.type == WinType::UNIT_COUNT) {
+            if ((int)j.getUnites().size() >= cond.targetAmount) met = true;
+        }
+        else if (cond.type == WinType::CAPITAL_REQ) {
+            for (City* v : j.getCities()) {
+                if (v && v->estCapitale()) met = true;
             }
         }
-
-        if (winValide) {
-            std::cout << "Victoire par " << win.name << std::endl;
-            return true;
+        else if (cond.type == WinType::CAPITAL_CONQUEST) {
+            int capCount = 0;
+            for (City* c : j.getCities()) {
+                if (c && c->estCapitale()) capCount++;
+            }
+            if (capCount >= 2) met = true; 
         }
+
+        if (met) conditionsMet++;
     }
-
+    
+    if (vSet.mode == WinMode::ALL && conditionsMet == vSet.conditions.size()) return true;
+    if (vSet.mode == WinMode::ANY && conditionsMet > 0) return true;
+    
     return false;
 }
 

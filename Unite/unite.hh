@@ -40,6 +40,7 @@ private:
     std::shared_ptr<IRank> _rank;
     std::list<std::shared_ptr<IComportement>> _liste_comportements;
     std::map<const Ressource*, int> _cout;
+    std::map<const Ressource*, int> _cout_entretien;
 
     int _temporary_health;
     int _temporary_damage;
@@ -47,7 +48,7 @@ private:
     int _fov;
     std::string _texturePath;
 public:
-    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, const std::string& texturePath = "");
+    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath = "");
     virtual ~Unite() = default;
 
     /*Setters*/
@@ -101,6 +102,9 @@ public:
 
     void resetTemporary_stats();
     std::shared_ptr<Unite> clone() const;
+
+    const std::map<const Ressource*, int>& getCoutEntretien() const { return _cout_entretien; }
+    void setCoutEntretien(const std::map<const Ressource*, int>& cout) { _cout_entretien = cout; }
 };
 
 

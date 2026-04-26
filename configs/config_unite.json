@@ -13,6 +13,9 @@
                 "Or": 100,
                 "Fer": 50
             },
+            "cout_entretien": {
+                "Or": 5
+            },
             "buff_commandant": [
                 { "type": "BonusDegat", "multiplicateur": 15 }
             ],
@@ -32,6 +35,9 @@
             "cout": {
                 "Or": 50
             },
+            "cout_entretien": {
+                "Or": 1
+            },
             "comportements": [
                 { "type": "AttaqueMelee", "degats": 40 },
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 3 }
@@ -49,6 +55,9 @@
             "cout": {
                 "Or": 80,
                 "Fer": 100
+            },
+            "cout_entretien": {
+                "Or": 3
             },
             "comportements": [
                 { "type": "DefenseArmure", "reduction": 15 },
@@ -68,6 +77,9 @@
                 "Or": 70,
                 "Fer": 10
             },
+            "cout_entretien": {
+                "Or": 2
+            },
             "comportements": [
                 { "type": "SpecialFurtif", "duree": 2, "cooldown": 2 },
                 { "type": "AttaqueDistance", "degats": 30, "portee": 6, "munitions": 5, "portee_mini": 2 }
@@ -85,6 +97,9 @@
                 "Or": 150,
                 "Fer": 200
             },
+            "cout_entretien": {
+                "Or": 3
+            },
             "comportements": [
                 { "type": "DefenseBouclier", "nombre_bouclier": 3 }
             ],
@@ -99,6 +114,9 @@
             "rank": "Regulier",
             "cout": {
                 "Or": 60
+            },
+            "cout_entretien": {
+                "Or": 1
             },
             "comportements": [
                 { "type": "SoinDirect", "soin": 25, "portee": 2, "rayon": 1 },
@@ -115,6 +133,9 @@
             "rank": "Regulier",
             "cout": {
                 "Or": 10
+            },
+            "cout_entretien": {
+                "Or": 4
             },
             "comportements": [],
             "texture": ""

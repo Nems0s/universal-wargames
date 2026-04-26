@@ -46,6 +46,10 @@ void City::product(Joueur & j) {
     for (auto const& [res, qte] : _productionBase) {
         j.ajouterRessource(res, qte);
     }
+    if (_pvCurrent < _pvMax) {
+        _pvCurrent += _pvMax * 0.05f;
+        if (_pvCurrent > _pvMax) _pvCurrent = _pvMax;
+    }
 }
 
 

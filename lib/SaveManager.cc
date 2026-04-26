@@ -1,27 +1,27 @@
 #include "SaveManager.hh"
-#include "../UI/InterfaceManager.hh"
+#include "moteur.hh"
 #include <fstream>
 #include <iostream>
 
 using json = nlohmann::json;
 
-bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
+bool SaveManager::saveGame(const std::string& filename, MoteurDeJeu& moteur) {
     json j;
-
-    MoteurDeJeu & moteur = ui->_moteur;
 
     // 1. État global de la partie
     j["game_state"]["turn"] = moteur.getTourActuel();
     j["game_state"]["current_player"] = moteur.getCurrentPlayerTurn();
-    j["game_state"]["num_players"] = ui->_numPlayers;
+    j["game_state"]["num_players"] = moteur.getJoueurs().size();
     j["game_state"]["seed"] = moteur.getMapSeed();
+    j["game_state"]["victory_set"] = moteur.getActiveVictorySet();
 
-    // 2. Paramètres de la carte (Poids et Factions)
-    j["factions"] = ui->_playerFactions;
-    for (const auto& [symb, weight] : ui->_customWeights) {
-        std::string s(1, symb);
-        j["custom_weights"][s] = weight;
+    // 2. Factions
+    std::vector<std::string> factions;
+    for (const Joueur& j_obj : moteur.getJoueurs()) {
+        if (j_obj.getFaction()) factions.push_back(j_obj.getFaction()->nom);
+        else factions.push_back("");
     }
+    j["factions"] = factions;
 
     // 3. Les Joueurs (Brouillard, Villes, Unités)
     const auto& joueurs = moteur.getJoueurs();
@@ -88,22 +88,15 @@ bool SaveManager::saveGame(const std::string& filename, InterfaceManager* ui) {
     return false;
 }
 
-bool SaveManager::loadGame(const std::string& filename, InterfaceManager* ui) {
+bool SaveManager::loadGame(const std::string& filename, MoteurDeJeu& moteur) {
     std::ifstream file(filename);
     if (!file.is_open()) return false;
 
     json j;
     file >> j;
     
-    ui->_numPlayers = j["game_state"]["num_players"];
-    ui->_mapSeed = j["game_state"]["seed"];
-    ui->_playerFactions = j["factions"].get<std::vector<std::string>>();
-    ui->_customWeights.clear();
-    for (auto& el : j["custom_weights"].items()) {
-        ui->_customWeights[el.key()[0]] = el.value();
-    }
-
-    ui->_moteur.chargerPartieDepuisJson(j, ui->_playerFactions);
+    std::vector<std::string> factions = j["factions"].get<std::vector<std::string>>();
+    moteur.chargerPartieDepuisJson(j, factions);
 
     return true;
 }

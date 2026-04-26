@@ -13,7 +13,7 @@ struct FactionParams {
     std::map<std::string, float> params;
 };
 
-enum class WinType { RESOURCE, CITY_COUNT, UNIT_COUNT, CAPITAL_REQ };
+enum class WinType { RESOURCE, CITY_COUNT, UNIT_COUNT, CAPITAL_REQ, CAPITAL_CONQUEST };
 enum class WinMode { ALL, ANY };
 
 struct WinConditions {
@@ -48,11 +48,16 @@ class GameConfig {
 
         std::vector<WinConditions> _winConds;
         std::vector<VictorySet> _victorySets;
+        int _activeVictorySet = 0;
 
         std::map<std::string, int> _ressourcesDepart;
         std::map<std::string, int> _productionCapitale;
 
         std::map<std::string, FactionParams> _factions;
+
+        std::map<std::string, int> _entretienCoutDefaut;
+        int _capaciteBase;
+        int _capaciteVilleNiveau;
 
     public:
         GameConfig() : _plateauX(10), _plateauY(10), _multiplicateurVille(1.5f), _distanceMinVilles(3), _pvMaxVille(200), _degatsVille(20), _porteeVueVille(4), _coutRotation(1), _maxLevelVille(5), _rayonBaseVille(2) {}
@@ -62,6 +67,8 @@ class GameConfig {
 
         const std::vector<WinConditions>& getWinConditions() const { return _winConds; }
         const std::vector<VictorySet>& getVictorySets() const { return _victorySets; }
+        int getActiveVictorySet() const { return _activeVictorySet; }
+        void setActiveVictorySet(int index) { _activeVictorySet = index; }
 
         int getPlateauX() const { return _plateauX; }
         int getPlateauY() const { return _plateauY; }
@@ -84,4 +91,8 @@ class GameConfig {
 
         const std::map<std::string, int>& getRessourcesDepart() const { return _ressourcesDepart; }
         const std::map<std::string, int>& getProductionCapitale() const { return _productionCapitale; }
+
+        const std::map<std::string, int>& getEntretienCoutDefaut() const { return _entretienCoutDefaut; }
+        int getCapaciteBase() const { return _capaciteBase; }
+        int getCapaciteVilleNiveau() const { return _capaciteVilleNiveau; }
 };

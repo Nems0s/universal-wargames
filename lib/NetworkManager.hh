@@ -13,6 +13,7 @@ enum class PacketType : sf::Int32 {
     ACTION_MOVE,   // Déplacement d'unité
     ACTION_BUILD,  // Construction de bâtiment
     ACTION_BUILD_CITY,
+    ACTION_RECRUIT,
     ACTION_ATTACK, // Attaque d'unité
     ACTION_ROTATE, // Changement d'orientation d'unité
     ACTION_UPGRADE_CITY, 

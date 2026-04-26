@@ -102,14 +102,14 @@ failure, see the Visual C++ documentation on asserts
 (Press Retry to debug the application - JIT must be enabled)
 
 
-
-- Ajout de soin passif des villes ?
-dans city product :
-if (_pvCurrent < _pvMax) {
-  _pvCurrent += _pvMax * 0.05f;
-  if (_pvCurrent > _pvMax) _pvCurrent = _pvMax;
-}
-
-- Ajout d'un cout d'entretien des unités ?
-Cout en ressource ou en PA etc à chaque tour
-(passerTour dans moteur faire currentJ.getUnites() ?)
+1) Bug des boutons games settings et graphics qui sont affichés au moment de la sélection des factions
+2) json config_rules add factions path vers l'image de la faction correspondant stocké dans le dossier assets et afficher cette image dans l'information de faction avant le détails des caractéristiques
+3) afficher configuration de la partie au lieu de configurer la carte, après que les joueurs aient rejoints et afficher pour celui qui a join au moment du click et non pas au moment de choisir une des factions
+4) Celui qui join peut faire back au moment du choix des factions, désactiver le bouton ou que cela affiche un message de confirmation pour demander s'il veut vraiment quitter et sinon l'enlevé des joueurs et remettre l'host sur la page d'attente des joueurs avec un message qui dit que tel joueurs s'est déconnecté.
+5) Celui qui join peut save la partie alors que cela ne devrait pas être le cas, uniquement l'host car c'est lui qui a la partie.
+6) afficher le nom de la ressource s'il n'y a pas d'image, et bloquer ça à un nombre de ressource pour éviter de prendre toute la page.
+7) contours de couleur des villes qui est mal affiché
+8) ajout de regénération des villes
+9) Ajout d'un cout d'entretien des unités
+Cout en ressource à chaque tour défini de base dans rules et pour chaque unité (Perte de HP si impossible de payer le cout d'entretien)
+10) Refonte de la gestion des conditions de victoire et de la save
