@@ -46,7 +46,7 @@ void InterfaceManager::loadUIConfig() {
     std::ifstream fVilles(_villesPath);
     if (fVilles.is_open()) { fVilles >> _villesJson; fVilles.close(); }
 
-    std::ifstream fSettings("settings.json");
+    std::ifstream fSettings("saves/settings.json");
     if (fSettings.is_open()) {
         nlohmann::json sJson;
         fSettings >> sJson;
@@ -88,7 +88,7 @@ void InterfaceManager::saveConfig() {
     sJson["vsync"] = _vsync;
     sJson["fullscreen"] = _fullscreen;
 
-    std::ofstream fSettings("settings.json");
+    std::ofstream fSettings("saves/settings.json");
     if (fSettings.is_open()) {
         fSettings << sJson.dump(4);
         fSettings.close();
@@ -173,17 +173,41 @@ void InterfaceManager::run() {
                                 CmdDeplacement cmd = { _unitSourceX, _unitSourceY, bestI, bestJ };
                                 if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
                                     if (isMultiplayer) {
-                                        sf::Packet pk; pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << _unitSourceX << _unitSourceY << bestI << bestJ;
+                                        sf::Packet pk;
+                                        pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << static_cast<sf::Int32>(currentTurn) << _unitSourceX << _unitSourceY << bestI << bestJ;
                                         _network.sendData(pk);
                                     }
                                 }
                             } else if (_isTargetingAttack) {
+                                Unite* uAtt = _moteur.getPlateau()->getUnite(_unitSourceX, _unitSourceY);
+                                Unite* uDef = _moteur.getPlateau()->getUnite(bestI, bestJ);
+                                std::string nomAtt = uAtt ? uAtt->name() : "Unite";
+                                std::string nomDef = uDef ? uDef->name() : "Cible";
+                                int pvDefAvant = uDef ? uDef->health_point() : 0;
+                                int pvAttAvant = uAtt ? uAtt->health_point() : 0;
+
                                 CmdAttaque cmd = { _unitSourceX, _unitSourceY, bestI, bestJ };
                                 if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
+                                    
+                                    Unite* uDefApres = _moteur.getPlateau()->getUnite(bestI, bestJ);
+                                    Unite* uAttApres = _moteur.getPlateau()->getUnite(_unitSourceX, _unitSourceY);
+                                    int pvDefPerdus = pvDefAvant - (uDefApres ? uDefApres->health_point() : 0);
+                                    int pvAttPerdus = pvAttAvant - (uAttApres ? uAttApres->health_point() : 0);
+                                    
+                                    std::string rapport = nomAtt + " inflige -" + std::to_string(pvDefPerdus) + " a " + nomDef;
+                                    if (pvAttPerdus > 0) rapport += " (Riposte: -" + std::to_string(pvAttPerdus) + ")";
+                                    if (!uDefApres) rapport += " [" + nomDef + " DETRUIT !]";
+                                    
+                                    addCombatLog(rapport, sf::Color(255, 100, 100));
+
                                     if (isMultiplayer) {
-                                        sf::Packet pk; pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _unitSourceX << _unitSourceY << bestI << bestJ;
+                                        sf::Packet pk; 
+                                        pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _unitSourceX << _unitSourceY << bestI << bestJ;
                                         _network.sendData(pk);
                                     }
+                                } else {
+                                    _popupMsg = "Cible hors de portee ou invalide !";
+                                    _showPopup = true;
                                 }
                             }
                             
@@ -302,7 +326,7 @@ void InterfaceManager::run() {
                                 if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
                                     if (isMultiplayer) {
                                         sf::Packet pk;
-                                        pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << _dragSourceX << _dragSourceY << targetI << targetJ;
+                                        pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << static_cast<sf::Int32>(currentTurn) << _dragSourceX << _dragSourceY << targetI << targetJ;
                                         _network.sendData(pk);
                                     }
                                     _selectedCellX = targetI; _selectedCellY = targetJ;
@@ -1714,6 +1738,8 @@ void InterfaceManager::renderGame() {
                     
                     if (i < startRow - 2 || i > endRow + 2 || j < startCol - 2 || j > endCol + 2) continue;
 
+                    if (joueurValide && !_moteur.getJoueurs()[viewIndex].estDecouvert(i, j)) continue;
+
                     float posX = W * j + W * 0.5f * (std::abs(i) % 2);
                     float posY = 1.5f * R * i;
 
@@ -2847,15 +2873,12 @@ void InterfaceManager::renderGame() {
                     _isTargetingMove = true; _isTargetingAttack = false;
                     _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
                     _casesPossibles = _moteur.getDeplacementsPossibles(localJIdx, _selectedCellX, _selectedCellY);
-                    _popupMsg = "Ciblez une case jaune pour vous deplacer.";
-                    _showPopup = true;
                 }
                 ImGui::SameLine(0.0f, -1.0f);
                 if (ImGui::Button("Attaquer", ImVec2(150, 40))) {
                     _isTargetingAttack = true; _isTargetingMove = false;
                     _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
-                    _popupMsg = "Ciblez un ennemi sur la carte pour attaquer.";
-                    _showPopup = true;
+                    _casesAttaquePossibles = _moteur.getAttaquesPossibles(localJIdx, _selectedCellX, _selectedCellY);
                 }
 
                 ImGui::SameLine(0.0f, -1.0f);
@@ -2905,44 +2928,6 @@ void InterfaceManager::renderGame() {
 
                 if (isMine) {
                     renderUnitActions(uniteSurCase);
-                } else if (_isTargetingAttack) {
-                    if (ImGui::Button("CONFIRMER ATTAQUE", ImVec2(150, 40))) {
-                        // On mémorise les PV avant l'attaque
-                        Unite* uAtt = _moteur.getPlateau()->getUnite(_unitSourceX, _unitSourceY);
-                        Unite* uDef = _moteur.getPlateau()->getUnite(_selectedCellX, _selectedCellY);
-                        std::string nomAtt = uAtt ? uAtt->name() : "Unite";
-                        std::string nomDef = uDef ? uDef->name() : "Cible";
-                        int pvDefAvant = uDef ? uDef->health_point() : 0;
-                        int pvAttAvant = uAtt ? uAtt->health_point() : 0;
-
-                        CmdAttaque cmd = { _unitSourceX, _unitSourceY, _selectedCellX, _selectedCellY };
-                        if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
-                            
-                            // On vérifie les PV après
-                            Unite* uDefApres = _moteur.getPlateau()->getUnite(_selectedCellX, _selectedCellY);
-                            Unite* uAttApres = _moteur.getPlateau()->getUnite(_unitSourceX, _unitSourceY);
-                            
-                            int pvDefPerdus = pvDefAvant - (uDefApres ? uDefApres->health_point() : 0);
-                            int pvAttPerdus = pvAttAvant - (uAttApres ? uAttApres->health_point() : 0);
-
-                            std::string rapport = nomAtt + " inflige -" + std::to_string(pvDefPerdus) + " a " + nomDef;
-                            if (pvAttPerdus > 0) rapport += " (Riposte: -" + std::to_string(pvAttPerdus) + ")";
-                            if (!uDefApres) rapport += " [" + nomDef + " DETRUIT !]";
-                            
-                            addCombatLog(rapport, sf::Color(255, 100, 100));
-
-                            // Synchro Réseau
-                            if (isMultiplayer) {
-                                sf::Packet pk; pk << static_cast<sf::Int32>(PacketType::ACTION_ATTACK) << _unitSourceX << _unitSourceY << _selectedCellX << _selectedCellY;
-                                _network.sendData(pk);
-                            }
-                            _popupMsg = "L'attaque a ete lancee !";
-                        } else {
-                            _popupMsg = "L'attaque a echoue.";
-                        }
-                        _isTargetingAttack = false;
-                        _showPopup = true;
-                    }
                 }
             }
         }

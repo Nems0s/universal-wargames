@@ -461,6 +461,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAttaque& cmd) {
     for (CompAtt* attComp : att->Offensive()) {
         if (_arbitre.peutAttaquer(j, *att, *def, attComp)) {
             att->setPoint_action(att->point_action() - 1);
+            Combat::fight(*att, attComp, *def);
             if (Combat::fight(*att, attComp, *def)) {
                 if (def->health_point() <= 0) {
                     if (def->getProprietaire()) def->getProprietaire()->perdreUnite(def);
