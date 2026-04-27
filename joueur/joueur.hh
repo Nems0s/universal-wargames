@@ -23,6 +23,10 @@ private:
     int _nbCasesAchetees = 0;
 
 public:
+    Joueur();
+
+    void debutTour();
+
 
     // Faction 
     void setName(const std::string& n) { _name = n; }
@@ -62,7 +66,20 @@ public:
     void perdreUnite(Unite* u);
     void incNbCasesAchetees() { _nbCasesAchetees++; }
 
+    //Action sur les Unites
+    void Attaquer(Unite& attaque, Unite& cible, CompAtt* const& TypeAttaque);
+    void Soigner(Unite& healer, Unite& cible, CompSoin* const& TypeSoin);
+    void ActiverCamouflage(Unite& unite);
+    void RejoindreCommandant(Unite& commandant, Unite& unite);
+    void QuitterCommandant(Unite& commandant, Unite& unite);
+    
+    void Transporter(Unite& transporteur, Unite& passager);
+    void DechargerTransport(Unite& transporteur, Unite& passager, int xDest, int yDest); 
+
+    void ChangerPositionDefensive(Unite& unite);
+
     // Accesseurs
+    std::string getName() const { return _name; }
     std::string getName() const { return _name; }
     int getNbVilles() const { return _cities.size(); }
     const std::list<City*> & getCities() const { return _cities; }

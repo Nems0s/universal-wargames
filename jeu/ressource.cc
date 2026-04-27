@@ -13,19 +13,6 @@ Ressource::Ressource(std::string n, std::string s, std::string i) :
     _iconPath(i)
 {}
 
-/*
-void TxtRessourceReader::load(const std::string& chemin, std::map<std::string, Ressource*>& catalogue) {
-    std::ifstream fichier(chemin);
-    std::string nom;
-    std::string symb;
-
-    // Format : poussiereDEtoile PE
-    while (fichier >> nom >> symb) {
-        catalogue[nom] = new Ressource(nom, symb);
-    }
-}
-*/
-
 void JsonRessourceReader::load(const std::string& chemin, std::map<std::string, std::unique_ptr<Ressource>>& catalogue) {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {

@@ -113,3 +113,23 @@ failure, see the Visual C++ documentation on asserts
 9) Ajout d'un cout d'entretien des unités
 Cout en ressource à chaque tour défini de base dans rules et pour chaque unité (Perte de HP si impossible de payer le cout d'entretien)
 10) Refonte de la gestion des conditions de victoire et de la save
+
+
+AJOUTS A FAIRE :
+- capitale générer dans le moteur (pour chaque joueur)
+- Orientation des troupes (liste des cases vus par l'unité)
+- Gestion vision-range et direction pour l'attaque et pour les tuiles vus (liste de tuiles)
+- Systèmes de munitions (est une ressource) avec le cout_entretien
+ressources {
+  nom: "Munitions"
+}
+cout_entretien {
+  par_tour: { Or: 2 }
+  par_attaque: { Munitions: 20 }
+}
+- ravitaillement à ajouter (stockage de ressource dans une unité)
+- chaque unité à une map de Ressource
+- cooldown pour tout les comportements
+- modifier dans joueur et moteur : decouvrirZoneVision
+- modifier / supprimer fov et visionRange par nouvelle logique de vision
+

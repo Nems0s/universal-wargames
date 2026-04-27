@@ -42,23 +42,28 @@ private:
     std::map<const Ressource*, int> _cout;
     std::map<const Ressource*, int> _cout_entretien;
 
+    bool _defensif;
     int _temporary_health;
     int _temporary_damage;
-    int _visionRange;
-    int _fov;
+    char _symbol;
     std::string _texturePath;
+    int _fov;
+    int _visionRange;
+
 public:
-    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath = "");
+    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath = "", char symbole);
     virtual ~Unite() = default;
 
     /*Setters*/
     void setHealth_point(int newHealth_point);
     void setMoral_point(int newMoral_point);
+    void setPoint_action(int newPoint_action);
     void setPoids(Poids newPoids);
     void setRegarde(direction newRegarde);
     void setLocation(const Coord &newLocation);
     void setTemporary_health(int newTemporary_health);
     void setTemporary_damage(int newTemporary_damage);
+    void setSymbol(char s);
 
     // MODIFIE PAR NAIM
     void setPoint_action(int pa) { _point_action = pa; }
@@ -81,6 +86,8 @@ public:
     std::map<const Ressource*, int> cout() const;
     int temporary_health() const;
     int temporary_damage() const;
+    bool defensif() const;
+    char getSymbol() const;
 
     // Vision
     int visionRange() const { return _visionRange; }
@@ -100,6 +107,7 @@ public:
     CompFurtif* Cammouflage() const;
     CompTransport* Transport() const;
 
+    void changerDefense();
     void resetTemporary_stats();
     std::shared_ptr<Unite> clone() const;
 
@@ -127,7 +135,6 @@ private:
     std::map<std::string, std::shared_ptr<Unite>> _catalogue;
 public:
     void chargerConfiguration(const std::string& chemin, UniteConfigReader& lecteur,const std::map<std::string, const Ressource*>& ressources);
-    // MODIFIE PAR NAIM
     std::shared_ptr<Unite> create(std::string type) const;
     const std::map<std::string, std::shared_ptr<Unite>>& getCatalogue() const { return _catalogue; }
 };

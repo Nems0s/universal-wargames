@@ -2,8 +2,243 @@
 #include "combat.hh"
 #include <iostream>
 
+/*
 MoteurDeJeu::MoteurDeJeu() 
     : _tourActuel(1), _currentPlayerTurn(0), _mapSeed(42) {}
+*/
+
+
+/*
+
+ResultatAction GameManager::actionRecruterUnite(Joueur& j, const Action& action) 
+{
+    if(!_arbitre.coordValid(action.x1, action.y1, _plateau) || _plateau.getUnite(action.x1, action.y1) != nullptr)
+        return ResultatAction::ECHEC_COORD_INVALIDE;
+
+    std::shared_ptr<Unite> nouvelleUnite = _factory.create(action.data);
+    if(!nouvelleUnite) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
+    nouvelleUnite->setLocation({action.x1, action.y1});
+
+    if(_arbitre.peutRecruterUnite(j, nouvelleUnite->cout(), *nouvelleUnite)) 
+    {
+        j.payer(nouvelleUnite->cout());
+        j.ajouterUnite(nouvelleUnite.get());
+        _plateau.placerUnite(action.x1, action.y1, nouvelleUnite);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_FONDS_INSUFFISANTS;
+}
+
+ResultatAction GameManager::actionModifierVision(Joueur& j, const Action& action) 
+{
+    Unite* u = _plateau.getUnite(action.x1, action.y1);
+    if(!u || !_arbitre.appartientJoueur(j, *u)) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    direction d;
+
+    //Car switch case prend des char* et que data est un std::string;
+    if (action.data == "nord_ouest") d = direction::nord_ouest;
+    else if (action.data == "nord_est") d = direction::nord_est;
+    else if (action.data == "ouest") d = direction::ouest;
+    else if (action.data == "est") d = direction::est;
+    else if (action.data == "sud_ouest") d = direction::sud_ouest;
+    else if (action.data == "sud_est") d = direction::sud_est;
+    else return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+    u->setRegarde(d);
+    return ResultatAction::SUCCES;
+}
+
+ResultatAction GameManager::actionDeplacer(Joueur& j, const Action& action) 
+{
+    Unite* u = _plateau.getUnite(action.x1, action.y1);
+    if(!u || !_arbitre.appartientJoueur(j, *u)) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
+    if(_arbitre.moveUnite(j, _plateau, *u, action.x2, action.y2)) 
+    {
+        if(_plateau.deplacerUnite(*u, action.x2, action.y2)) 
+        {
+            u->setLocation({action.x2, action.y2});
+            u->setPoint_action(u->point_action() - 1);
+            return ResultatAction::SUCCES;
+        }
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+void GameManager::supprimerCadavre(Unite& u)
+{
+    if (u.health_point() <= 0) 
+    {
+        for (auto& joueur : _joueurs) 
+        {
+            joueur->perdreUnite(&u);
+        }
+
+        _plateau.retirerUnite(u.location().first, u.location().second); 
+        
+        std::cout << "[INFO] L'unité " << u.name() << " a été détruite !" << std::endl;
+    }
+}
+
+ResultatAction GameManager::actionAttaquer(Joueur& j, const Action& action) 
+{
+    Unite* att = _plateau.getUnite(action.x1, action.y1);
+    Unite* cible = _plateau.getUnite(action.x2, action.y2);
+    if(!att || !cible) return ResultatAction::ECHEC_COORD_INVALIDE;
+
+    auto attaques = att->Offensive();
+    if(attaques.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+    int index = 0;
+    try{index = std::stoi(action.data); } catch(...){ index = 0; }
+    
+    auto it = attaques.begin();
+    std::advance(it, std::min((int)attaques.size() - 1, std::max(0, index)));
+
+    if(_arbitre.peutAttaquer(j, *att, *cible, *it)) 
+    {
+        j.Attaquer(*att, *cible, *it);
+        supprimerCadavre(*cible);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionSoigner(Joueur& j, const Action& action) 
+{
+    Unite* healer = _plateau.getUnite(action.x1, action.y1);
+    Unite* cible = _plateau.getUnite(action.x2, action.y2);
+    if(!healer || !cible) return ResultatAction::ECHEC_COORD_INVALIDE;
+
+    auto soins = healer->Soin();
+    if(soins.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+    int index = -1;
+    try{ index = std::stoi(action.data); } catch(...){ index = -1; }
+
+    auto it = soins.begin();
+    std::advance(it, std::min((int)soins.size() - 1, std::max(0, index)));
+
+    if(_arbitre.peutSoigner(j, *healer, *cible, *it)) 
+    {
+        j.Soigner(*healer, *cible, *it);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionCamoufler(Joueur& j, const Action& action) 
+{
+    Unite* u = _plateau.getUnite(action.x1, action.y1);
+    if (u && _arbitre.peutActiverCamouflage(j, *u)) 
+    {
+        j.ActiverCamouflage(*u);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionDebutDefense(Joueur& j, const Action& action) 
+{
+    Unite* u = _plateau.getUnite(action.x1, action.y1);
+    if(u && _arbitre.appartientJoueur(j, *u) && !u->defensif()) 
+    {
+        j.ChangerPositionDefensive(*u);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionArretDefense(Joueur& j, const Action& action) 
+{
+    Unite* u = _plateau.getUnite(action.x1, action.y1);
+    if(u && _arbitre.appartientJoueur(j, *u) && u->defensif()) 
+    {
+        u->changerDefense();
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionChargement(Joueur& j, const Action& action) 
+{
+    Unite* trans = _plateau.getUnite(action.x1, action.y1);
+    Unite* pass = _plateau.getUnite(action.x2, action.y2);
+    if(trans && pass && _arbitre.peutTransporter(j, *trans)) 
+    {
+        j.Transporter(*trans, *pass);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionDechargement(Joueur& j, const Action& action) 
+{
+    Unite* trans = _plateau.getUnite(action.x1, action.y1);
+    if(!trans || !trans->Transport()) return ResultatAction::ECHEC_COORD_INVALIDE;
+
+    const auto& liste = trans->Transport()->liste_unite_transporter();
+    int index = 0;
+    try{ index = std::stoi(action.data); } catch(...){ index = 0; }
+    
+    if(index >= 0 && index < (int)liste.size()) 
+    {
+        auto it = liste.begin();
+        std::advance(it, index);
+        std::shared_ptr<Unite> pass = *it;
+
+        if(_arbitre.peutDechargerTransport(j, *trans, *pass, action.x2, action.y2)) 
+        {
+            j.DechargerTransport(*trans, *pass, action.x2, action.y2);
+            _plateau.placerUnite(action.x2, action.y2, pass);
+            return ResultatAction::SUCCES;
+        }
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionEnrolement(Joueur& j, const Action& action) 
+{
+    Unite* com = _plateau.getUnite(action.x1, action.y1);
+    Unite* reg = _plateau.getUnite(action.x2, action.y2);
+    if (com && reg && _arbitre.peutRejoindreCommandant(j, *com, *reg)) 
+    {
+        j.RejoindreCommandant(*com, *reg);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction GameManager::actionDesenrolement(Joueur& j, const Action& action) 
+{
+    Unite* com = _plateau.getUnite(action.x1, action.y1);
+    Unite* reg = _plateau.getUnite(action.x2, action.y2);
+    if (com && reg) 
+    {
+        if (auto* commandant = dynamic_cast<Rank_Commandant*>(com->rank().get()))
+        {
+            auto listeU = commandant->liste_unites();
+            auto it = std::find(listeU.begin(), listeU.end(), reg->shared_from_this());
+
+            if (it != listeU.end()) 
+            {
+                j.QuitterCommandant(*com, *reg);
+                return ResultatAction::SUCCES;
+            } 
+            else 
+            {
+                return ResultatAction::ECHEC_ARBITRE_REFUS;
+            }
+            
+        }
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+*/
+
+
 
 
 // ------------------------------------------- //

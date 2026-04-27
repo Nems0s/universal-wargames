@@ -56,13 +56,8 @@ void CompMouv::setMov_per_laps(int newMov_per_laps)
 
 bool CompMouv::EstCaseValide(Coord const& actuel, Coord const& cible)
 {
-    // Le Test de franchisemant est fait dans board
-    //Ici on test la porte
-    if((std::abs(actuel.first - cible.first) <= mov_per_laps()) && ((std::abs(actuel.second - cible.second) <= mov_per_laps()))) //std::abs = valeur absolue
-    {
-        return true;
-    }
-    else return false;
+    std::set<Coord> zonePossible = case_adjascentes(actuel, mov_per_laps());
+    return zonePossible.find(cible) != zonePossible.end();
 }
 
 //===================================================================
@@ -72,7 +67,7 @@ CompMouvVolant::CompMouvVolant(int mouvement_par_tour): CompMouv(mouvement_par_t
 
 void CompMouvVolant::affiche() const
 {
-    std::cout << "[Mouvement] Vol : " << mov_per_laps() << std::endl;
+    std::cout << "[Mouvement] Vol : " << mov_per_laps() << " cases" << std::endl;
 }
 
 NatureMouv CompMouvVolant::Nature() const
@@ -88,7 +83,7 @@ CompMouvMarin::CompMouvMarin(int mouvement_par_tour): CompMouv(mouvement_par_tou
 
 void CompMouvMarin::affiche() const
 {
-    std::cout << "[Mouvement] Mer : " << mov_per_laps() << std::endl;
+    std::cout << "[Mouvement] Mer : " << mov_per_laps() << " cases"  << std::endl;
 }
 
 NatureMouv CompMouvMarin::Nature() const
@@ -103,7 +98,7 @@ CompMouvTerrestre::CompMouvTerrestre(int mouvement_par_tour): CompMouv(mouvement
 
 void CompMouvTerrestre::affiche() const
 {
-    std::cout << "[Mouvement] Terrestre : " << mov_per_laps() << std::endl;
+    std::cout << "[Mouvement] Terrestre : " << mov_per_laps() << " cases" << std::endl;
 }
 
 NatureMouv CompMouvTerrestre::Nature() const
@@ -150,7 +145,7 @@ CompAttMelee::CompAttMelee(int damage_point):CompAtt(damage_point, 1){}
 
 void CompAttMelee::affiche() const
 {
-    std::cout << "[Attaque] Melee : " << damage_point() << "/" << portee() << std::endl;
+    std::cout << "[Attaque] Melee : Dgt=" << damage_point() << ", Portée=" << portee() << std::endl;
 }
 
 
@@ -214,7 +209,7 @@ void CompAttDistance::setPortee_mini(int newPortee_mini)
 
 void CompAttDistance::affiche()const
 {
-    std::cout << "[Attaque] Distance : " << damage_point() << "/(" << portee() << "|" << _portee_mini<< ")/"  << _munitions << std::endl;
+    std::cout << "[Attaque] Distance : Dgt=" << damage_point() << ", Portée max=" << portee() << "|Portée min=" << _portee_mini<< ", Munitions="  << _munitions << std::endl;
 }
 
 
@@ -250,7 +245,7 @@ int CompAttIndirect::nombredetourinfection() const
 
 void CompAttIndirect::affiche() const
 {
-    std::cout << "[Attaque] Indirect : " << damage_point() << "/" << portee() << "/" << _nombre_de_tour_infection << std::endl;
+    std::cout << "[Attaque] Indirect : Dgt=" << damage_point() << ", Portée=" << portee() << ", Tour d'infection=" << _nombre_de_tour_infection << std::endl;
 }
 void CompAttIndirect::update()
 {
@@ -319,7 +314,7 @@ void CompDefArmure::setArmure(int newArmure)
 
 void CompDefArmure::affiche() const
 {
-    std::cout << "[Defense] Armure : " << _armure << std::endl;
+    std::cout << "[Defense] Armure : Vie armure=" << _armure << std::endl;
 }
 
 int CompDefArmure::ReductionDegats(int degat_subit)
@@ -344,7 +339,7 @@ void CompDefBouclier::setNombre_bouclier(int newNombre_bouclier)
 
 void CompDefBouclier::affiche() const
 {
-    std::cout << "[Defense] Bouclier : " << _nombre_bouclier << std::endl;
+    std::cout << "[Defense] Bouclier : Nombre bouclier=" << _nombre_bouclier << std::endl;
 }
 void CompDefBouclier::update()
 {
@@ -421,7 +416,7 @@ void CompSoinDirect::setRayon(int newRayon)
 
 void CompSoinDirect::affiche() const
 {
-    std::cout << "[Soin] Direct : " << _healing_point << ", r=" << _rayon << std::endl;
+    std::cout << "[Soin] Direct : Soin=" << _healing_point << ", Portée=" << _portee << ", Rayon=" << _rayon << std::endl;
 }
 
 void CompSoinDirect::update()
@@ -462,7 +457,7 @@ int CompSoinIndirect::nombredetourregen() const
 
 void CompSoinIndirect::affiche() const
 {
-    std::cout << "[Soin] Indirect : " << _healing_point << "/" << _portee << "/" << _nombre_de_tour_regeneration << std::endl;
+    std::cout << "[Soin] Indirect : Soin=" << _healing_point << ", Portée=" << _portee << ", Tour régénération=" << _nombre_de_tour_regeneration << std::endl;
 }
 void CompSoinIndirect::update()
 {
@@ -548,7 +543,12 @@ void CompTransport::setMax_unite_transporter(int newMax_unite_transporter)
 
 void CompTransport::affiche() const
 {
-    std::cout << "[Special] Transport : " << _liste_unite_transporter.size()<<"/"<< _max_unite_transporter << std::endl;
+    std::cout << "[Special] Transport : " << _liste_unite_transporter.size()<<"/"<< _max_unite_transporter << ", Unitées transportées : [ ";
+    for(auto u : _liste_unite_transporter)
+    {
+        u->affiche();
+    }
+    std::cout << " ]" <<std::endl;
 }
 
 int CompTransport::nb_unite_actuelle()const
@@ -617,7 +617,9 @@ bool CompFurtif::camoufler() const
 
 void CompFurtif::affiche() const
 {
-    std::cout << "[Special] Camouflage : " << _duree_max_camouflage<<"|"<< _cooldown << std::endl;
+    std::cout << "[Special] Camouflage : Durée max=" << _duree_max_camouflage<<", Cooldown="<< _cooldown;
+    if(_camoufler) std::cout<<"Cammouflage actif"<<std::endl;
+    else std::cout<<"Cammouflage non actif"<<std::endl;
 }
 void CompFurtif::update()
 {

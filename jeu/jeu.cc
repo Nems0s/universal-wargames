@@ -147,8 +147,14 @@ void board::affichage() const {
         if (i%2 == 0) {
             std::cout << " ";
         }
-        for (int j = 0; j < _width; ++j) {
-            std::cout << _matrix[i][j]->getSymbole() << " ";
+        for (int j = 0; j < _width; ++j) 
+        {
+            Unite* u = getUnite(i, j);
+            if (u != nullptr) 
+            {
+                std::cout << u->getSymbol() << " ";
+            }
+            else std::cout << _matrix[i][j]->getSymbole() << " ";
         }
         std::cout << std::endl;
     }
@@ -156,11 +162,11 @@ void board::affichage() const {
 
 
 void board::placerUnite(int x, int y, std::shared_ptr<Unite> u) {
-        if (x >= 0 && x < _height && y >= 0 && y < _width) {
-            _unites[{x, y}] = std::move(u);
-        }
+    if (x >= 0 && x < _height && y >= 0 && y < _width) 
+    {
+        _unites[{x, y}] = std::move(u);
     }
-    
+}
 Unite * board::getUnite(int x, int y) const {
     auto it = _unites.find({x, y});
     if (it != _unites.end()) {
@@ -177,18 +183,6 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     auto it = _unites.find({xSrc, ySrc});
     if (it == _unites.end()) return false;
 
-    //Test cible valide, avec la portée
-    bool porteeValide = false;
-    for(auto const& mouv : u.Mobilite())
-    {
-        if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
-        {
-            porteeValide = true;
-            break;
-        }
-    }
-    if (!u.Mobilite().empty() && !porteeValide) return false;
-
     //Coord dans la carte
     if (xDest < 0 || xDest >= _height || yDest < 0 || yDest >= _width) return false;
 
@@ -201,10 +195,17 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
         return false;
     }
 
-    _unites[{xDest, yDest}] = std::move(it->second);
-    _unites.erase(it);
-    
-    return true;
+    //Test cible valide, avec la portée
+    for(auto const& mouv : u.Mobilite())
+    {
+        if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
+        {
+            _unites[{xDest, yDest}] = std::move(it->second);
+            _unites.erase(it);
+            return true;
+        }
+    }
+    return false;
 }
 
 void board::retirerUnite(int x, int y) {

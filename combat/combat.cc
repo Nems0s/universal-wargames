@@ -106,18 +106,20 @@ void EffetMoral(Unite & u, int degatsArme)
     int moral = u.moral_point();
     float coeff = 1.0;
 
+    float ratio = (moral - MIN_MORAL) / (MAX_MORAL - MIN_MORAL);
+
     std::string etat = "Neutre";
 
     // Fuite
-    if (moral < MIN_MORAL*0.75)
+    if (ratio < 0.14)
     {
         std::cout << "[ALERTE] " << u.name() << " s'enfuit du champ de bataille !" << std::endl;
         u.setHealth_point(0);
         return;
-    }
+        }
 
     // Panique
-    else if (moral < MIN_MORAL*0.5)
+    else if (ratio < 0.28)
     {
         coeff = 0.5;
         if (u.health_point() > u.health_point_max() * 0.8)
@@ -128,33 +130,33 @@ void EffetMoral(Unite & u, int degatsArme)
     }
 
     // Peur
-    else if (moral < MIN_MORAL*0.25)
+    else if (ratio < 0.42)
     {
         coeff = 0.8;
         etat = "Peur (Malus)";
     }
 
     // Fatigue
-    else if (moral > MAX_MORAL*0.75)
+    else if (ratio > 0.86)
     {
         coeff = 0.9;
         etat = "Fatigue (Malus)";
     }
 
     // Héroïsme
-    else if (moral > MAX_MORAL*0.5)
+    else if (ratio > 0.72)
     {
         coeff = 1.5;
         etat = "Heroisme (Bonus)";
     }
 
     // Courage
-    else if (moral > MAX_MORAL*0.25)
+    else if (ratio > 0.58)
     {
         coeff = 1.2;
         etat = "Courage (Bonus)";
     }
-
+    
     if(etat != "Neutre")
     {
         std::cout << "[ETAT] " << u.name() << " est en etat : " << etat << std::endl;
@@ -172,6 +174,8 @@ void EffetMoral(Unite & u, int degatsArme)
 //==============================================================================
 bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defenseur)
 {
+    if(attaquant.defensif()) return false;
+
     auto styles_attaque = attaquant.Offensive();
     auto it = std::find(styles_attaque.begin(), styles_attaque.end(), TypeAttaque);
 
@@ -220,11 +224,11 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     int newmoralAtt = 0;
     int newmoralDef = 0;
 
-    if((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) || estCamoufle == true)
+    if(((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) && (defenseur.defensif() == false))|| estCamoufle == true )
     {
         degats_finals = puissance_attaque * 1.5;
-        newmoralDef = 2;
-        newmoralAtt = 2;
+        newmoralDef = MAX_MORAL * (GROS_CHANGE / 100.0);
+        newmoralAtt = MAX_MORAL * (GROS_CHANGE / 100.0);
         if(estCamoufle == true)
         {
             attaquant.Cammouflage()->DesactiveCammouflage();
@@ -233,25 +237,25 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     else
     {
         degats_finals = puissance_attaque;
-        newmoralDef = 1;
-        newmoralAtt = 1;
+        newmoralDef = MAX_MORAL * (PETIT_CHANGE / 100.0);
+        newmoralAtt = MAX_MORAL * (PETIT_CHANGE / 100.0);
     }
 
     auto defenses = defenseur.Defensif();
 
     for(auto const& def : defenses)
     {
-        if(degats_finals > 0) {
+        if(degats_finals > 0) 
+        {
             degats_finals = def->ReductionDegats(degats_finals);
-            newmoralDef = 1;
         }
     }
 
 
     if(degats_finals <= 0)
     {
-        AugmentationMoral(defenseur, 1);
-        DiminussionMoral(attaquant, 1);
+        AugmentationMoral(defenseur, MAX_MORAL * (PETIT_CHANGE / 100.0));
+        DiminussionMoral(attaquant, MAX_MORAL * (PETIT_CHANGE / 100.0));
     }
     else
     {
@@ -259,8 +263,9 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
         AugmentationMoral(attaquant, newmoralAtt);
     }
 
-    // Vérifier si le défenseur fuit
+    // Vérifier si une des deux unitées fuit
     EffetMoral(defenseur);
+    EffetMoral(attaquant);
 
     defenseur.setHealth_point(defenseur.health_point() - degats_finals);
 
@@ -299,16 +304,16 @@ bool Combat::heal(Unite &healer, CompSoin* const& TypeSoin,Unite & cible)
             if(soin)
             {
                 soin->AjoutCibleAtteinte(cible.shared_from_this());
-                AugmentationMoral(healer, 1);
-                AugmentationMoral(cible, 1);
+                AugmentationMoral(healer, MAX_MORAL * (PETIT_CHANGE / 100.0));
+                AugmentationMoral(cible, MAX_MORAL * (PETIT_CHANGE / 100.0));
             }
         }
 
         if(cible.health_point() + TypeSoin->healing_point() <= cible.health_point_max())
         {
             cible.setHealth_point(cible.health_point() + TypeSoin->healing_point());
-            AugmentationMoral(healer, 1);
-            AugmentationMoral(cible, 2);
+            AugmentationMoral(healer, MAX_MORAL * (PETIT_CHANGE / 100.0));
+            AugmentationMoral(cible, MAX_MORAL * (GROS_CHANGE / 100.0));
         }
         return true;
     }

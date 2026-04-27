@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
-Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath)
+Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath, char symbole)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
@@ -21,7 +21,9 @@ Unite::Unite(const std::string &name, int hp, int point_action, int vision, int 
     _cout_entretien(cout_entretien),
     _visionRange(vision),
     _fov(fov),
-    _texturePath(texturePath)
+    _texturePath(texturePath),
+    _defensif(false),
+    _symbol(symbole)
 {}
 
 std::string Unite::name() const
@@ -52,6 +54,10 @@ int Unite::moral_point() const
 int Unite::point_action() const
 {
     return _point_action;
+}
+void Unite::setPoint_action(int newPoint_action)
+{
+    _point_action = newPoint_action;
 }
 
 int Unite::point_action_max() const
@@ -128,6 +134,23 @@ int Unite::temporary_damage() const
 void Unite::setTemporary_damage(int newTemporary_damage)
 {
     _temporary_damage = newTemporary_damage;
+}
+
+
+void Unite::setSymbol(char s)
+{ 
+    _symbol = s; 
+}
+
+char Unite::getSymbol() const
+{
+    return _symbol;
+}
+
+
+bool Unite::defensif() const
+{
+    return _defensif;
 }
 
 void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
@@ -232,7 +255,8 @@ CompTransport* Unite::Transport() const
 void Unite::affiche() const
 {
     std::cout << "=== [" << _name << "] ===" << std::endl;
-    std::cout << "Position: (" << _location.first << "," << _location.second << ")" << std::endl;
+    std::cout << "Position: (" << _location.first << "," << _location.second << "), Direction: "<< directionToString(_regarde) << std::endl;
+    std::cout << "Point d'action restant: " << _point_action << "/" << _point_action_max << std::endl;
     if(_rank)
     {
         std::cout << "Grade: "; _rank->get_role(); std::cout << std::endl;
@@ -242,6 +266,12 @@ void Unite::affiche() const
     {
         comp->affiche();
     }
+}
+
+void Unite::changerDefense()
+{
+    if(_defensif == false) _defensif = true;
+    else _defensif = false;
 }
 
 void Unite::resetTemporary_stats()
@@ -368,6 +398,9 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         Poids poids = Poids::Moyen;
         if(item.contains("poids")) poids = stringToPoids(item["poids"]);
 
+        std::string symStr = item.value("symbole", " ");
+        char sym = symStr[0];
+
         std::map<const Ressource*, int> coutUnite;
         bool toutesRessourcesExistantes = true;
 
@@ -377,15 +410,18 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
             {
                 std::string nomRes = it.key();
                 int quantite = it.value();
-
-                // On vérifie que la ressource existe dans la config globale (ressources)
                 if (ressources.count(nomRes)) 
                 {
                     coutUnite[ressources.at(nomRes)] = quantite;
-                }
+                } 
                 else 
                 {
-                    std::cout << "ERREUR CONFIG : La ressource n'existe pas " << std::endl;
+                    std::cout << "ERREUR : Ressource '" << nomRes << "' absente. Ressources connues : ";
+                    for(auto const& [cle, val] : ressources) 
+                    {
+                        std::cout << cle << " ";
+                    }
+                    std::cout << std::endl;
                     toutesRessourcesExistantes = false;
                 }
             }
@@ -441,7 +477,7 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
             std::string tex = item.value("texture", "");
             int vision = item.value("vision", 2);
             int fov = item.value("fov", 80);
-            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, vision, fov, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, coutEntretienUnite, tex);
+            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, coutEntretienUnite, tex, sym);
         }   
     }
 }

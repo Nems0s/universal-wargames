@@ -1,302 +1,560 @@
-#include <algorithm>
-#include <ctime>
-#include <filesystem>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
-#include <map> // Ajouté pour la gestion des ressources
+#include <ctime>
+#include <filesystem>
+#include <map>
+#include <vector>
+#include <regex>
 
-// Jeu / Plateau
 #include "jeu.hh"
+#include "joueur.hh"
+#include "arbitre.hh"
+#include "moteur.hh"
+#include "unite.hh"
 #include "config.hh"
 
-// Unite / Combat
-#include "combat.hh"
-#include "comportement.hh"
-#include "orientation.hh"
-#include "rank.hh"
-#include "unite.hh"
-
-// ============================================================
-//               Recherche du dossier configs
-// ============================================================
-std::string trouverConfigs() {
-  if (std::filesystem::exists("configs"))
-    return "configs";
-  if (std::filesystem::exists("../configs"))
-    return "../configs";
-  if (std::filesystem::exists("../../configs"))
-    return "../../configs";
-  throw std::runtime_error(
-      "Dossier 'configs' introuvable ! Verifiez le repertoire de travail.");
+std::string trouverConfigs() 
+{
+    if (std::filesystem::exists("configs")) return "configs/";
+    if (std::filesystem::exists("../configs")) return "../configs/";
+    throw std::runtime_error("Dossier 'configs' introuvable !");
 }
 
-// Helper pour afficher les stats d'une unité
-void afficherEtat(const Unite& u) {
-    std::cout << "[" << u.name() << "] HP: " << u.health_point() << "/" << u.health_point_max() 
-              << " | Moral: " << u.moral_point() << std::endl;
-}
+//Regex qui permet de récupérer tout les formes de YES et OUI
+// std::regex pattern_validation(R"(^([yY][eE][sS] | ^[oO][uU][iI] | ^[oO] | ^[yY])$)"); //Première version avec o et y mis en brute
 
-// ============================================================
-//                    TEST 0 : PLATEAU DE JEU
-// ============================================================
-void testPlateau() {
-  std::cout << "\n========== TEST 0 : PLATEAU DE JEU ==========" << std::endl;
-  std::string cfgDir = trouverConfigs();
-  std::map<std::string, Ressource *> ressources;
-  WorldFactory world;
+// Mais on peut rendre optionnel certain caractère avec ?
+// std::regex pattern_validation(R"(^([yY]([eE][sS])? | ^[oO]([uU][iI])?)$)"); //Par contre obligé de mettre les maj et min
 
-  JsonRessourceReader resReader;
-  try {
-    resReader.load(cfgDir + "/config_ressources.json", ressources);
-  } catch (const std::exception &e) {
-    throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
-  }
-
-  BatimentFactory batFactory;
-  JsonBatimentReader batReader;
-  try {
-    batFactory.chargerConfiguration(cfgDir + "/config_batiments.json", batReader,
-                                    ressources);
-  } catch (const std::exception &e) {
-    throw std::runtime_error("Erreur batiments : " + std::string(e.what()));
-  }
-
-  JsonWorldReader worldReader;
-  try {
-    worldReader.chargerConfig(cfgDir + "/config_espace.json", ressources, world);
-    world.initialiserBords();
-  } catch (const std::exception &e) {
-    throw std::runtime_error("Erreur monde : " + std::string(e.what()));
-  }
-
-  GameConfig config;
-  config.loadRules("configs/config_rules.json");
-
-  board jeuSpace(world, config);
-  std::cout << "Plateau de jeu genere avec succes." << std::endl;
-  jeuSpace.affichage();
-
-  for (auto const& [nom, res] : ressources) {
-    delete res;
-  }
-  ressources.clear();
-
-  std::cout << "========== FIN TEST PLATEAU ==========" << std::endl;
-}
-
-// ============================================================
-// FONCTIONS DE TESTS UNITES
-// ============================================================
-
-void testChargementJson(UniteFactory& factory) {
-    std::cout << "\n--- TEST 1 : CHARGEMENT & CATALOGUE ---" << std::endl;
-    auto u = factory.create("Infanterie d'Elite");
-    if(u) {
-        u->affiche();
-        std::cout << "[SUCCES] Unite chargee avec " << u->liste_comportements().size() << " comportements." << std::endl;
-    } else {
-        std::cout << "[ERREUR] Verifiez le nom 'Infanterie d'Elite' dans config_unite.json" << std::endl;
-    }
-}
-
-void testCombatTactique(UniteFactory& factory) {
-    std::cout << "\n--- TEST 2 : COMBAT, ORIENTATION & MORAL ---" << std::endl;
-    auto soldat = factory.create("Infanterie d'Elite");
-    auto tank = factory.create("Tank de Garde");
-
-    if(!soldat || !tank) return;
-
-    soldat->setLocation({1, 1});
-    tank->setLocation({2, 1});
-    tank->setRegarde(direction::est); // Le tank tourne le dos au soldat (Backstab possible)
-
-    std::cout << "Avant attaque : " << std::endl;
-    afficherEtat(*tank);
-
-    auto attaques = soldat->Offensive();
-    if(!attaques.empty()) {
-        std::cout << "[ACTION] " << soldat->name() << " attaque " << tank->name() << " par derriere !" << std::endl;
-        Combat::fight(*soldat, attaques.front(), *tank);
-        afficherEtat(*tank);
-        std::cout << "Note : Les degats sont reduits par l'armure de 15 du Tank." << std::endl;
-    }
-}
-
-void testFurtivite(UniteFactory& factory) {
-    std::cout << "\n--- TEST 3 : FURTIVITE & EMBUSCADE ---" << std::endl;
-    auto sniper = factory.create("Sniper");
-    auto cible = factory.create("Gros Tank");
-    
-    if(!sniper || !cible) return;
-
-    sniper->setLocation({0,0});
-    cible->setLocation({3,0}); // A portee de tir (portee 6 dans le JSON)
-
-    auto furtif = sniper->Cammouflage();
-    if(furtif) {
-        std::cout << "[ACTION] Activation du camouflage du Sniper." << std::endl;
-        furtif->ActiveCammouflage();
-        
-        auto tirs = sniper->Offensive();
-        if(!tirs.empty()){
-            std::cout << "[ACTION] Tir d'embuscade (Bonus x1.5) sur le Gros Tank !" << std::endl;
-            Combat::fight(*sniper, tirs.front(), *cible);
-            afficherEtat(*cible);
-            
-            if(!furtif->camoufler()) std::cout << "[INFO] Le camouflage a ete brise par l'attaque." << std::endl;
-        }
-    }
-}
-
-void testInfection(UniteFactory& factory) {
-    std::cout << "\n--- TEST 4 : INFECTION (DEGATS SUR LE TEMPS) ---" << std::endl;
-    // Note: L'Infanterie d'Elite doit avoir un comportement AttaqueIndirect dans le JSON pour ce test
-    auto infecteur = factory.create("Infanterie d'Elite");
-    auto victime = factory.create("Tank de Garde");
-    
-    if(!infecteur || !victime) return;
-
-    auto styleInfect = infecteur->Offensive(); 
-    CompAtt* poison = nullptr;
-    for(auto* a : styleInfect) {
-        if(dynamic_cast<CompAttIndirect*>(a)) poison = a;
-    }
-
-    if(poison) {
-        Combat::fight(*infecteur, poison, *victime);
-        std::cout << "Cible infectee. Passage de 3 tours (Appel de update())..." << std::endl;
-        for(int i = 1; i <= 3; ++i) {
-            infecteur->update(); // Met à jour les infections
-            std::cout << "Tour " << i << " : "; afficherEtat(*victime);
-        }
-    } else {
-        std::cout << "[INFO] L'Infanterie d'Elite n'a pas d'AttaqueIndirect dans le JSON actuel." << std::endl;
-    }
-}
-
-void testHierarchie(UniteFactory& factory) {
-    std::cout << "\n--- TEST 5 : COMMANDANT & BUFFS ---" << std::endl;
-    auto chef = factory.create("Commandant Allie");
-    auto recrue = factory.create("Infanterie d'Elite");
-
-    if(!chef || !recrue) return;
-
-    // Création du lien de hiérarchie
-    if(auto r = std::dynamic_pointer_cast<Rank_Regulier>(recrue->rank())) {
-        r->setCommandant(chef);
-        std::cout << "[INFO] " << recrue->name() << " est lie au " << chef->name() << "." << std::endl;
-    }
-
-    std::cout << "[ACTION] Verification des buffs (Inspiration) en combat..." << std::endl;
-    auto tank = factory.create("Tank de Garde");
-    auto att = recrue->Offensive();
-    if(!att.empty()) {
-        Combat::fight(*recrue, att.front(), *tank);
-        std::cout << "[INFO] Les degats ont ete augmentes par le BonusDegat (15) du Commandant." << std::endl;
-    }
-}
-
-void testSystemeSoin(UniteFactory& factory) {
-    std::cout << "\n--- TEST 6 : SOINS ET COOLDOWN ---" << std::endl;
-    auto medic = factory.create("Medecin");
-    auto blesse = factory.create("Soldat Blesse");
-    
-    if(!medic || !blesse) return;
-
-    blesse->setHealth_point(20);
-    medic->setLocation({0,0});
-    blesse->setLocation({1,0}); // A portee de soin
-    std::cout << "Etat initial : "; afficherEtat(*blesse);
-
-    auto soins = medic->Soin();
-    if(!soins.empty()) {
-        std::cout << "[ACTION] Soin direct sur " << blesse->name() << " !" << std::endl;
-        Combat::heal(*medic, soins.front(), *blesse);
-        afficherEtat(*blesse);
-        
-        std::cout << "[ACTION] Tentative de soin immediat (Attente echec Cooldown)..." << std::endl;
-        if(!Combat::heal(*medic, soins.front(), *blesse)) {
-            std::cout << "[SUCCES] Le cooldown a bien bloque le soin consecutif." << std::endl;
-        }
-    }
-}
-
-// ============================================================
-// MAIN INTERACTIF
-// ============================================================
+// Donc on peut utiliser le drapeau icase qui permet de ne plus distinguer min et maj 
+std::regex pattern_validation(R"(^(yes|y|oui|o)$)", std::regex_constants::icase);
 
 int main() {
-    std::srand(std::time(nullptr));
-    
-    std::map<std::string, Ressource*> ressources;
-    UniteFactory factory;
-    JsonUniteReader reader;
-    
-    std::string cfgDir = trouverConfigs();
 
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "      Initialisation Du Jeu" << std::endl;
+    std::cout << "========================================\n" << std::endl;
+
+    std::string cfgDir = trouverConfigs();
+    std::string fic;
+
+    /*==================*/
+    //Config Ressources
+    /*==================*/
+    std::cout << "\nFichier de configuration des ressources: ";
+    std::cin >> fic;
+    std::map<std::string, Ressource*> catalogueRessources;
     JsonRessourceReader resReader;
     try {
-        resReader.load(cfgDir + "/config_ressources.json", ressources);
+        resReader.load(cfgDir + fic + ".json", catalogueRessources);
+        std::cout << "[SYSTEME] Ressources chargées." << std::endl;
     } catch (const std::exception &e) {
-        throw std::runtime_error("Erreur ressources : " + std::string(e.what()));
-    }
-
-    try {
-        factory.chargerConfiguration(cfgDir + "/config_unite.json", reader, ressources);
-    } catch (const std::exception& e) {
-        std::cerr << "Erreur critique : " << e.what() << std::endl;
+        std::cerr << "Erreur critique Ressources : " << e.what() << std::endl;
         return 1;
     }
 
-    int choix = -1;
-    // Changement de la condition de boucle : 8 est Quitter
-    while(choix != 8) {
-        std::cout << "\n========================================" << std::endl;
-        std::cout << "       SPACE WARGAMES : TEST SUITE" << std::endl;
-        std::cout << "========================================" << std::endl;
-        std::cout << "0. Test Plateau de Jeu (Config)" << std::endl;
-        std::cout << "1. Test Chargement JSON & Catalogue" << std::endl;
-        std::cout << "2. Test Combat (Orientation/Armure/Moral)" << std::endl;
-        std::cout << "3. Test Furtivite & Embuscade" << std::endl;
-        std::cout << "4. Test Infection (Evolution/Tours)" << std::endl;
-        std::cout << "5. Test Hierarchie (Commandant/Buffs)" << std::endl;
-        std::cout << "6. Test Soins & Cooldowns" << std::endl;
-        std::cout << "7. Lancer TOUS les tests" << std::endl;
-        std::cout << "8. Quitter" << std::endl;
-        std::cout << "Choix : ";
-        
-        if (!(std::cin >> choix)) {
-            std::cin.clear();
-            std::cin.ignore(1000, '\n');
-            continue;
-        }
+    /*=============*/
+    //Config Règle
+    /*=============*/
+    std::cout << "\nFichier de configuration des règles: ";
+    std::cin >> fic;
+    GameConfig config;
+    try {
+        config.loadRules(cfgDir + fic + ".json");
+        std::cout << "[SYSTEME] Règles chargées." << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Erreur critique Règle : " << e.what() << std::endl;
+        return 1;
+    }
 
-        switch(choix) {
-            case 0: testPlateau(); break;
-            case 1: testChargementJson(factory); break;
-            case 2: testCombatTactique(factory); break;
-            case 3: testFurtivite(factory); break;
-            case 4: testInfection(factory); break;
-            case 5: testHierarchie(factory); break;
-            case 6: testSystemeSoin(factory); break;
-            case 7:
-                testPlateau();
-                testChargementJson(factory);
-                testCombatTactique(factory);
-                testFurtivite(factory);
-                testInfection(factory);
-                testHierarchie(factory);
-                testSystemeSoin(factory);
-                break;
-            case 8:
-                std::cout << "Fin du programme." << std::endl;
-                break;
-            default: 
-                std::cout << "Choix invalide." << std::endl;
-                break;
+    /*=============*/
+    //Config Monde
+    /*=============*/
+    std::cout << "\nFichier de configuration du monde: ";
+    std::cin >> fic;
+    WorldFactory world;
+    JsonWorldReader worldReader;
+    try {
+        worldReader.chargerConfig(cfgDir + fic + ".json", catalogueRessources, world);
+        world.initialiserBords();
+        std::cout << "[SYSTEME] Monde chargés." << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Erreur critique Monde : " << e.what() << std::endl;
+        return 1;
+    }
+
+    /*=====================*/
+    //Config Factory Unite
+    /*=====================*/
+    std::cout << "\nFichier de configuration des unités: ";
+    std::cin >> fic;
+    UniteFactory uniteFactory;
+    JsonUniteReader uniteReader;
+    try {
+        uniteFactory.chargerConfiguration(cfgDir + fic + ".json", uniteReader, catalogueRessources);
+        std::cout << "[SYSTEME] Unites chargées." << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Erreur critique Unites : " << e.what() << std::endl;
+        return 1;
+    }
+
+    /*=======================*/
+    // Initialisation du jeu
+    /*=======================*/
+    board plateau(world, config); 
+    Arbitre arbitre;
+
+    GameManager moteur(plateau, arbitre, config, uniteFactory);
+
+    /*======================*/
+    // Création des joueurs 
+    /*======================*/
+    int nb_joueur=0;
+    std::string nom_joueur;
+
+    std::cout << "\nEntrez nombre de joueur: ";
+    std::cin >> nb_joueur;
+    for(int i=1; i <= nb_joueur; ++i)
+    {
+        std::cout << "Entrez nom du joueur "<<i<<": ";
+        std::cin >> nom_joueur;
+
+        auto j = std::make_unique<Joueur>(nom_joueur);
+        moteur.ajouterJoueur(std::move(j));
+    }
+    
+
+    /*======================*/
+    // Gestion des Factions 
+    /*======================*/
+    for(auto& joueur : moteur.getJoueurs())
+    {
+        std::string choix_faction;
+        int i=1;
+
+        std::cout << "\nChoisir une faction pour " << joueur->getName() <<": ";
+        for(auto& faction : config.get_AllFactions())
+        {
+            std::cout<<"\n" << i <<". "<< faction.first << " ";
+            ++i;
+        }
+        std::cout <<"\nChoix (Mettre le nom): ";
+        std::cin >> choix_faction;
+
+        auto fact = config.getFaction(choix_faction);
+        if(fact) 
+        {
+            joueur->setFaction(fact);
+        }
+    }
+    
+
+    /*======================*/
+    // Ressources de départ  
+    /*======================*/
+    std::string ressources_depart;
+    std::cout <<"\nVoulez vous donner des ressources de départ ? (Y/N): ";
+    std::cin >> ressources_depart;
+
+    if(std::regex_match(ressources_depart, pattern_validation)) // Vérifie que l'entrer correspond à la regex
+    {
+        for(auto const& [nom, resPtr] : catalogueRessources) 
+        {
+            int quantite = 0;
+            std::cout <<"Quantité pour "<< nom << ": ";
+            std::cin >> quantite;
+            for(auto& joueur : moteur.getJoueurs())
+            {
+                joueur->ajouterRessource(resPtr, quantite);
+            }
+        }   
+    }
+
+
+    /*========================================================*/
+    // Affichage du plateau pour voir ou mettre les capitales 
+    /*========================================================*/
+
+    plateau.affichage();
+
+
+    /*=========================*/
+    // Placement des Capitales
+    /*=========================*/
+    std::cout << "\nGénération aléatoire des Capitales" << std::endl;
+
+    for(auto& joueur : moteur.getJoueurs())
+    {
+        bool placementValide = false;
+        int x, y;
+
+        while(!placementValide)
+        {
+            x = std::rand() % plateau.getRows(); 
+            y = std::rand() % plateau.getCols();
+
+            if(arbitre.coordValid(x, y, plateau)) //
+            {
+                const hexa* cell = plateau.getCell(x, y);
+                TuileConfigurable* tuile = const_cast<TuileConfigurable*>(dynamic_cast<const TuileConfigurable*>(cell));
+
+                if(tuile && tuile->peutConstrVille()) //
+                {
+                    tuile->constrVille(x, y, config, 5, true); 
+                    City* capitale = tuile->getCity();
+                    
+                    if(capitale)
+                    {
+                        joueur->ajouterVille(capitale); //
+                        placementValide = true;
+
+                        std::cout << "[INFO] La capitale de " << joueur->getName() << " a été établie en (" << x << ", " << y << ")." << std::endl;
+                    }
+                }
+            }
         }
     }
 
+
+
+
+
+
+    /*==========================*/
+    // Boucle de Jeu Principale
+    /*==========================*/
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "      Début de la Partie" << std::endl;
+    std::cout << "========================================\n" << std::endl;
+    moteur.lancerPartie(); // Initialise le premier tour
+    bool jeuEnCours = true;
+
+    while (jeuEnCours) 
+    {
+        const auto& listeJoueurs = moteur.getJoueurs();
+        int indexActuel = moteur.getIndexJoueurActuel();
+        Joueur& joueurActif = *(listeJoueurs.at(indexActuel));
+
+        std::cout << "\n========================================" << std::endl;
+        std::cout << "   TOUR DE : " << joueurActif.getName() << std::endl;
+        std::cout << "========================================" << std::endl;
+        
+
+        std::cout << "\nRessources Actuelle : ";
+        for(auto r : joueurActif.getInventaire())
+        {
+            std::cout << r.first->getName() << ": "<< r.second <<"  ";
+        }
+
+        int choixMenu;
+        std::cout << "\n1. Voir la carte (Affichage plateau)" << std::endl;
+        std::cout << "2. Faire une Action" << std::endl;
+        std::cout << "3. Voir Armée" << std::endl;
+        std::cout << "4. Voir Ville" << std::endl;
+        std::cout << "5. Déclarer Forfait" << std::endl;
+        std::cout << "Choix : ";
+        std::cin >> choixMenu;
+
+        if (choixMenu == 1) 
+        {
+            plateau.affichage();
+        } 
+        else if (choixMenu == 2) 
+        {
+            std::cout << "\n--- ACTIONS POSSIBLES ---" << std::endl;
+            std::cout << " 1. Déplacer             |  2. Attaquer             |  3. Soigner" << std::endl;
+            std::cout << " 4. Recruter             |  5. Construire Ville     |  6. Construire Bâtiment" << std::endl;
+            std::cout << " 7. Améliorer Ville      |  8. Camoufler            |  9. Début Défense" << std::endl;
+            std::cout << "10. Arrêt Défense        | 11. Chargement (Monter)  | 12. Déchargement (Sortir)" << std::endl;
+            std::cout << "13. Enrôlement (Cdt)     | 14. Désenrôlement        | 15. FIN DE TOUR" << std::endl;
+            
+            int choixAction; 
+            std::cout << "Choix de l'action : "; 
+            std::cin >> choixAction;
+            
+            Action a;
+            bool actionValide = true;
+
+            switch(choixAction) 
+            {
+                case 1: // DEPLACER
+                    std::cout << "\nDéplacement" << std::endl;
+                    a.type = TypeAction::DEPLACER;
+                    std::cout << "Unitées disponible: ";
+                    for(auto i : joueurActif.getUnites())
+                    {
+                        std::cout << i->name() <<"(" << i->location().first <<", "<< i->location().second <<")" << "     ";
+                    }
+                    std::cout << "\nCoord. unité (x y) : ";
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. destination (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    std::cout << "Où regarde l'unité (nord_ouest, nord_est, ouest, est, sud_ouest, sud_est): "; 
+                    std::cin >> a.data;
+
+                    break;
+                case 2: // ATTAQUER
+                    {
+                        std::cout << "\nAttaque" << std::endl;
+                        a.type = TypeAction::ATTAQUER;
+                        std::cout << "Coord. attaquant (x y) : "; 
+                        std::cin >> a.x1 >> a.y1;
+
+                        Unite* att = plateau.getUnite(a.x1, a.y1);
+                        if (att) 
+                        {
+                            auto listeAttaques = att->Offensive();
+                            if (!listeAttaques.empty()) 
+                            {
+                                std::cout << "Attaques disponibles pour " << att->name() << " :" << std::endl;
+                                int i = 0;
+                                for (auto comp : listeAttaques) 
+                                {
+                                    std::cout << i << ". ";
+                                    comp->affiche();
+                                    i++;
+                                }
+                            } 
+                            else 
+                            {
+                                std::cout << "Cette unité n'a aucune capacité offensive." << std::endl;
+                                break;
+                            }
+                            std::cout << "Coord. cible (x y) : "; 
+                            std::cin >> a.x2 >> a.y2;
+                            std::cout << "Index de l'attaque : "; 
+                            std::cin >> a.data;
+                            break;
+                        }
+                        else
+                        {
+                            std::cout << "Coordonnées Invalide" << std::endl;
+                            break;
+                        }
+                    }
+
+                case 3: // SOIGNER
+                    {
+                        std::cout << "\nSoin" << std::endl;
+                        std::cout << "Coord. soigneur (x y) : "; 
+                        std::cin >> a.x1 >> a.y1;
+
+                        Unite* soin = plateau.getUnite(a.x1, a.y1);
+                        if(soin) 
+                        {
+                            auto listeSoins = soin->Soin();
+                            if (!listeSoins.empty()) 
+                            {
+                                std::cout << "Attaques disponibles pour " << soin->name() << " :" << std::endl;
+                                int i = 0;
+                                for (auto comp : listeSoins) 
+                                {
+                                    std::cout << i << ". ";
+                                    comp->affiche();
+                                    i++;
+                                }
+                            } 
+                            else
+                            {
+                                std::cout << "Cette unité n'a aucune capacité de soin." << std::endl;
+                                break;
+                            }
+                            std::cout << "Coord. cible (x y) : "; 
+                            std::cin >> a.x2 >> a.y2;
+                            std::cout << "Index du soin : "; 
+                            std::cin >> a.data;
+                            break;
+                        }
+                        else
+                        {
+                            std::cout << "Coordonnées Invalide" << std::endl;
+                            break;
+                        }
+                    }
+                case 4: // RECRUTER
+                    {                    
+                        std::cout << "\nRecrutement" << std::endl;
+                        a.type = TypeAction::RECRUTER_UNITE;
+                        std::cout << "Coord. possible (x y) : "; 
+                        for(auto i : joueurActif.getCities())
+                        {
+                            std::cout <<" Ville en " << i->getX() << ", " << i->getY() << ":" << std::endl;
+                            for(auto possible : Voisins({i->getX(), i->getY()}))
+                            {
+                                std::cout <<"(" << possible.first <<", "<< possible.second <<")" << "  ";
+                            }
+                        }
+
+                        std::cout << "\nCoord. recrutement (x y) : "; 
+                        std::cin >> a.x1 >> a.y1;
+
+                        std::cin.ignore(10000, '\n');
+                        
+                        const FactionParams* faction = joueurActif.getFaction();
+                        if (faction) 
+                        {
+                            for (const std::string& nomUnite : faction->unites_disponibles) 
+                            {
+                                std::cout << "Unité invocable : " << nomUnite << std::endl;
+                            }
+                        }
+                        else std::cout << "Pas d'unité"<< std::endl;
+
+                        std::cout << "Nom de l'unité : "; 
+                        std::getline(std::cin, a.data); // Car certaine troupe on plusieur espace
+                        break;
+                    }
+                case 5: // CONSTRUIRE VILLE
+                    std::cout << "\nConstruction de Ville" << std::endl;
+                    a.type = TypeAction::CONSTRUIRE_VILLE;
+                    std::cout << "Coord. nouvelle ville (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 6: // CONSTRUIRE BATIMENT
+                    std::cout << "\nConstruction de Batiment" << std::endl;
+                    a.type = TypeAction::CONSTRUIRE_BATIMENT;
+                    std::cout << "Coord. tuile (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Nom du bâtiment : "; 
+                    std::cin >> a.data;
+                    break;
+                case 7: // AMELIORER VILLE
+                    std::cout << "\nAmélioration de Ville" << std::endl;
+                    a.type = TypeAction::AMELIORER_VILLE;
+                    std::cout << "Coord. ville (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 8: // CAMMOUFLER
+                    std::cout << "\nCammouflage d'unité" << std::endl; 
+                    a.type = TypeAction::CAMMOUFLER;
+                    std::cout << "Coord. unité (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 9: // DEBUT_DEFENSSE
+                    std::cout << "\nUnité mise en position defensive" << std::endl; 
+                    a.type = TypeAction::DEBUT_DEFENSSE;
+                    std::cout << "Coord. unité (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 10: // ARRET_DEFENSSE
+                    std::cout << "\nUnité retirer de sa position defensive" << std::endl; 
+                    a.type = TypeAction::ARRET_DEFENSSE;
+                    std::cout << "Coord. unité (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    break;
+                case 11: // CHARGEMENT
+                    std::cout << "\nChargement d'unité dans un transporteur" << std::endl; 
+                    a.type = TypeAction::CHARGEMENT;
+                    std::cout << "Coord. transporteur (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. passager (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    break;
+                case 12: // DECHARGEMENT
+                    std::cout << "\nDechargement d'unité dans un transporteur" << std::endl; 
+                    a.type = TypeAction::DECHARGEMENT;
+                    std::cout << "Coord. transporteur (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. arrivée (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    std::cout << "Index de l'unité à sortir : "; 
+                    std::cin >> a.data;
+                    break;
+                case 13: // ENROLEMENT
+                    std::cout << "\nEnrolement d'une unité par un commandant" << std::endl; 
+                    a.type = TypeAction::ENROLEMENT;
+                    std::cout << "Coord. Commandant (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. Recrue (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    break;
+                case 14: // DESENROLEMENT
+                    std::cout << "\nDesenrolement d'une unité par un commandant" << std::endl; 
+                    a.type = TypeAction::DESENROLEMENT;
+                    std::cout << "Coord. Commandant (x y) : "; 
+                    std::cin >> a.x1 >> a.y1;
+                    std::cout << "Coord. Recrue (x y) : "; 
+                    std::cin >> a.x2 >> a.y2;
+                    break;
+                case 15: // FIN_TOUR
+                    std::cout << "\nFin du tour de "<<joueurActif.getName() << std::endl; 
+                    a.type = TypeAction::FIN_TOUR;
+                    break;
+                default:
+                    std::cout << "Action inconnue." << std::endl;
+                    actionValide = false;
+            }
+
+            if (actionValide) 
+            {
+                ResultatAction res = moteur.traiterAction(a);
+                if (res == ResultatAction::FIN_TOUR) 
+                {
+                    std::cout << "Tour terminé." << std::endl;
+                } 
+                else if (res == ResultatAction::SUCCES) 
+                {
+                    std::cout << "[SUCCÈS] Action effectuée." << std::endl;
+                } 
+                else 
+                {
+                    std::cout << "[ÉCHEC] L'arbitre a refusé l'action (Ressources, PA ou portée)." << std::endl;
+                }
+            }
+        }
+        else if (choixMenu == 3) 
+        {
+            std::cout <<"\nVoici le liste de vos unités :"<<std::endl;
+
+            for(auto i : joueurActif.getUnites())
+            {
+                std::cout <<"\n";
+                i->affiche();
+            }
+        }
+        else if (choixMenu == 4) 
+        {
+            std::cout <<"\nVoici le liste de vos villes :";
+            for(auto i : joueurActif.getCities())
+            {
+               std::cout <<"\n";
+                i->affiche();
+            }
+        }
+        else if (choixMenu == 5) 
+        {
+            std::string forfait;
+            std::cout <<"\nÊtes-vous sûr de déclarer forfait ? (Y/N): ";
+            std::cin >> forfait;
+
+            if(std::regex_match(forfait, pattern_validation))
+            {
+                std::cout << "Le joueur " << joueurActif.getName() << " a déclaré forfait !" << std::endl;
+                jeuEnCours = false;
+            }
+        }
+
+        for (auto& j : listeJoueurs) 
+        {
+            if (arbitre.verifierVictoire(*j, config)) 
+            {
+                std::cout << "\n****************************************" << std::endl;
+                std::cout << " FÉLICITATIONS ! " << j->getName() << " GAGNE !" << std::endl;
+                std::cout << "****************************************" << std::endl;
+                jeuEnCours = false;
+                break;
+            }
+        }
+    }
+
+    
+    /*=========================*/
+    // Nettoyage de la mémoire
+    /*=========================*/
+    for (auto const& [nom, res] : catalogueRessources) 
+    {
+        delete res;
+    }
+    catalogueRessources.clear();
     return 0;
 }

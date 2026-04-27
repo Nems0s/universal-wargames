@@ -58,6 +58,11 @@ private:
     ResultatAction executer(int pIdx, const CmdDetruireUnite& cmd);
     ResultatAction executer(int pIdx, const CmdFinTour & cmd);
 
+    // ResultatAction actionModifierVision(Joueur& j, const Action& action);
+    // ResultatAction actionDebutDefense(Joueur& j, const Action& a);
+    // ResultatAction actionArretDefense(Joueur& j, const Action& a);
+    // ResultatAction actionDesenrolement(Joueur& j, const Action& a);
+
 public:
     MoteurDeJeu();
 

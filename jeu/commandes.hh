@@ -19,6 +19,12 @@ struct CmdEnroler { int xCommandant, yCommandant, xRecrue, yRecrue; };
 struct CmdDetruireUnite { int x, y; };
 struct CmdFinTour {};
 
+    // ResultatAction actionModifierVision(Joueur& j, const Action& action);
+    // ResultatAction actionDebutDefense(Joueur& j, const Action& a);
+    // ResultatAction actionArretDefense(Joueur& j, const Action& a);
+    // ResultatAction actionDesenrolement(Joueur& j, const Action& a);
+    
+
 // variant : contient un seule des structures suivantes
 using CommandeJeu = std::variant<
     CmdFonderVille, 
