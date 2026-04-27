@@ -91,6 +91,25 @@ ResultatAction GameManager::actionRecruterUnite(Joueur& j, const Action& action)
     return ResultatAction::ECHEC_FONDS_INSUFFISANTS;
 }
 
+ResultatAction GameManager::actionModifierVision(Joueur& j, const Action& action) 
+{
+    Unite* u = _plateau.getUnite(action.x1, action.y1);
+    if(!u || !_arbitre.appartientJoueur(j, *u)) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    direction d;
+
+    //Car switch case prend des char* et que data est un std::string;
+    if (action.data == "nord_ouest") d = direction::nord_ouest;
+    else if (action.data == "nord_est") d = direction::nord_est;
+    else if (action.data == "ouest") d = direction::ouest;
+    else if (action.data == "est") d = direction::est;
+    else if (action.data == "sud_ouest") d = direction::sud_ouest;
+    else if (action.data == "sud_est") d = direction::sud_est;
+    else return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+    u->setRegarde(d);
+    return ResultatAction::SUCCES;
+}
+
 ResultatAction GameManager::actionDeplacer(Joueur& j, const Action& action) 
 {
     Unite* u = _plateau.getUnite(action.x1, action.y1);
@@ -292,7 +311,13 @@ ResultatAction GameManager::traiterAction(const Action& action)
         case TypeAction::CONSTRUIRE_BATIMENT: return actionConstruireBatiment(j, action);
         case TypeAction::AMELIORER_VILLE:     return actionAmeliorerVille(j, action);
         case TypeAction::RECRUTER_UNITE:      return actionRecruterUnite(j, action);
-        case TypeAction::DEPLACER:            return actionDeplacer(j, action);
+
+        case TypeAction::DEPLACER:     
+            ResultatAction res;
+            res = actionModifierVision(j, action); 
+            if(res == ResultatAction::SUCCES) return actionDeplacer(j, action); 
+            else return res;
+
         case TypeAction::ATTAQUER:            return actionAttaquer(j, action);
         case TypeAction::SOIGNER:             return actionSoigner(j, action);
         case TypeAction::CAMMOUFLER:          return actionCamoufler(j, action);

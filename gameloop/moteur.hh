@@ -69,6 +69,7 @@ public:
     ResultatAction actionConstruireBatiment(Joueur& j, const Action& a);
     ResultatAction actionAmeliorerVille(Joueur& j, const Action& a);
     ResultatAction actionRecruterUnite(Joueur& j, const Action& a);
+    ResultatAction actionModifierVision(Joueur& j, const Action& action);
     ResultatAction actionDeplacer(Joueur& j, const Action& a);
     ResultatAction actionAttaquer(Joueur& j, const Action& a);
     ResultatAction actionSoigner(Joueur& j, const Action& a);

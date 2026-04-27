@@ -280,10 +280,18 @@ int main() {
                 case 1: // DEPLACER
                     std::cout << "\nDéplacement" << std::endl;
                     a.type = TypeAction::DEPLACER;
-                    std::cout << "Coord. unité (x y) : ";
+                    std::cout << "Unitées disponible: ";
+                    for(auto i : joueurActif.getUnites())
+                    {
+                        std::cout << i->name() <<"(" << i->location().first <<", "<< i->location().second <<")" << "     ";
+                    }
+                    std::cout << "\nCoord. unité (x y) : ";
                     std::cin >> a.x1 >> a.y1;
                     std::cout << "Coord. destination (x y) : "; 
                     std::cin >> a.x2 >> a.y2;
+                    std::cout << "Où regarde l'unité (nord_ouest, nord_est, ouest, est, sud_ouest, sud_est): "; 
+                    std::cin >> a.data;
+
                     break;
                 case 2: // ATTAQUER
                     {
@@ -367,7 +375,17 @@ int main() {
                     {                    
                         std::cout << "\nRecrutement" << std::endl;
                         a.type = TypeAction::RECRUTER_UNITE;
-                        std::cout << "Coord. recrutement (x y) : "; 
+                        std::cout << "Coord. possible (x y) : "; 
+                        for(auto i : joueurActif.getCities())
+                        {
+                            std::cout <<" Ville en " << i->getX() << ", " << i->getY() << ":" << std::endl;
+                            for(auto possible : Voisins({i->getX(), i->getY()}))
+                            {
+                                std::cout <<"(" << possible.first <<", "<< possible.second <<")" << "  ";
+                            }
+                        }
+
+                        std::cout << "\nCoord. recrutement (x y) : "; 
                         std::cin >> a.x1 >> a.y1;
 
                         std::cin.ignore(10000, '\n');
