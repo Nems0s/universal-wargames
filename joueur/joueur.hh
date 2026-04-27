@@ -23,7 +23,6 @@ private:
     int _nbCasesAchetees = 0;
 
 public:
-    Joueur();
 
     void debutTour();
 
@@ -79,7 +78,6 @@ public:
     void ChangerPositionDefensive(Unite& unite);
 
     // Accesseurs
-    std::string getName() const { return _name; }
     std::string getName() const { return _name; }
     int getNbVilles() const { return _cities.size(); }
     const std::list<City*> & getCities() const { return _cities; }

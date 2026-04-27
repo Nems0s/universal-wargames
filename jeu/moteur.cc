@@ -2,10 +2,9 @@
 #include "combat.hh"
 #include <iostream>
 
-/*
+
 MoteurDeJeu::MoteurDeJeu() 
     : _tourActuel(1), _currentPlayerTurn(0), _mapSeed(42) {}
-*/
 
 
 /*

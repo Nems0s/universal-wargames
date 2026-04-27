@@ -132,4 +132,7 @@ cout_entretien {
 - cooldown pour tout les comportements
 - modifier dans joueur et moteur : decouvrirZoneVision
 - modifier / supprimer fov et visionRange par nouvelle logique de vision
-
+- ajouter le bruit de perlin (espace avec les planètes et jeu de pirate avec des îles de tailles différentes)
+- voir pour l'init du MoteurDeJeu
+- merge les fonctions ensembles du moteur entre unite
+- décommenter peutRecruterUnite dans l'arbitre et fix le problème

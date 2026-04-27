@@ -5,13 +5,15 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
-Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath, char symbole)
+Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, char symbole, const std::string& texturePath)
     :_name(name),
     _health_point(hp),
     _health_point_max(hp),
     _moral_point(0),
     _point_action(point_action),
     _point_action_max(point_action),
+    _visionRange(vision),
+    _fov(fov),
     _poids(poids),
     _regarde(dir),
     _location(loc),
@@ -19,11 +21,9 @@ Unite::Unite(const std::string &name, int hp, int point_action, int vision, int 
     _liste_comportements(liste_comportements),
     _cout(cout),
     _cout_entretien(cout_entretien),
-    _visionRange(vision),
-    _fov(fov),
+    _symbol(symbole),
     _texturePath(texturePath),
-    _defensif(false),
-    _symbol(symbole)
+    _defensif(false)
 {}
 
 std::string Unite::name() const
@@ -477,7 +477,7 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
             std::string tex = item.value("texture", "");
             int vision = item.value("vision", 2);
             int fov = item.value("fov", 80);
-            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, coutEntretienUnite, tex, sym);
+            catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, vision, fov, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, coutEntretienUnite, sym, tex);
         }   
     }
 }

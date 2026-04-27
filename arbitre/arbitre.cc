@@ -109,6 +109,10 @@ bool Arbitre::buildCity(const Joueur & j, const board & game, int x, int y) cons
     const hexa* cell = game.getCell(x,y);
     const TuileConfigurable* tuile = dynamic_cast<const TuileConfigurable*>(cell);
 
+    if (tuile->getProprietaire() != nullptr && tuile->getProprietaire() != &j) {
+        return false;
+    }
+
     // prérequis de la tuile
     if (!tuile->peutConstrVille()) return false;
 
@@ -322,6 +326,7 @@ bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
     else return false;
 }
 
+/*
 bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
 {
     if (!peutPayer(cout, j)) return false;
@@ -347,6 +352,18 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*
         }
     }
     return false;
+}
+*/
+
+bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
+{
+    if (!peutPayer(cout, j)) {
+        return false;
+    }
+    if (invocation.health_point() <= 0) {
+        return false;
+    }
+    return true;
 }
 
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const

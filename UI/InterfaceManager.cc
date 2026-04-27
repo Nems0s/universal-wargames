@@ -548,6 +548,7 @@ void InterfaceManager::renderPlayMenu() {
     ImGui::SetCursorPos(ImVec2(btnX, _window.getSize().y * 0.4f));
     if (ImGui::Button("NOUVELLE PARTIE (Local)", buttonSize)) {
         _network.disconnect();
+        _localPlayerIndex = 0;
         _currentState = GameState::FACTION_SELECT;
     }
 
@@ -2226,20 +2227,30 @@ void InterfaceManager::renderGame() {
         }
         
         if (!factureProdTotale.empty()) {
-            for (auto const& [resPtr, qte] : factureProdTotale) {
-                std::string resName = resPtr->getName();
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0);
-                if (_resourceIcons.count(resName) > 0) {
-                    ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
-                    ImGui::SameLine(0.0f, -1.0f);
+            ImGui::Dummy(ImVec2(0, 10));
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "DEPENSES (ENTRETIEN)");
+            ImGui::Separator();
+            
+            if (ImGui::BeginTable("DepensesTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV)) {
+                ImGui::TableSetupColumn("Ressource", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Cout / Tour", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+                ImGui::TableHeadersRow();
+
+                for (auto const& [resPtr, qte] : factureProdTotale) {
+                    std::string resName = resPtr->getName();
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    if (_resourceIcons.count(resName) > 0) {
+                        ImGui::Image(_resourceIcons[resName], sf::Vector2f(16.f, 16.f));
+                        ImGui::SameLine(0.0f, -1.0f);
+                    }
+                    ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", resName.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "-%d", qte);
                 }
-                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s (Entretien)", resName.c_str());
-                ImGui::TableSetColumnIndex(1);
-                ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "-%d", qte);
+                ImGui::EndTable();
             }
         }
-        ImGui::EndTable();
                 
         // 3. Avertissement visuel de famine
         bool warningFamine = false;

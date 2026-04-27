@@ -45,13 +45,13 @@ private:
     bool _defensif;
     int _temporary_health;
     int _temporary_damage;
+    int _visionRange;
+    int _fov;
     char _symbol;
     std::string _texturePath;
-    int _fov;
-    int _visionRange;
 
 public:
-    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, const std::string& texturePath = "", char symbole);
+    Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, char symbole, const std::string& texturePath = "");
     virtual ~Unite() = default;
 
     /*Setters*/
@@ -66,7 +66,6 @@ public:
     void setSymbol(char s);
 
     // MODIFIE PAR NAIM
-    void setPoint_action(int pa) { _point_action = pa; }
     std::string texturePath() const { return _texturePath; }
     void setProprietaire(Joueur* j) { _proprietaire = j; }
     Joueur* getProprietaire() const { return _proprietaire; }
