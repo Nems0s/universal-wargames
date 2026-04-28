@@ -33,26 +33,6 @@
             ]
         }
     ],
-    "presets_world": {
-        "GALAXY (Balanced)": {
-            ".": 90,
-            "E": 3,
-            "P": 5,
-            "X": 2
-        },
-        "NEBULA (Dense)": {
-            ".": 60,
-            "E": 15,
-            "P": 20,
-            "X": 5
-        },
-        "TEST": {
-            ".": 50,
-            "E": 50,
-            "P": 50,
-            "X": 50
-        }
-    },
     "production_capitale": {
         "Or": 10
     },
@@ -75,7 +55,29 @@
         "Or": 100
     },
     "taille_plateau": {
-        "x": 50,
-        "y": 50
-    }
+        "x": 100,
+        "y": 100
+    },
+    "tailles_disponibles": [
+        {
+            "nom": "Tiny",
+            "x": 50,
+            "y": 50
+        },
+        {
+            "nom": "Standard",
+            "x": 100,
+            "y": 100
+        },
+        {
+            "nom": "Huge",
+            "x": 200,
+            "y": 200
+        },
+        {
+            "nom": "HowToCrash",
+            "x": 1000000,
+            "y": 1000000
+        }
+    ]
 }

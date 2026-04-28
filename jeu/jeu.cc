@@ -1,5 +1,6 @@
 #include "jeu.hh"
 #include "unite.hh"
+#include "FastNoiseLite.hh"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -116,20 +117,51 @@ void TuileConfigurable::setStat(const std::string & key, float val) {
 //===================================================================
 //                              Board
 //===================================================================
-board::board(WorldFactory & world, const GameConfig& config): _config(config) {
+board::board(int seed, WorldFactory & world, const GameConfig& config): _config(config) {
     _width = config.getPlateauX();
     _height = config.getPlateauY();
+
+    // Config de FastNoiseLite
+    FastNoiseLite noise;
+    noise.SetSeed(seed);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    //noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+
+    std::string mode = world.getGenerationMode();
+    float scale = world.getPerlinScale();
 
     for (int i = 0; i < _height; ++i) {
         std::vector<std::unique_ptr<hexa>> ligne;
         for (int j = 0; j < _width; ++j) {
-            if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1)
-            {
+            if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1) {
                 ligne.push_back(world.createTile('#'));
             }
-            else
-            {
-                ligne.push_back(world.createRandomTile());
+            else {
+                if (mode == "perlin" && !world.getSeuilsPerlin().empty()) {
+                    // Récupération du bruit (-1.0 à 1.0)
+                    float nx = (float)j * scale;
+                    float ny = (float)i * scale;
+                    float noiseValue = noise.GetNoise(nx, ny);
+                    
+                    // Normalisation entre 0.0 et 1.0 pour comparer avec tes seuils JSON
+                    noiseValue = (noiseValue + 1.0f) / 2.0f;
+                    if (noiseValue < 0.0f) noiseValue = 0.0f;
+                    if (noiseValue > 1.0f) noiseValue = 1.0f;
+
+                    // Application des seuils
+                    char symboleChoisi = '.';
+                    for (const auto& [seuil, symb] : world.getSeuilsPerlin()) {
+                        if (noiseValue <= seuil) {
+                            symboleChoisi = symb;
+                            break;
+                        }
+                    }
+                    ligne.push_back(world.createTile(symboleChoisi));
+                } 
+                else {
+                    // Mode Random classique (avec _customWeights)
+                    ligne.push_back(world.createRandomTile());
+                }
             }
         }
         _matrix.push_back(std::move(ligne));
@@ -315,67 +347,6 @@ void WorldFactory::overrideWeights(const std::map<char, int>& overrides) {
     }
 }
 
-void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::string, const Ressource*>& resDispo, WorldFactory& factory) {
-    std::ifstream fichier(chemin);
-    std::string mot, ligne;
-
-    while (fichier >> mot) {
-        if (mot == "TILE") {
-            TuileData d;
-            // nom tuile, symbole, cout unite, constructible dessus ou non
-            fichier >> d.nom >> d.symbole >> d.cout >> d.constructible;
-
-            while (fichier >> mot && mot != "END") {
-                if (mot == "GEN") {
-                    // Pourcentage quantité, nombres minimum sur le terrain
-                    fichier >> d.gen.poids >> d.gen.nbMin;
-                } 
-                else if (mot == "MOUV") {
-                    // marche, nage, aerien
-                    fichier >> d.mouv.marche >> d.mouv.nage >> d.mouv.aerien;
-                }
-                else if (mot == "RES") {
-                    // lis les ressources
-                    std::getline(fichier, ligne);
-                    std::stringstream ss(ligne);
-                    std::string nomRes;
-
-                    while (ss >> nomRes) {
-                        if (nomRes == "None" || nomRes.empty()) continue;
-
-                        if (resDispo.count(nomRes)) {
-                            d.ressourceSpeciale.push_back(resDispo.at(nomRes));
-                        }
-                    }
-                }
-                else if (mot == "ENV") {
-                    // température, radiation, gravite
-                    fichier >> d.env.temperature >> d.env.radiation >> d.env.gravite;
-                }
-                else if (mot == "DATA") {
-                    // lecture clé-valeur des data
-                    std::getline(fichier, ligne);
-                    std::stringstream ss(ligne);
-                    std::string cle;
-                    float val;
-                    while (ss >> cle) {
-                        if (cle == "None") break;
-                        if (ss >> val) {
-                            d.properties[cle] = val; 
-                        }
-                    }
-                }
-            }
-            factory.ajouterAuCatalogue(d.symbole, d);
-            std::cout << "Chargé : " << d.nom << " (" << d.symbole << ")" << std::endl;
-        }
-    }
-
-    if (!fichier.eof() && fichier.fail()) {
-        throw std::runtime_error("Erreur dans le fichier : " + chemin);
-    }
-}
-
 void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::string, const Ressource*>& resDispo, WorldFactory& factory) {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {
@@ -385,6 +356,31 @@ void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::stri
     json data;
     fichier >> data;
 
+    // Generation Map
+    if (data.contains("generation_map")) {
+        auto& gen = data["generation_map"];
+        factory.setGenerationMode(gen.value("mode", "random"));
+        factory.setPerlinScale(gen.value("perlin_scale", 0.15f));
+        
+        if (gen.contains("seuils_perlin")) {
+            for (auto& [symbStr, seuil] : gen["seuils_perlin"].items()) {
+                if (!symbStr.empty()) factory.ajouterSeuilPerlin(seuil.get<float>(), symbStr[0]);
+            }
+        }
+    }
+
+    // Presets Worlds
+    if (data.contains("presets_world")) {
+        for (auto& [presetName, weightsObj] : data["presets_world"].items()) {
+            std::map<char, int> w;
+            for (auto& [symbStr, weightVal] : weightsObj.items()) {
+                if (!symbStr.empty()) w[symbStr[0]] = weightVal.get<int>();
+            }
+            factory.ajouterPreset(presetName, w);
+        }
+    }
+
+    // Lecture tuiles
     for (auto& t : data["tiles"]) {
         TuileData d;
         d.nom = t["nom"];

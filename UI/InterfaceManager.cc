@@ -4,6 +4,8 @@
 #include <set>
 #include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 
 InterfaceManager::InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur) 
     : _window(window), _moteur(moteur), _currentState(GameState::MENU) {
@@ -442,6 +444,7 @@ void InterfaceManager::run() {
             case GameState::MENU:           renderMenu();          break;
             case GameState::PLAY_MENU:      renderPlayMenu();      break;
             case GameState::MULTI_MENU:     renderMultiMenu();     break;
+            case GameState::LOAD_MENU:      renderLoadMenu();      break;
             case GameState::HOST_LOBBY:     renderHostLobby();     break;
             case GameState::JOIN_LOBBY:     renderJoinLobby();     break;
             case GameState::FACTION_SELECT: renderFactionSelect(); break;
@@ -461,16 +464,15 @@ void InterfaceManager::run() {
 // ------------------------------------------------------------------------ //
 
 void InterfaceManager::renderMenu() {
-    // Fenêtre invisible qui prend tout l'écran
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(_window.getSize().x, _window.getSize().y));
     ImGui::Begin("Main Menu", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
 
     // Titre
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // Plus tard, tu pourras mettre une grande police ici
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); 
     float textWidth = ImGui::CalcTextSize("SPACE WARGAMES").x;
     ImGui::SetCursorPosX((_window.getSize().x - textWidth) * 0.5f);
-    ImGui::SetCursorPosY(_window.getSize().y * 0.2f); // 20% du haut
+    ImGui::SetCursorPosY(_window.getSize().y * 0.2f);
     ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "SPACE WARGAMES");
     ImGui::PopFont();
 
@@ -487,21 +489,8 @@ void InterfaceManager::renderMenu() {
         startY += buttonSize.y + 20.0f;
     }
 
-    if (std::filesystem::exists("saves/last_save.json")) {
-        ImGui::SetCursorPos(ImVec2(btnX, startY));
-        if (ImGui::Button("CHARGER SAUVEGARDE", buttonSize)) {
-            if (SaveManager::saveGame("saves/last_save.json", _moteur)) {
-                _previousState = GameState::MENU;
-                _currentState = GameState::IN_GAME;
-            } else {
-                std::cerr << "Erreur: Impossible de charger saves/last_save.json" << std::endl;
-            }
-        }
-        startY += buttonSize.y + 20.0f;
-    }
-
     ImGui::SetCursorPos(ImVec2(btnX, startY));
-    if (ImGui::Button("NOUVELLE PARTIE", buttonSize)) _currentState = GameState::PLAY_MENU;
+    if (ImGui::Button("JOUER", buttonSize)) _currentState = GameState::PLAY_MENU; 
     startY += buttonSize.y + 20;
 
     ImGui::SetCursorPos(ImVec2(btnX, startY));
@@ -544,18 +533,25 @@ void InterfaceManager::renderPlayMenu() {
 
     ImVec2 buttonSize(300, 50);
     float btnX = (_window.getSize().x - buttonSize.x) * 0.5f;
+    float startY = _window.getSize().y * 0.35f;
 
-    ImGui::SetCursorPos(ImVec2(btnX, _window.getSize().y * 0.4f));
+    ImGui::SetCursorPos(ImVec2(btnX, startY));
+    if (ImGui::Button("CHARGER UNE PARTIE", buttonSize)) {
+        refreshSaveList();
+        _currentState = GameState::LOAD_MENU;
+    }
+
+    ImGui::SetCursorPos(ImVec2(btnX, startY + 70));
     if (ImGui::Button("NOUVELLE PARTIE (Local)", buttonSize)) {
         _network.disconnect();
         _localPlayerIndex = 0;
         _currentState = GameState::FACTION_SELECT;
     }
 
-    ImGui::SetCursorPos(ImVec2(btnX, _window.getSize().y * 0.4f + 70));
+    ImGui::SetCursorPos(ImVec2(btnX, startY + 140));
     if (ImGui::Button("MULTIJOUEUR (En Ligne)", buttonSize)) _currentState = GameState::MULTI_MENU;
 
-    ImGui::SetCursorPos(ImVec2(btnX, _window.getSize().y * 0.4f + 140));
+    ImGui::SetCursorPos(ImVec2(btnX, startY + 210));
     if (ImGui::Button("RETOUR", buttonSize)) _currentState = GameState::MENU;
 
     ImGui::End();
@@ -911,18 +907,37 @@ void InterfaceManager::renderMapConfig() {
         // Colonne gauche (paramètres généraux)
         ImGui::TableSetColumnIndex(0);
         ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "GENERAL SETTINGS");
-        
-        int currentSize = _rulesJson["taille_plateau"]["x"].get<int>();
-        int sizeIdx = 1;
-        if (currentSize <= 50) sizeIdx = 0;
-        else if (currentSize >= 200) sizeIdx = 2;
-        
-        std::vector<std::string> sizes = {"Tiny (50x50)", "Standard (100x100)", "Huge (200x200)"};
+
+        // Taille de la carte
+        std::vector<std::string> sizesNames;
+        std::vector<std::pair<int, int>> sizesValues;
+
+        if (_rulesJson.contains("tailles_disponibles")) {
+            for (auto& taille : _rulesJson["tailles_disponibles"]) {
+                std::string label = taille["nom"].get<std::string>() + " (" + 
+                                    std::to_string(taille["x"].get<int>()) + "x" + 
+                                    std::to_string(taille["y"].get<int>()) + ")";
+                sizesNames.push_back(label);
+                sizesValues.push_back({taille["x"].get<int>(), taille["y"].get<int>()});
+            }
+        } else {
+            sizesNames = {"Standard (100x100)"};
+            sizesValues = {{100, 100}};
+        }
+
+        int currentX = _rulesJson["taille_plateau"]["x"].get<int>();
+        int sizeIdx = 0;
+        for (size_t i = 0; i < sizesValues.size(); ++i) {
+            if (sizesValues[i].first == currentX) {
+                sizeIdx = i;
+                break;
+            }
+        }
+
         ImGui::Text("Map Size:"); ImGui::SameLine(150);
-        if (DrawArrowSelector("##msize", &sizeIdx, sizes)) {
-            int s = (sizeIdx == 0) ? 50 : (sizeIdx == 1) ? 100 : 200;
-            _rulesJson["taille_plateau"]["x"] = s;
-            _rulesJson["taille_plateau"]["y"] = s;
+        if (DrawArrowSelector("##msize", &sizeIdx, sizesNames)) {
+            _rulesJson["taille_plateau"]["x"] = sizesValues[sizeIdx].first;
+            _rulesJson["taille_plateau"]["y"] = sizesValues[sizeIdx].second;
             sendLobbySync();
         }
 
@@ -939,15 +954,21 @@ void InterfaceManager::renderMapConfig() {
         }
 
         ImGui::Text("Random Seed:"); ImGui::SameLine(150);
+        ImGui::SetNextItemWidth(120.0f);
         if (ImGui::InputInt("##seed", &_mapSeed)) {
+            sendLobbySync();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Aleatoire")) {
+            _mapSeed = std::rand() % 1000000;
             sendLobbySync();
         }
 
         ImGui::Dummy(ImVec2(0, 20));
         ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "WORLD PRESETS");
 
-        if (_rulesJson.contains("presets_world")) {
-            for (auto& [presetName, weightsObj] : _rulesJson["presets_world"].items()) {
+        if (_espaceJson.contains("presets_world")) {
+            for (auto& [presetName, weightsObj] : _espaceJson["presets_world"].items()) {
                 if (ImGui::Button(presetName.c_str(), ImVec2(400, 30))) {
                     for (auto& [symbStr, weightVal] : weightsObj.items()) {
                         if (!symbStr.empty()) {
@@ -967,8 +988,8 @@ void InterfaceManager::renderMapConfig() {
         ImGui::Dummy(ImVec2(0, 10));
 
         std::string activePreset = "Custom";
-        if (_rulesJson.contains("presets_world")) {
-            for (auto& [presetName, weightsObj] : _rulesJson["presets_world"].items()) {
+        if (_espaceJson.contains("presets_world")) {
+            for (auto& [presetName, weightsObj] : _espaceJson["presets_world"].items()) {
                 bool matches = true;
                 for (auto& [symbStr, weightVal] : weightsObj.items()) {
                     if (!symbStr.empty()) {
@@ -1110,11 +1131,16 @@ void InterfaceManager::renderHostLobby() {
         _localPlayerIndex = 0; 
     }
 
-    ImGui::SetNextWindowPos(ImVec2((_window.getSize().x - 600) * 0.5f, (_window.getSize().y - 400) * 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(600, 400));
+    ImGui::SetNextWindowPos(ImVec2((_window.getSize().x - 800) * 0.5f, (_window.getSize().y - 500) * 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(800, 500));
     ImGui::Begin("Salon Hote", nullptr, ImGuiWindowFlags_NoDecoration);
 
-    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "SALON D'ATTENTE (HOTE)");
+    // EN-TÊTE COMMUN
+    if (_isHostingLoadedSave) {
+        ImGui::TextColored(ImVec4(0.8f, 0.3f, 0.8f, 1.0f), "SALON DE REPRISE (HOTE) - Sauvegarde : %s", _selectedSave.c_str());
+    } else {
+        ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "SALON D'ATTENTE (HOTE)");
+    }
     ImGui::Separator();
     ImGui::Dummy(ImVec2(0, 10));
 
@@ -1127,31 +1153,120 @@ void InterfaceManager::renderHostLobby() {
     }
     ImGui::Dummy(ImVec2(0, 20));
 
-    ImGui::Text("Joueurs connectes (%d/%d) :", (int)_connectedPlayers.size(), _maxPlayersBuffer);
-    for (size_t i = 0; i < _connectedPlayers.size(); ++i) {
-        ImGui::BulletText("Joueur %d : %s", (int)i + 1, _connectedPlayers[i].name.c_str());
-    }
-
-    ImGui::Dummy(ImVec2(0, 30));
-
-    if (_connectedPlayers.size() < 2) {
-        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "En attente d'adversaires sur le port %d...", _portBuffer);
-    } else {
-        ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Pret a lancer !");
+    // Affichage selon le mode
+    if (_isHostingLoadedSave) {
         
-        ImGui::SetCursorPos(ImVec2(200, 250));
-        if (ImGui::Button("CONFIGURER LA PARTIE", ImVec2(200, 50))) {
-            _numPlayers = _connectedPlayers.size(); 
-            _currentState = GameState::FACTION_SELECT; 
+        // Mode reprise avec slots
+        if (ImGui::BeginTable("SlotsTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            ImGui::TableSetupColumn("Empire (Sauvegarde)", ImGuiTableColumnFlags_WidthFixed, 250.0f);
+            ImGui::TableSetupColumn("Joueur Connecte", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+            ImGui::TableHeadersRow();
+
+            const auto& savePlayers = _moteur.getJoueurs();
+
+            for (int i = 0; i < (int)savePlayers.size(); ++i) {
+                ImGui::TableNextRow();
+                
+                // Colonne 1 : Infos de la sauvegarde
+                ImGui::TableSetColumnIndex(0);
+                std::string factionNom = savePlayers[i].getFaction() ? savePlayers[i].getFaction()->nom : "Inconnue";
+                ImGui::Text("%s (%s)", savePlayers[i].getName().c_str(), factionNom.c_str());
+
+                // Colonne 2 : Qui est dedans
+                ImGui::TableSetColumnIndex(1);
+                int occupantIdx = -1;
+                for(int p = 0; p < (int)_playerToSlotMapping.size(); ++p) {
+                    if(_playerToSlotMapping[p] == i) { occupantIdx = p; break; }
+                }
+
+                if (occupantIdx != -1 && occupantIdx < (int)_connectedPlayers.size()) {
+                    ImGui::TextColored(ImVec4(0.4f, 0.8f, 0.4f, 1.0f), "Occupe par : %s", _connectedPlayers[occupantIdx].name.c_str());
+                } else {
+                    ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "[LIBRE]");
+                }
+
+                // Colonne 3 : Bouton pour prendre le slot
+                ImGui::TableSetColumnIndex(2);
+                if (occupantIdx == -1) {
+                    if (ImGui::Button((std::string("Prendre##") + std::to_string(i)).c_str())) {
+                        _playerToSlotMapping[0] = i; 
+                        sendLobbySync(); 
+                    }
+                } else if (occupantIdx == 0 && i != 0) { 
+                    if (ImGui::Button((std::string("Quitter##") + std::to_string(i)).c_str())) {
+                        _playerToSlotMapping[0] = -1;
+                        sendLobbySync();
+                    }
+                }
+            }
+            ImGui::EndTable();
+        }
+
+        ImGui::Dummy(ImVec2(0, 20));
+
+        // Vérifier que chaque joueur a pris un slot
+        bool ready = true;
+        for (size_t p = 0; p < _connectedPlayers.size(); ++p) {
+            if (p < _playerToSlotMapping.size() && _playerToSlotMapping[p] == -1) ready = false;
+        }
+
+        if (!ready) {
+            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "En attente que chaque joueur choisisse un emplacement...");
+        } else {
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Pret a reprendre !");
+            
+            ImGui::SetCursorPos(ImVec2(300, 400));
+            if (ImGui::Button("LANCER LA SAUVEGARDE", ImVec2(200, 50))) {
+                _numPlayers = _connectedPlayers.size(); 
+                
+                sf::Packet loadPacket;
+                loadPacket << static_cast<sf::Int32>(PacketType::LOAD_SAVE_STATE); 
+                
+                std::ifstream file("saves/" + _selectedSave);
+                if (file.is_open()) {
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    loadPacket << buffer.str();
+                    _network.sendData(loadPacket);
+                }
+
+                _currentState = GameState::IN_GAME; 
+            }
+        }
+
+    } else {
+
+        // Mode nouvelle partie avec liste classique
+        ImGui::Text("Joueurs connectes (%d/%d) :", (int)_connectedPlayers.size(), _maxPlayersBuffer);
+        for (size_t i = 0; i < _connectedPlayers.size(); ++i) {
+            ImGui::BulletText("Joueur %d : %s", (int)i + 1, _connectedPlayers[i].name.c_str());
+        }
+
+        ImGui::Dummy(ImVec2(0, 30));
+
+        if (_connectedPlayers.size() < 2) {
+            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "En attente d'adversaires sur le port 5000...");
+        } else {
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Pret a lancer !");
+            
+            ImGui::SetCursorPos(ImVec2(300, 400));
+            if (ImGui::Button("CONFIGURER LA PARTIE", ImVec2(200, 50))) {
+                _numPlayers = _connectedPlayers.size(); 
+                _currentState = GameState::FACTION_SELECT; 
+            }
         }
     }
 
-    ImGui::SetCursorPos(ImVec2(20, 340));
+    // PIED DE PAGE COMMUN
+    ImGui::SetCursorPos(ImVec2(20, 440));
     if (ImGui::Button("ANNULER", ImVec2(150, 40))) {
         _network.disconnect();
         _connectedPlayers.clear();
+        _isHostingLoadedSave = false;
         _currentState = GameState::MULTI_MENU;
     }
+    
     ImGui::End();
 }
 
@@ -1295,6 +1410,24 @@ void InterfaceManager::updateNetworkLoop() {
                             packet >> symb >> w;
                             _customWeights[static_cast<char>(symb)] = w;
                         }
+
+                        // D. Synchroniser les slots
+                        sf::Int32 isLoadedSave;
+                        if (packet >> isLoadedSave) {
+                            _isHostingLoadedSave = (isLoadedSave == 1);
+                            
+                            if (_isHostingLoadedSave) {
+                                sf::Int32 mappingSize;
+                                if (packet >> mappingSize) {
+                                    _playerToSlotMapping.clear();
+                                    for (int i = 0; i < mappingSize; ++i) {
+                                        sf::Int32 slot;
+                                        packet >> slot;
+                                        _playerToSlotMapping.push_back(static_cast<int>(slot));
+                                    }
+                                }
+                            }
+                        }
                     }
                     break;
                 }
@@ -1353,6 +1486,36 @@ void InterfaceManager::updateNetworkLoop() {
                         }
                         
                         _currentState = GameState::IN_GAME;
+                    }
+                    break;
+                }
+
+                // Le joueur à chargé une save
+                case PacketType::LOAD_SAVE_STATE: {
+                    std::string jsonContent;
+                    if (packet >> jsonContent) {
+                        std::cout << "[RESEAU] Sauvegarde recue de l'hote. Taille : " << jsonContent.size() << " octets." << std::endl;
+
+                        std::filesystem::create_directories("saves");
+                        std::string tempSavePath = "saves/client_sync_save.json";
+
+                        std::ofstream outFile(tempSavePath);
+                        if (outFile.is_open()) {
+                            outFile << jsonContent;
+                            outFile.close();
+
+                            if (SaveManager::loadGame(tempSavePath, _moteur)) {
+                                std::cout << "[CLIENT] Partie synchronisee avec succes !" << std::endl;
+                                
+                                _currentState = GameState::IN_GAME;
+                            } else {
+                                std::cerr << "[CLIENT] Erreur: Impossible de lire la sauvegarde reseau." << std::endl;
+                                _popupMsg = "Erreur de synchronisation avec l'hote !";
+                                _showPopup = true;
+                            }
+                        } else {
+                            std::cerr << "[CLIENT] Erreur: Impossible d'ecrire le fichier temporaire." << std::endl;
+                        }
                     }
                     break;
                 }
@@ -2040,6 +2203,15 @@ void InterfaceManager::renderGame() {
         ImGui::Text("Joueur actuel : %s (%s)", _moteur.getJoueurs()[_moteur.getCurrentPlayerTurn()].getName().c_str(), _playerFactions[_moteur.getCurrentPlayerTurn()].c_str());
     }
 
+    // GOD MODE
+    ImGui::SameLine(400);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.1f, 0.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+    if (ImGui::Button("God Mode (Test Perlin)")) {
+        _moteur.revealMap(_moteur.getCurrentPlayerTurn());
+    }
+    ImGui::PopStyleColor(2);
+
     ImGui::SameLine(_window.getSize().x - 560);
     static bool showPlayerMenu = false;
     if (ImGui::Button("Joueurs")) showPlayerMenu = !showPlayerMenu;
@@ -2056,29 +2228,12 @@ void InterfaceManager::renderGame() {
     static bool showProdPanel = false;
     if (ImGui::Button("Production")) showProdPanel = !showProdPanel;
     
-    ImGui::SameLine(_window.getSize().x - 170);
-    if (ImGui::Button("Sauvegarder")) {
-        std::filesystem::create_directories("saves");
-        if (SaveManager::saveGame("saves/last_save.json", _moteur)) {
-            _popupMsg = "Partie sauvegardee avec succes !";
-        } else {
-            _popupMsg = "Erreur lors de la sauvegarde !";
-        }
-        _showPopup = true;
-    }
-
     bool isClient = (_network.getState() == NetworkState::CONNECTED && !_network.isHost());
         
     if (!isClient) {
         ImGui::SameLine(static_cast<float>(_window.getSize().x) - 170.0f);
         if (ImGui::Button("Sauvegarder")) {
-            std::filesystem::create_directories("saves");
-            if (SaveManager::saveGame("saves/last_save.json", _moteur)) {
-                _popupMsg = "Partie sauvegardee avec succes !";
-            } else {
-                _popupMsg = "Erreur lors de la sauvegarde !";
-            }
-            _showPopup = true;
+            ImGui::OpenPopup("SaveGamePopup"); 
         }
     }
 
@@ -3415,6 +3570,42 @@ void InterfaceManager::renderGame() {
         ImGui::End();
         ImGui::PopStyleColor(2);
     }
+
+    // ========================================================
+    // POPUP : SAISIE DU NOM DE SAUVEGARDE
+    // ========================================================
+    if (ImGui::BeginPopupModal("SaveGamePopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "SAUVEGARDE DE LA PARTIE");
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0, 5));
+
+        ImGui::Text("Nom du fichier :");
+        ImGui::InputText("##savename", _newSaveName, sizeof(_newSaveName)); 
+        ImGui::Dummy(ImVec2(0, 10));
+
+        if (ImGui::Button("Valider", ImVec2(120, 0))) {
+            std::filesystem::create_directories("saves");
+            
+            std::string fullPath = "saves/" + std::string(_newSaveName) + ".json";
+            
+            if (SaveManager::saveGame(fullPath, _moteur)) {
+                _popupMsg = "Partie sauvegardee avec succes !";
+                _showPopup = true;
+                ImGui::CloseCurrentPopup();
+            } else {
+                _popupMsg = "Erreur lors de la sauvegarde !";
+                _showPopup = true;
+            }
+        }
+        
+        ImGui::SameLine();
+        
+        if (ImGui::Button("Annuler", ImVec2(120, 0))) { 
+            ImGui::CloseCurrentPopup(); 
+        }
+        
+        ImGui::EndPopup();
+    }
 }
 
 
@@ -3726,6 +3917,15 @@ void InterfaceManager::sendLobbySync() {
             p << static_cast<sf::Int32>(symb) << static_cast<sf::Int32>(weight);
         }
 
+        // 5. Informations de reprise de sauvegarde
+        p << static_cast<sf::Int32>(_isHostingLoadedSave ? 1 : 0);
+        if (_isHostingLoadedSave) {
+            p << static_cast<sf::Int32>(_playerToSlotMapping.size());
+            for (int slot : _playerToSlotMapping) {
+                p << static_cast<sf::Int32>(slot);
+            }
+        }
+
         _network.sendData(p);
     }
 }
@@ -3735,4 +3935,79 @@ void InterfaceManager::addCombatLog(const std::string& msg, sf::Color col) {
     if (_combatLogs.size() > 10) {
         _combatLogs.erase(_combatLogs.begin());
     }
+}
+
+void InterfaceManager::refreshSaveList() {
+    _saveFiles.clear();
+    std::filesystem::create_directories("saves");
+    for (const auto& entry : std::filesystem::directory_iterator("saves")) {
+        if (entry.path().extension() == ".json" && entry.path().filename() != "config_ui.json") {
+            _saveFiles.push_back(entry.path().filename().string());
+        }
+    }
+}
+
+void InterfaceManager::renderLoadMenu() {
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(_window.getSize().x, _window.getSize().y));
+    ImGui::Begin("Menu Chargement", nullptr, ImGuiWindowFlags_NoDecoration);
+
+    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "SAUVEGARDES DISPONIBLES");
+    ImGui::Separator();
+
+    if (_saveFiles.empty()) {
+        ImGui::Text("Aucune sauvegarde trouvee.");
+    } else {
+        for (const auto& fileName : _saveFiles) {
+            bool isSelected = (_selectedSave == fileName);
+            if (ImGui::Selectable(fileName.c_str(), isSelected)) {
+                _selectedSave = fileName;
+                strncpy(_renameBuffer, fileName.c_str(), sizeof(_renameBuffer));
+            }
+        }
+    }
+
+    ImGui::Dummy(ImVec2(0, 20));
+    
+    if (!_selectedSave.empty()) {
+        ImGui::Checkbox("Heberger en Multijoueur", &_loadAsMultiplayer);
+        ImGui::Dummy(ImVec2(0, 10));
+
+        if (ImGui::Button("CHARGER", ImVec2(120, 40))) {
+            if (SaveManager::loadGame("saves/" + _selectedSave, _moteur)) {
+                
+                if (_loadAsMultiplayer) {
+                    _playerToSlotMapping.clear();
+                    _playerToSlotMapping.assign(_maxPlayersBuffer, -1);
+                    _playerToSlotMapping[0] = 0;
+
+                    _isHostingLoadedSave = true;
+                    _network.startHosting(5000);
+                    _currentState = GameState::HOST_LOBBY;
+                } else {
+                    _isHostingLoadedSave = false;
+                    _currentState = GameState::IN_GAME;
+                }
+            } else {
+                _popupMsg = "Erreur lors du chargement !";
+                _showPopup = true;
+            }
+        }
+        ImGui::SameLine();
+        
+        ImGui::SetNextItemWidth(200);
+        ImGui::InputText("##rename", _renameBuffer, sizeof(_renameBuffer));
+        ImGui::SameLine();
+        if (ImGui::Button("RENOMMER")) {
+            std::filesystem::rename("saves/" + _selectedSave, "saves/" + std::string(_renameBuffer));
+            refreshSaveList();
+            _selectedSave = std::string(_renameBuffer);
+        }
+    }
+
+    if (ImGui::Button("RETOUR", ImVec2(120, 40))) {
+        _currentState = GameState::MENU;
+    }
+
+    ImGui::End();
 }

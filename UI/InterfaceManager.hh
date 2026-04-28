@@ -16,7 +16,7 @@
 
 using json = nlohmann::json;
 
-enum class GameState { MENU, PLAY_MENU, MULTI_MENU, HOST_LOBBY, JOIN_LOBBY, FACTION_SELECT, MAP_CONFIG, OPTIONS, IN_GAME };
+enum class GameState { MENU, PLAY_MENU, MULTI_MENU, LOAD_MENU, HOST_LOBBY, JOIN_LOBBY, FACTION_SELECT, MAP_CONFIG, OPTIONS, IN_GAME };
 enum class OptionsTab { GAME_SETTINGS, GRAPHICS, ADVANCED };
 
 class InterfaceManager {
@@ -126,6 +126,15 @@ private:
     std::string _winnerName = "";
     bool _showSummaryPopup = false;
 
+    // Gestion des saves
+    std::vector<std::string> _saveFiles;
+    char _newSaveName[64] = "MaPartie";
+    char _renameBuffer[64] = "";
+    std::string _selectedSave = "";
+    bool _isHostingLoadedSave = false;
+    bool _loadAsMultiplayer = false;
+    std::vector<int> _playerToSlotMapping;
+
 
 public:
     InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur);
@@ -158,5 +167,9 @@ private:
     void renderChatWindow();
     void updateNetworkLoop();
     void sendChatMessage(const std::string& msg);
+
+    // Saves
+    void refreshSaveList();
+    void renderLoadMenu();
 
 };

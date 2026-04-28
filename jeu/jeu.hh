@@ -100,6 +100,13 @@ private:
 class WorldFactory {
     private:
         std::map<char, TuileData> _catalogue;
+        std::map<char, int> _customWeights;
+
+        std::string _generationMode = "random";
+        float _perlinScale = 0.15f;
+        std::map<float, char> _seuilsPerlin;
+        std::map<std::string, std::map<char, int>> _presetsWorld;
+
     public:
         void ajouterAuCatalogue(char symbole, const TuileData& data);
 
@@ -114,6 +121,19 @@ class WorldFactory {
         bool estVide() const;
 
         const std::map<char, TuileData>& getCatalogue() const { return _catalogue; }
+
+        // Setters pour la génération
+        void setGenerationMode(const std::string& mode) { _generationMode = mode; }
+        void setPerlinScale(float scale) { _perlinScale = scale; }
+        void ajouterSeuilPerlin(float seuil, char symb) { _seuilsPerlin[seuil] = symb; }
+        void ajouterPreset(const std::string& nom, const std::map<char, int>& poids) { _presetsWorld[nom] = poids; }
+        void setCustomWeights(const std::map<char, int>& w) { _customWeights = w; }
+
+        // Getters
+        std::string getGenerationMode() const { return _generationMode; }
+        float getPerlinScale() const { return _perlinScale; }
+        const std::map<float, char>& getSeuilsPerlin() const { return _seuilsPerlin; }
+        const std::map<std::string, std::map<char, int>>& getPresetsWorld() const { return _presetsWorld; }
 };
 
 class WorldConfigReader {
@@ -141,7 +161,7 @@ public:
 
 class board {
 public:
-    board(WorldFactory & world, const GameConfig& c);
+    board(int seed, WorldFactory & world, const GameConfig& c);
 
     const hexa* getCell(int i, int j) const;
     void affichage() const;

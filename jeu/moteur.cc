@@ -2,11 +2,6 @@
 #include "combat.hh"
 #include <iostream>
 
-
-MoteurDeJeu::MoteurDeJeu() 
-    : _tourActuel(1), _currentPlayerTurn(0), _mapSeed(42) {}
-
-
 /*
 
 ResultatAction GameManager::actionRecruterUnite(Joueur& j, const Action& action) 
@@ -280,7 +275,7 @@ void MoteurDeJeu::initGame(int seed, const std::vector<std::string>& noms, const
     _mapSeed = seed;
     std::srand(_mapSeed);
 
-    _plateau = std::make_unique<board>(_worldFactory, _logicConfig);
+    _plateau = std::make_unique<board>(_mapSeed, _worldFactory, _logicConfig);
     _joueurs.clear();
 
     int nbJoueurs = noms.size();
@@ -306,25 +301,78 @@ void MoteurDeJeu::initGame(int seed, const std::vector<std::string>& noms, const
         }
     }
 
-    for (int i = 0; i < nbJoueurs; ++i) {
-        Joueur& joueur = _joueurs[i];
+    // 
+    if (nbJoueurs > 0 && !nomCapitale.empty()) {
+        int rows = _plateau->getRows();
+        int cols = _plateau->getCols();
+        
+        // 1) Scan des tuiles constructibles
+        std::vector<std::pair<int, int>> spotsValides;
+        Joueur& joueurTest = _joueurs[0];
 
-        bool placed = false;
-        int attempts = 0;
-        while (!placed && attempts < 1000) {
-            int rx = std::rand() % _plateau->getRows();
-            int ry = std::rand() % _plateau->getCols();
-            if (_arbitre.buildCity(joueur, *_plateau, rx, ry)) {
-                hexa* cell = const_cast<hexa*>(_plateau->getCell(rx, ry));
-                TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
-                if (tc && tc->getStat("spawn_capitale") > 0.0f && !nomCapitale.empty()) {
-                    tc->placerVille(_cityFactory.create(nomCapitale, rx, ry));
-                    joueur.ajouterVille(tc->getCity());
-                    tc->setProprietaire(&joueur);
-                    placed = true;
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                if (_arbitre.buildCity(joueurTest, *_plateau, r, c)) {
+                    hexa* cell = const_cast<hexa*>(_plateau->getCell(r, c));
+                    TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
+                    
+                    if (tc && tc->getStat("spawn_capitale") > 0.0f) {
+                        spotsValides.push_back({r, c});
+                    }
                 }
             }
-            attempts++;
+        }
+
+        // 2) Cherche de l'espacement maximal
+        std::vector<std::pair<int, int>> spotsChoisis;
+
+        if (spotsValides.size() >= nbJoueurs) {
+            // Emplacement au hasard parmi les emplacement valide
+            int firstIndex = std::rand() % spotsValides.size();
+            spotsChoisis.push_back(spotsValides[firstIndex]);
+            spotsValides.erase(spotsValides.begin() + firstIndex);
+
+            // Pour chaque joueur, cherche la tuile avec la plus grande distance minimum avec les autres
+            for (int i = 1; i < nbJoueurs; ++i) {
+                int bestIndex = 0;
+                int maxDistMin = -1;
+
+                for (size_t j = 0; j < spotsValides.size(); ++j) {
+                    int distMin = std::numeric_limits<int>::max();
+
+                    // Calcul de la distance avec toutes les capitales placées
+                    for (const auto& spot : spotsChoisis) {
+                        int dist = std::abs(spotsValides[j].first - spot.first) + std::abs(spotsValides[j].second - spot.second);
+                        if (dist < distMin) distMin = dist;
+                    }
+
+                    // Garde l'emplacement le plus loin des autres
+                    if (distMin > maxDistMin) {
+                        maxDistMin = distMin;
+                        bestIndex = j;
+                    }
+                }
+
+                // Valide le meilleur emplacement et retire de la liste des dispos
+                spotsChoisis.push_back(spotsValides[bestIndex]);
+                spotsValides.erase(spotsValides.begin() + bestIndex);
+            }
+        } else {
+            std::cerr << "Pas assez de tuiles qui peuvent accueilir une capitale pour le nombre de joueurs" << std::endl;
+        }
+
+        // 3) Placement des capitales
+        for (int i = 0; i < nbJoueurs && i < (int)spotsChoisis.size(); ++i) {
+            int rx = spotsChoisis[i].first;
+            int ry = spotsChoisis[i].second;
+            Joueur& joueur = _joueurs[i];
+
+            hexa* cell = const_cast<hexa*>(_plateau->getCell(rx, ry));
+            TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
+
+            tc->placerVille(_cityFactory.create(nomCapitale, rx, ry));
+            joueur.ajouterVille(tc->getCity());
+            tc->setProprietaire(&joueur);
         }
     }
 
@@ -995,4 +1043,18 @@ void MoteurDeJeu::verifierVictoireGlobale() {
             break;
         }
     }
+}
+
+void MoteurDeJeu::revealMap(int pIdx) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size() || !_plateau) return;
+
+    int rows = _plateau->getRows();
+    int cols = _plateau->getCols();
+
+    std::vector<std::vector<bool>> fullGrid(rows, std::vector<bool>(cols, true));
+
+    _joueurs[pIdx].setDecouvert(fullGrid);
+    _joueurs[pIdx].setVisible(fullGrid);
+    
+    std::cout << "[ADMIN] Carte revelee pour " << _joueurs[pIdx].getName() << std::endl;
 }

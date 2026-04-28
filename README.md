@@ -116,7 +116,6 @@ Cout en ressource à chaque tour défini de base dans rules et pour chaque unit�
 
 
 AJOUTS A FAIRE :
-- capitale générer dans le moteur (pour chaque joueur)
 - Orientation des troupes (liste des cases vus par l'unité)
 - Gestion vision-range et direction pour l'attaque et pour les tuiles vus (liste de tuiles)
 - Systèmes de munitions (est une ressource) avec le cout_entretien
@@ -132,7 +131,10 @@ cout_entretien {
 - cooldown pour tout les comportements
 - modifier dans joueur et moteur : decouvrirZoneVision
 - modifier / supprimer fov et visionRange par nouvelle logique de vision
-- ajouter le bruit de perlin (espace avec les planètes et jeu de pirate avec des îles de tailles différentes)
+
 - voir pour l'init du MoteurDeJeu
+- capitale générer dans le moteur (pour chaque joueur)
+- ajouter le bruit de perlin (espace avec les planètes et jeu de pirate avec des îles de tailles différentes)
+
 - merge les fonctions ensembles du moteur entre unite
 - décommenter peutRecruterUnite dans l'arbitre et fix le problème

@@ -34,9 +34,9 @@ private:
 
     // Logique
     Arbitre _arbitre;
-    int _tourActuel;
-    int _currentPlayerTurn;
-    int _mapSeed;
+    int _tourActuel = 1;
+    int _currentPlayerTurn = 0;
+    int _mapSeed = 42;
 
     // Wins
     bool _partieTerminee = false;
@@ -64,7 +64,7 @@ private:
     // ResultatAction actionDesenrolement(Joueur& j, const Action& a);
 
 public:
-    MoteurDeJeu();
+    MoteurDeJeu() = default;
 
     // Init
     void chargerConfiguration(const std::string & configPath);
@@ -78,8 +78,9 @@ public:
     // utilitaires sauvegarde et UI
     void setTourActuel(int t) { _tourActuel = t; }
     void setCurrentPlayerTurn(int c) { _currentPlayerTurn = c; }
-    void overrideWorldWeights(const std::map<char, int>& w) { _worldFactory.overrideWeights(w); }
+    void overrideWorldWeights(const std::map<char, int>& w) { _worldFactory.setCustomWeights(w); }
     void setActiveVictorySet(int index) { _logicConfig.setActiveVictorySet(index); }
+    void revealMap(int pIdx);
 
     // Pour modifier le jeu
     ResultatAction soumettreCommande(int pIdx, const CommandeJeu& commande);

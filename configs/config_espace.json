@@ -1,4 +1,35 @@
 {
+    "generation_map": {
+        "mode": "perlin", 
+        "seed_offset": 0,
+        "perlin_scale": 0.15,
+        "seuils_perlin": {
+            ".": 0.7,
+            "P": 0.8,
+            "E": 0.95,
+            "X": 1.0
+        }
+    },
+    "presets_world": {
+        "GALAXY (Balanced)": {
+            ".": 90,
+            "E": 3,
+            "P": 5,
+            "X": 2
+        },
+        "NEBULA (Dense)": {
+            ".": 60,
+            "E": 15,
+            "P": 20,
+            "X": 5
+        },
+        "TEST": {
+            ".": 50,
+            "E": 50,
+            "P": 50,
+            "X": 50
+        }
+    },
     "tiles": [
         {
             "nom": "Espace",

@@ -8,6 +8,7 @@ enum class NetworkState { DISCONNECTED, HOSTING, CONNECTING, CONNECTED };
 enum class PacketType : sf::Int32 {
     PLAYER_INFO,   // Envoi du nom au lobby
     LOBBY_STATE,
+    LOAD_SAVE_STATE,
     CHAT,
     GAME_START,    // L'hôte lance la partie (Seed + Factions)
     ACTION_MOVE,   // Déplacement d'unité
