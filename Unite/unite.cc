@@ -163,13 +163,9 @@ void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
 
 void Unite::update()
 {
-    for(auto const& elt : _liste_comportements)
+    for(auto const& elt : _liste_comportements) 
     {
-        auto evolutif = dynamic_cast<IComportementEvolutif*>(elt.get()); 
-        if(evolutif)
-        {
-            evolutif->update();
-        }
+        elt->update();
     }
 }
 
@@ -378,6 +374,74 @@ std::shared_ptr<IComportement> createComp(const json& jComp)
     return nullptr;
 }
 
+std::shared_ptr<IComportement> createCompACD(const json& jComp)
+{
+    std::string type = jComp.value("type", "");
+    int cd = jComp.value("cooldown", 1);
+
+    //COMPORTEMENTS DE MOUVEMENT
+    if (type == "MouvementVolant")
+    {
+        return std::make_shared<AvecCooldown<CompMouvVolant>>(cd,jComp.value("mouvement_par_tour", 3));
+    }
+    if (type == "MouvementMarin")
+    {
+        return std::make_shared<AvecCooldown<CompMouvMarin>>(cd,jComp.value("mouvement_par_tour", 2));
+    }
+    if (type == "MouvementTerrestre")
+    {
+        return std::make_shared<AvecCooldown<CompMouvTerrestre>>(cd,jComp.value("mouvement_par_tour", 2));
+    }
+
+    //COMPORTEMENTS D'ATTAQUE
+    if (type == "AttaqueMelee")
+    {
+        return std::make_shared<AvecCooldown<CompAttMelee>>(cd,jComp.value("degats", 10));
+    }
+    if (type == "AttaqueDistance")
+    {
+        return std::make_shared<AvecCooldown<CompAttDistance>>(cd,jComp.value("degats", 10),jComp.value("portee", 3),jComp.value("munitions", 5),jComp.value("portee_mini", 2));
+    }
+    if (type == "AttaqueIndirect")
+    {
+        return std::make_shared<AvecCooldown<CompAttIndirect>>(cd,jComp.value("degats", 5), jComp.value("portee", 2), jComp.value("tour_infection", 3));
+    }
+
+    //COMPORTEMENTS DE DEFENSE
+    if (type == "DefenseArmure")
+    {
+        return std::make_shared<AvecCooldown<CompDefArmure>>(cd,jComp.value("reduction", 5));
+    }
+    if (type == "DefenseBouclier")
+    {
+        return std::make_shared<AvecCooldown<CompDefBouclier>>(cd,jComp.value("nombre_bouclier", 3));
+    }
+
+    //COMPORTEMENTS DE SOIN
+    if (type == "SoinDirect")
+    {
+        return std::make_shared<AvecCooldown<CompSoinDirect>>(cd,jComp.value("soin", 20), jComp.value("portee", 2), jComp.value("rayon", 2));
+    }
+    if (type == "SoinIndirect")
+    {
+        return std::make_shared<AvecCooldown<CompSoinIndirect>>(cd,jComp.value("soin", 15), jComp.value("portee", 4), jComp.value("tour_regeneration", 2));
+    }
+
+    //COMPORTEMENTS SPÉCIAUX 
+    if (type == "SpecialTransport")
+    {
+        return std::make_shared<AvecCooldown<CompTransport>>(cd,jComp.value("capacite", 2));
+    }
+    if (type == "SpecialFurtif")
+    {
+        return std::make_shared<AvecCooldown<CompFurtif>>(cd,jComp.value("duree", 2), jComp.value("cooldown", 3));
+    }
+
+    return nullptr;
+} 
+
+
+
 void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std::shared_ptr<Unite>>& catalogue, const std::map<std::string, const Ressource*>& ressources)
 {
     std::ifstream fichier(chemin);
@@ -457,9 +521,18 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         std::list<std::shared_ptr<IComportement>> listeComp;
         if (item.contains("comportements")) 
         {
+            std::shared_ptr<IComportement> ajout = nullptr;
             for (auto& comp : item["comportements"]) 
             {
-                auto ajout = createComp(comp);
+                if(item.contains("cooldown"))
+                {
+                    ajout = createCompACD(comp);
+                }
+                else
+                {
+                    ajout = createComp(comp);
+                }
+
                 if(ajout != nullptr) listeComp.push_back(ajout);
             }
         }

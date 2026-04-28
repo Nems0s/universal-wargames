@@ -13,14 +13,12 @@ class IComportement
 public:
     virtual ~IComportement() = default;
     virtual void affiche() const = 0;
-};
-
-/*Donne la fonction update à tout comportement qui change de tour en tour*/
-class IComportementEvolutif
-{
-public:
-    virtual ~IComportementEvolutif() = default;
-    virtual void update() = 0;
+    virtual void update() {}; // On la met vide pour pas avoir à la redefinir dans tout les classes qui hérite 
+    virtual void action() = 0;
+    virtual bool executerAction() {
+        this->action();
+        return true;
+    }
 };
 
 class ComportementCooldown
@@ -136,7 +134,7 @@ public:
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
 
-class CompAttIndirect : public CompAtt, public IComportementEvolutif
+class CompAttIndirect : public CompAtt
 {
 private:
     struct infecter
@@ -192,7 +190,7 @@ public:
     int ReductionDegats(int degat_subit) override;
 };
 
-class CompDefBouclier : public CompDef, public IComportementEvolutif
+class CompDefBouclier : public CompDef
 {
 private:
     int _nombre_bouclier;
@@ -211,13 +209,13 @@ public:
 //===================================================================
 //                   Comportement Soin
 //===================================================================
-class CompSoin: public IComportement,  public IComportementEvolutif, public ComportementCooldown
+class CompSoin: public IComportement
 {
 protected:
     int _healing_point;
     int _portee;
 public:
-    CompSoin(int healing_point, int portee, int cooldown);
+    CompSoin(int healing_point, int portee);
 
     int healing_point() const;
     void setHealing_point(int newHealing_point);
@@ -233,13 +231,12 @@ class CompSoinDirect: public CompSoin
 private:
     int _rayon;
 public:
-    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2, int cooldown=1);
+    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2);
 
     int rayon() const;
     void setRayon(int newRayon);
 
     void affiche() const override;
-    void update() override;
 
     bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
 };
@@ -261,7 +258,7 @@ private:
     int _nombre_de_tour_regeneration;
     std::list<soigner> _liste_soigner;
 public:
-    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2, int cooldown=1);
+    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2);
 
     void setNombreDeTourRegen(int newNombreDeTourRegen);
     int nombredetourregen() const;
@@ -298,7 +295,7 @@ public:
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };
 
-class CompFurtif : public IComportement, public IComportementEvolutif, public ComportementCooldown
+class CompFurtif : public IComportement
 {
 private:
     bool _camoufler;
@@ -306,14 +303,54 @@ private:
     int _tours_restants;
 
 public:
-    CompFurtif(int duree = 3, int cooldown = 2);
+    CompFurtif(int duree = 3);
 
     bool camoufler() const;
 
     void affiche() const override;
     void update() override;
+    void action() override;
 
     void ActiveCammouflage();
     void DesactiveCammouflage();
 };
 
+
+//===================================================================
+//===================================================================
+//===================================================================
+//                   Template pour CoolDown
+//===================================================================
+//===================================================================
+//===================================================================
+template <typename BaseComportement>
+class AvecCooldown : public BaseComportement, public ComportementCooldown {
+public:
+
+    template <typename... Args> // Permet d'avoir X types d'Arg
+    AvecCooldown(int cooldownValue, Args&&... args): // Permet d'avoir X args
+        BaseComportement(std::forward<Args>(args)...), // On lance le constructeur avec le bon nombre d'arg
+        ComportementCooldown(cooldownValue) 
+    {}
+
+    void update() override 
+    {
+        BaseComportement::update(); 
+
+        if (this->_current_cooldown > 0) 
+        {
+            this->_current_cooldown--;
+        }
+    }
+
+    bool executerAction() 
+    {
+        if (this->estPret()) 
+        {
+            this->action();
+            this->_current_cooldown = this->_cooldown; 
+            return true;
+        }
+        return false;
+    }
+};

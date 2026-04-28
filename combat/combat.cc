@@ -184,15 +184,6 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
         return false;
     }
 
-    if(auto* infect = dynamic_cast<CompAttIndirect*>(*it))
-    {
-        if(infect)
-        {
-           infect->AjoutCibleAtteinte(defenseur.shared_from_this());
-        }
-    }
-
-
     bool attaquantASoin = false;
     bool defenseurASoin = false;
 
@@ -200,6 +191,23 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     if(furtifDef && furtifDef->camoufler())
     {
         return false;
+    }
+
+    if(auto* infect = dynamic_cast<CompAttIndirect*>(*it))
+    {
+        if(infect)
+        {
+           infect->AjoutCibleAtteinte(defenseur.shared_from_this());
+        }
+    }
+    
+    if(auto* dist = dynamic_cast<CompAttDistance*>(*it))
+    {
+        if(dist->munitions() == 0) return false;
+        else
+        {
+            dist->setMunitions(dist->munitions() - 1);
+        }
     }
 
     // Sert à eviter un test sur cammouflage alors que l'unite en à pas
@@ -297,7 +305,7 @@ bool Combat::heal(Unite &healer, CompSoin* const& TypeSoin,Unite & cible)
         return false;
     }
 
-    if (TypeSoin->estPret() && TypeSoin->PeuxSoigner(healer, cible))
+    if(TypeSoin->PeuxSoigner(healer, cible))
     {
         if(auto* soin = dynamic_cast<CompSoinIndirect*>(*it))
         {

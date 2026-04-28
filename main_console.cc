@@ -13,6 +13,7 @@
 #include "unite.hh"
 #include "config.hh"
 
+
 std::string trouverConfigs() 
 {
     if (std::filesystem::exists("configs")) return "configs/";
