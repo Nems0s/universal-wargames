@@ -78,7 +78,14 @@ public:
     // utilitaires sauvegarde et UI
     void setTourActuel(int t) { _tourActuel = t; }
     void setCurrentPlayerTurn(int c) { _currentPlayerTurn = c; }
-    void overrideWorldWeights(const std::map<char, int>& w) { _worldFactory.setCustomWeights(w); }
+    void overrideWorldWeights(const std::map<char, int>& overrides) { _worldFactory.overrideWeights(overrides); }
+    void overridePerlinParams(float scale, int octaves, float lacunarity, float persistence, float redistribution) {
+        _worldFactory.setPerlinScale(scale);
+        _worldFactory.setPerlinOctaves(octaves);
+        _worldFactory.setPerlinLacunarity(lacunarity);
+        _worldFactory.setPerlinPersistence(persistence);
+        _worldFactory.setPerlinRedistribution(redistribution);
+    }
     void setActiveVictorySet(int index) { _logicConfig.setActiveVictorySet(index); }
     void revealMap(int pIdx);
 
@@ -114,6 +121,7 @@ public:
     const UniteFactory& getUniteFactory() const { return _uniteFactory; }
     const RessourceFactory& getRessourceFactory() const { return _ressourceFactory; }
     const GameConfig& getLogicConfig() const { return _logicConfig; }
+    void setPlateauSize(int x, int y) { _logicConfig.setPlateauSize(x, y); }
     int getTourActuel() const { return _tourActuel; }
     int getCurrentPlayerTurn() const { return _currentPlayerTurn; }
     int getMapSeed() const { return _mapSeed; }

@@ -1,4 +1,6 @@
 {
+    "_selected_size_x": 100,
+    "_selected_size_y": 100,
     "factions": [
         {
             "image": "assets/human.png",
@@ -54,10 +56,6 @@
         "Fer": 150,
         "Or": 100
     },
-    "taille_plateau": {
-        "x": 100,
-        "y": 100
-    },
     "tailles_disponibles": [
         {
             "nom": "Tiny",
@@ -79,5 +77,6 @@
             "x": 1000000,
             "y": 1000000
         }
-    ]
+    ],
+    "world_config": "configs/config_espace.json"
 }

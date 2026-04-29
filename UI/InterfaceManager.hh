@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <set>
 
 #include "imgui.h"
 #include "imgui-SFML.h"
@@ -110,6 +111,7 @@ private:
     // Rotation et Apercu
     bool _hasPreviewRotation = false;
     direction _previewDirection = direction::est;
+    std::string _activePresetName = "";
 
     // Système de log de combat
     struct CombatLogEntry {
@@ -134,6 +136,24 @@ private:
     bool _isHostingLoadedSave = false;
     bool _loadAsMultiplayer = false;
     std::vector<int> _playerToSlotMapping;
+
+    // Cache de performance : évite de recalculer le territoire et les cases
+    // achetables à chaque frame (ces calculs étaient O(N²×P) par frame avant).
+    // Le cache est invalidé manuellement après chaque action qui modifie l'état du jeu.
+    struct TerritoireCache {
+        // vecParJoueur : territoire sous forme de vecteur (pour itérer dans le rendu)
+        std::vector<std::vector<std::pair<int,int>>> vecParJoueur;
+        // setParJoueur : même données en set (pour les lookups O(1) des bordures)
+        std::vector<std::set<std::pair<int,int>>> setParJoueur;
+        // dirty : si true, le cache doit être recalculé avant utilisation
+        bool dirty = true;
+    };
+    TerritoireCache _territoireCache;
+    std::set<std::pair<int,int>> _casesAchetablesCache;
+    bool _casesAchetablesDirty = true;
+    
+    void invaliderCaches();
+    void recalculerCachesSiNecessaire(int viewIndex);
 
 
 public:

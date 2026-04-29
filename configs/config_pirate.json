@@ -1,0 +1,165 @@
+{
+    "generation_map": {
+        "mode": "perlin",
+        "seed_offset": 0,
+        "perlin_scale": 0.09,
+        "octaves": 5,
+        "lacunarity": 2.2,
+        "persistence": 0.4,
+        "redistribution": 2.2,
+        "inversion": false,
+        "seuils_perlin": {
+            "~": 0.40,
+            "M": 0.58,
+            "T": 0.80,
+            "V": 1.0
+        }
+    },
+    "presets_perlin": {
+        "ARCHIPEL (Balanced)": {
+            "perlin_scale": 0.10,
+            "octaves": 4,
+            "persistence": 0.4,
+            "redistribution": 1.5
+        },
+        "OCEAN (Sparse)": {
+            "perlin_scale": 0.18,
+            "octaves": 3,
+            "persistence": 0.3,
+            "redistribution": 3.0
+        },
+        "CONTINENT (Dense)": {
+            "perlin_scale": 0.05,
+            "octaves": 5,
+            "persistence": 0.55,
+            "redistribution": 0.8
+        }
+    },
+    "presets_random": {
+        "ARCHIPEL (Balanced)": {
+            "~": 50,
+            "M": 30,
+            "T": 15,
+            "V": 5
+        },
+        "OCEAN (Sparse)": {
+            "~": 70,
+            "M": 20,
+            "T": 8,
+            "V": 2
+        },
+        "CONTINENT (Dense)": {
+            "~": 30,
+            "M": 25,
+            "T": 35,
+            "V": 10
+        }
+    },
+    "tiles": [
+        {
+            "nom": "Mer Profonde",
+            "symbole": "~",
+            "cout": 99,
+            "constructible": false,
+            "mouv": {
+                "marche": false,
+                "nage": true,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 50,
+                "nbMin": 0
+            },
+            "env": {
+                "temperature": 0.2,
+                "radiation": 0.0,
+                "gravite": 1.0
+            },
+            "ressources": [],
+            "properties": {},
+            "texture": "assets/deep_sea.png"
+        },
+        {
+            "nom": "Mer",
+            "symbole": "M",
+            "cout": 3,
+            "constructible": false,
+            "mouv": {
+                "marche": false,
+                "nage": true,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 30,
+                "nbMin": 0
+            },
+            "env": {
+                "temperature": 0.3,
+                "radiation": 0.0,
+                "gravite": 1.0
+            },
+            "ressources": [
+                "Poisson"
+            ],
+            "properties": {
+                "courant_marin": 0.2
+            },
+            "texture": "assets/sea.png"
+        },
+        {
+            "nom": "Terre",
+            "symbole": "T",
+            "cout": 1,
+            "constructible": true,
+            "mouv": {
+                "marche": true,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 15,
+                "nbMin": 3
+            },
+            "env": {
+                "temperature": 0.5,
+                "radiation": 0.0,
+                "gravite": 1.0
+            },
+            "ressources": [
+                "Bois",
+                "Or"
+            ],
+            "properties": {
+                "fertilite": 0.8,
+                "spawn_capitale": 1.0
+            },
+            "texture": "assets/island.png"
+        },
+        {
+            "nom": "Volcan",
+            "symbole": "V",
+            "cout": 99,
+            "constructible": false,
+            "mouv": {
+                "marche": false,
+                "nage": false,
+                "aerien": false
+            },
+            "gen": {
+                "poids": 5,
+                "nbMin": 1
+            },
+            "env": {
+                "temperature": 1.0,
+                "radiation": 0.5,
+                "gravite": 1.0
+            },
+            "ressources": [],
+            "properties": {
+                "eruption_proba": 0.15,
+                "rayon_activate": 2.0
+            },
+            "texture": "assets/volcano.png"
+        }
+    ]
+}

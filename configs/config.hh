@@ -30,6 +30,12 @@ struct VictorySet {
     std::vector<WinConditions> conditions;
 };
 
+struct TailleOption {
+    std::string nom;
+    int x;
+    int y;
+};
+
 class GameConfig {
     private:
         int _plateauX;
@@ -59,6 +65,9 @@ class GameConfig {
         std::map<std::string, int> _entretienCoutDefaut;
         int _capaciteBase;
         int _capaciteVilleNiveau;
+
+        std::string _worldConfigPath;
+        std::vector<TailleOption> _taillesDisponibles;
 
     public:
         GameConfig() : _plateauX(10), _plateauY(10), _multiplicateurVille(1.5f), _distanceMinVilles(3), _pvMaxVille(200), _degatsVille(20), _porteeVueVille(4), _coutRotation(1), _maxLevelVille(5), _rayonBaseVille(2) {}
@@ -96,4 +105,7 @@ class GameConfig {
         const std::map<std::string, int>& getEntretienCoutDefaut() const { return _entretienCoutDefaut; }
         int getCapaciteBase() const { return _capaciteBase; }
         int getCapaciteVilleNiveau() const { return _capaciteVilleNiveau; }
+        std::string getWorldConfigPath() const { return _worldConfigPath; }
+        const std::vector<TailleOption>& getTaillesDisponibles() const { return _taillesDisponibles; }
+        void setPlateauSize(int x, int y) { _plateauX = x; _plateauY = y; }
 };

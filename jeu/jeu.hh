@@ -104,6 +104,11 @@ class WorldFactory {
 
         std::string _generationMode = "random";
         float _perlinScale = 0.15f;
+        int _perlinOctaves = 4;
+        float _perlinLacunarity = 2.0f;
+        float _perlinPersistence = 0.5f;
+        float _perlinRedistribution = 1.0f;
+        bool _perlinInversion = false;
         std::map<float, char> _seuilsPerlin;
         std::map<std::string, std::map<char, int>> _presetsWorld;
 
@@ -125,6 +130,11 @@ class WorldFactory {
         // Setters pour la génération
         void setGenerationMode(const std::string& mode) { _generationMode = mode; }
         void setPerlinScale(float scale) { _perlinScale = scale; }
+        void setPerlinOctaves(int o) { _perlinOctaves = o; }
+        void setPerlinLacunarity(float l) { _perlinLacunarity = l; }
+        void setPerlinPersistence(float p) { _perlinPersistence = p; }
+        void setPerlinRedistribution(float r) { _perlinRedistribution = r; }
+        void setPerlinInversion(bool inv) { _perlinInversion = inv; }
         void ajouterSeuilPerlin(float seuil, char symb) { _seuilsPerlin[seuil] = symb; }
         void ajouterPreset(const std::string& nom, const std::map<char, int>& poids) { _presetsWorld[nom] = poids; }
         void setCustomWeights(const std::map<char, int>& w) { _customWeights = w; }
@@ -132,6 +142,11 @@ class WorldFactory {
         // Getters
         std::string getGenerationMode() const { return _generationMode; }
         float getPerlinScale() const { return _perlinScale; }
+        int getPerlinOctaves() const { return _perlinOctaves; }
+        float getPerlinLacunarity() const { return _perlinLacunarity; }
+        float getPerlinPersistence() const { return _perlinPersistence; }
+        float getPerlinRedistribution() const { return _perlinRedistribution; }
+        bool getPerlinInversion() const { return _perlinInversion; }
         const std::map<float, char>& getSeuilsPerlin() const { return _seuilsPerlin; }
         const std::map<std::string, std::map<char, int>>& getPresetsWorld() const { return _presetsWorld; }
 };

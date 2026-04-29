@@ -264,7 +264,7 @@ void MoteurDeJeu::chargerConfiguration(const std::string& configPath) {
         
         JsonWorldReader worldReader;
         _worldFactory.initialiserBords();
-        worldReader.chargerConfig("configs/config_espace.json", _ressourcesDispo, _worldFactory);
+        worldReader.chargerConfig(_logicConfig.getWorldConfigPath(), _ressourcesDispo, _worldFactory);
     
     } catch (const std::exception& e) {
         std::cerr << "Erreur de chargement du moteur : " << e.what() << std::endl;
@@ -443,7 +443,10 @@ void MoteurDeJeu::passerTour() {
     verifierVictoireGlobale();
 
     for (Unite* u : currentJ.getUnites()) {
-        if (u) u->setPoint_action(u->point_action_max());
+        if (u) {
+            u->update();
+            u->setPoint_action(u->point_action_max());
+        }
     }
 
     _currentPlayerTurn++;
@@ -743,7 +746,6 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAttaque& cmd) {
     for (CompAtt* attComp : att->Offensive()) {
         if (_arbitre.peutAttaquer(j, *att, *def, attComp)) {
             att->setPoint_action(att->point_action() - 1);
-            Combat::fight(*att, attComp, *def);
             if (Combat::fight(*att, attComp, *def)) {
                 if (def->health_point() <= 0) {
                     if (def->getProprietaire()) def->getProprietaire()->perdreUnite(def);
@@ -793,10 +795,12 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdSoigner& cmd) {
     if (healer->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
     for (CompSoin* soinComp : healer->Soin()) {
+        if (!soinComp->estPret()) continue;
         if (_arbitre.peutSoigner(j, *healer, *cible, soinComp)) {
             
             int soin = soinComp->healing_point(); 
             cible->setHealth_point(std::min(cible->health_point_max(), cible->health_point() + soin));
+            soinComp->setCurrent_cooldown(soinComp->cooldown());
             
             healer->setPoint_action(healer->point_action() - 1);
             return ResultatAction::SUCCES;
@@ -814,7 +818,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdCamoufler& cmd) {
 
     if (_arbitre.peutActiverCamouflage(j, *u)) {
         CompFurtif* furtif = u->Cammouflage();
-        if (furtif) {
+        if (furtif && furtif->estPret()) {
             
             furtif->ActiveCammouflage(); 
             

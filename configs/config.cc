@@ -11,11 +11,18 @@ void GameConfig::loadRules(const std::string& chemin) {
     json data;
     fichier >> data;
 
-    // régles taille plateau
-    if (data.contains("taille_plateau")) {
-        auto& v = data["taille_plateau"];
-        _plateauX = v.value("x", 10);
-        _plateauY = v.value("y", 10);
+    if (data.contains("tailles_disponibles")) {
+        for (auto& t : data["tailles_disponibles"]) {
+            TailleOption opt;
+            opt.nom = t.value("nom", "???");
+            opt.x = t.value("x", 100);
+            opt.y = t.value("y", 100);
+            _taillesDisponibles.push_back(opt);
+        }
+        if (!_taillesDisponibles.empty()) {
+            _plateauX = _taillesDisponibles[0].x;
+            _plateauY = _taillesDisponibles[0].y;
+        }
     }
 
     // règles construction des villes
@@ -82,6 +89,10 @@ void GameConfig::loadRules(const std::string& chemin) {
         }
         _capaciteBase = data["regles_entretien"].value("capacite_ville", 5);
         _capaciteVilleNiveau = data["regles_entretien"].value("capacite_ville_niveau", 3);
+    }
+
+    if (data.contains("world_config")) {
+        _worldConfigPath = data["world_config"].get<std::string>();
     }
 }
 

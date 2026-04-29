@@ -38,10 +38,123 @@ InterfaceManager::InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteu
     std::cout << "INIT TERMINÉ" << std::endl;
 }
 
+// ================================================================
+// SYSTÈME DE CACHE DE PERFORMANCE — TerritoireCache
+// ================================================================
+//
+// PROBLÈME RÉSOLU :
+// Avant ce cache, renderGame() appelait getTerritoireJoueur(pIdx) 
+// POUR CHAQUE TUILE VISIBLE × POUR CHAQUE JOUEUR × À CHAQUE FRAME.
+// getTerritoireJoueur() parcourt toute la matrice du plateau (O(rows×cols))
+// pour collecter les tuiles appartenant à un joueur.
+//
+// Sur une carte 100×100 avec 2 joueurs et ~500 tuiles visibles à l'écran :
+//   500 tuiles × 2 joueurs × 10000 tuiles scannées = 10 MILLIONS d'opérations/frame
+// À 60 FPS, ça fait 600 millions d'opérations/seconde → lag massif.
+//
+// SOLUTION :
+// On calcule le territoire UNE SEULE FOIS et on le garde en mémoire.
+// On ne recalcule que quand l'état du jeu change (achat de case, fondation de ville,
+// passage de tour, etc.) via le flag "dirty".
+//
+// RÉSULTAT :
+// De ~10M opérations/frame → ~0 opérations/frame (lecture du cache O(1)).
+// Le recalcul (quand dirty) coûte O(rows×cols×joueurs) mais n'arrive qu'une fois
+// par action, pas 60 fois par seconde.
+// ================================================================
+
+// invaliderCaches() : marque les caches comme périmés.
+// 
+// Cette fonction est appelée après chaque action qui modifie l'état du jeu :
+// - passerTour() → les territoires peuvent changer (production, effets de tour)
+// - soumettreCommande() → déplacement, fondation de ville, achat de case, etc.
+// - initGame() → nouvelle partie, tout est à recalculer
+// - Réception d'un paquet réseau (ACTION_MOVE, ACTION_BUILD_CITY, etc.)
+//
+// Elle ne recalcule RIEN — elle pose juste un flag. Le recalcul effectif
+// n'a lieu que dans recalculerCachesSiNecessaire(), appelé au début de renderGame().
+// Cela évite de recalculer plusieurs fois si plusieurs actions se produisent
+// dans la même frame (ex: réception de 3 paquets réseau d'un coup).
+void InterfaceManager::invaliderCaches() {
+    // Le territoire (bordures colorées autour des villes) doit être recalculé
+    _territoireCache.dirty = true;
+    // Les cases achetables (surbrillance verte) dépendent du territoire,
+    // donc elles doivent aussi être recalculées
+    _casesAchetablesDirty = true;
+}
+
+// recalculerCachesSiNecessaire() : recalcule les caches uniquement si nécessaire.
+//
+// Appelée UNE SEULE FOIS par frame, au début de renderGame(), après avoir
+// déterminé quel joueur on regarde (viewIndex).
+//
+// Paramètre viewIndex : l'index du joueur dont on affiche la vue.
+// En mode local, c'est le joueur actif. En multijoueur, c'est le joueur local.
+// Ce paramètre est nécessaire car les cases achetables dépendent du joueur.
+void InterfaceManager::recalculerCachesSiNecessaire(int viewIndex) {
+    
+    // --- CACHE TERRITOIRE ---
+    // On recalcule seulement si le flag dirty est levé
+    if (_territoireCache.dirty) {
+        int nbJ = _moteur.getJoueurs().size();
+        
+        // Redimensionner les vecteurs pour le nombre de joueurs actuel
+        // (peut changer entre les parties)
+        _territoireCache.vecParJoueur.resize(nbJ);
+        _territoireCache.setParJoueur.resize(nbJ);
+        
+        for (int p = 0; p < nbJ; ++p) {
+            // getTerritoireJoueur(p) parcourt TOUTE la matrice du plateau
+            // et retourne un vector<pair<int,int>> des tuiles possédées par le joueur p.
+            // C'est l'opération coûteuse qu'on veut faire une seule fois.
+            _territoireCache.vecParJoueur[p] = _moteur.getTerritoireJoueur(p);
+            
+            // On crée aussi une version en std::set pour les lookups O(log N).
+            // Le rendu des bordures a besoin de vérifier "est-ce que la tuile voisine
+            // appartient au même joueur ?" → avec un set, c'est O(log N) au lieu de O(N).
+            _territoireCache.setParJoueur[p] = {
+                _territoireCache.vecParJoueur[p].begin(),
+                _territoireCache.vecParJoueur[p].end()
+            };
+        }
+        
+        // Le cache est maintenant à jour, on baisse le flag
+        _territoireCache.dirty = false;
+    }
+    
+    // --- CACHE CASES ACHETABLES ---
+    // Recalculé seulement si dirty ET si le viewIndex est valide
+    if (_casesAchetablesDirty && viewIndex >= 0 && viewIndex < (int)_moteur.getJoueurs().size()) {
+        // On vide l'ancien cache
+        _casesAchetablesCache.clear();
+        
+        int rows = _moteur.getPlateau()->getRows();
+        int cols = _moteur.getPlateau()->getCols();
+        
+        // On scanne toutes les tuiles du plateau pour trouver celles
+        // que le joueur peut acheter (adjacentes à son territoire, avec assez de ressources)
+        // C'est O(rows×cols) mais ne se fait qu'une fois par changement d'état
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                if (_moteur.peutAcheterTerritoire(viewIndex, i, j)) {
+                    // On stocke dans un set pour un lookup O(1) dans le rendu
+                    _casesAchetablesCache.insert({i, j});
+                }
+            }
+        }
+        
+        // Le cache est maintenant à jour
+        _casesAchetablesDirty = false;
+    }
+}
+
 void InterfaceManager::loadUIConfig() {
     std::ifstream fRules(_rulesPath);
     if (fRules.is_open()) { fRules >> _rulesJson; fRules.close(); }
 
+    if (_rulesJson.contains("world_config")) {
+        _espacePath = _rulesJson["world_config"].get<std::string>();
+    }
     std::ifstream fEspace(_espacePath);
     if (fEspace.is_open()) { fEspace >> _espaceJson; fEspace.close(); }
     
@@ -103,15 +216,37 @@ void InterfaceManager::saveConfig() {
 
 void InterfaceManager::initGame() {
     _gameConfigLocked = true;
+    std::srand(_mapSeed);
     try {
         _moteur.overrideWorldWeights(_customWeights);
+        
+        if (!_activePresetName.empty() && _espaceJson.contains("presets_perlin") && _espaceJson["presets_perlin"].contains(_activePresetName)) {
+            auto& presetData = _espaceJson["presets_perlin"][_activePresetName];
+            if (presetData.contains("perlin_scale")) {
+                _moteur.overridePerlinParams(
+                    presetData.value("perlin_scale", 0.12f),
+                    presetData.value("octaves", 3),
+                    presetData.value("lacunarity", 2.0f),
+                    presetData.value("persistence", 0.3f),
+                    presetData.value("redistribution", 2.8f)
+                );
+            }
+        }
+
 
         std::vector<std::string> noms;
         for(int i = 0; i < _numPlayers; ++i) {
             noms.push_back(_connectedPlayers[i].name);
         }
 
+        int selX = _rulesJson.value("_selected_size_x", 0);
+        int selY = _rulesJson.value("_selected_size_y", 0);
+        if (selX > 0 && selY > 0) {
+            _moteur.setPlateauSize(selX, selY);
+        }
+
         _moteur.initGame(_mapSeed, noms, _playerFactions);
+        invaliderCaches();
 
         // Centrage de la vue sur la capitale
         if (_localPlayerIndex < (int)_moteur.getJoueurs().size() && !_moteur.getJoueurs()[_localPlayerIndex].getCities().empty()) {
@@ -179,6 +314,7 @@ void InterfaceManager::run() {
                                         pk << static_cast<sf::Int32>(PacketType::ACTION_MOVE) << static_cast<sf::Int32>(currentTurn) << _unitSourceX << _unitSourceY << bestI << bestJ;
                                         _network.sendData(pk);
                                     }
+                                    invaliderCaches();
                                 }
                             } else if (_isTargetingAttack) {
                                 Unite* uAtt = _moteur.getPlateau()->getUnite(_unitSourceX, _unitSourceY);
@@ -594,16 +730,24 @@ void InterfaceManager::renderOptions() {
             ImGui::TableSetColumnIndex(0); ImGui::Text("Difficulty:");
             ImGui::TableSetColumnIndex(1); DrawArrowSelector("##diff", &diffIndex, difficulties);
 
-            static int mapSizeIndex = 1;
-            std::vector<std::string> mapSizes = {"Tiny (50x50)", "Standard (100x100)", "Huge (200x200)"};
+            static int mapSizeIndex = 0;
+            std::vector<std::string> mapSizes;
+            if (_rulesJson.contains("tailles_disponibles")) {
+                for (auto& t : _rulesJson["tailles_disponibles"]) {
+                    mapSizes.push_back(t["nom"].get<std::string>() + " (" + std::to_string(t["x"].get<int>()) + "x" + std::to_string(t["y"].get<int>()) + ")");
+                }
+            }
+            if (mapSizes.empty()) mapSizes = {"Standard (100x100)"};
             ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0.0f, 5.0f));
             ImGui::TableNextRow(0);
             ImGui::TableSetColumnIndex(0); ImGui::Text("Map Size:");
             ImGui::TableSetColumnIndex(1); 
             if (DrawArrowSelector("##mapsize", &mapSizeIndex, mapSizes)) {
-                if (mapSizeIndex == 0) { _rulesJson["taille_plateau"]["x"] = 50; _rulesJson["taille_plateau"]["y"] = 50; }
-                if (mapSizeIndex == 1) { _rulesJson["taille_plateau"]["x"] = 100; _rulesJson["taille_plateau"]["y"] = 100; }
-                if (mapSizeIndex == 2) { _rulesJson["taille_plateau"]["x"] = 200; _rulesJson["taille_plateau"]["y"] = 200; }
+                if (_rulesJson.contains("tailles_disponibles") && mapSizeIndex < (int)_rulesJson["tailles_disponibles"].size()) {
+                    auto& t = _rulesJson["tailles_disponibles"][mapSizeIndex];
+                    _rulesJson["_selected_size_x"] = t["x"].get<int>();
+                    _rulesJson["_selected_size_y"] = t["y"].get<int>();
+                }
             }
 
             ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0.0f, 20.0f));
@@ -925,7 +1069,7 @@ void InterfaceManager::renderMapConfig() {
             sizesValues = {{100, 100}};
         }
 
-        int currentX = _rulesJson["taille_plateau"]["x"].get<int>();
+        int currentX = _rulesJson.value("_selected_size_x", sizesValues.empty() ? 100 : sizesValues[0].first);
         int sizeIdx = 0;
         for (size_t i = 0; i < sizesValues.size(); ++i) {
             if (sizesValues[i].first == currentX) {
@@ -936,8 +1080,9 @@ void InterfaceManager::renderMapConfig() {
 
         ImGui::Text("Map Size:"); ImGui::SameLine(150);
         if (DrawArrowSelector("##msize", &sizeIdx, sizesNames)) {
-            _rulesJson["taille_plateau"]["x"] = sizesValues[sizeIdx].first;
-            _rulesJson["taille_plateau"]["y"] = sizesValues[sizeIdx].second;
+            _rulesJson["_selected_size_x"] = sizesValues[sizeIdx].first;
+            _rulesJson["_selected_size_y"] = sizesValues[sizeIdx].second;
+            _moteur.setPlateauSize(sizesValues[sizeIdx].first, sizesValues[sizeIdx].second);
             sendLobbySync();
         }
 
@@ -965,63 +1110,58 @@ void InterfaceManager::renderMapConfig() {
         }
 
         ImGui::Dummy(ImVec2(0, 20));
-        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "WORLD PRESETS");
+        std::string genMode = "random";
+        if (_espaceJson.contains("generation_map") && _espaceJson["generation_map"].contains("mode")) {
+            genMode = _espaceJson["generation_map"]["mode"];
+        }
+        std::string presetKey = (genMode == "perlin") ? "presets_perlin" : "presets_random";
 
-        if (_espaceJson.contains("presets_world")) {
-            for (auto& [presetName, weightsObj] : _espaceJson["presets_world"].items()) {
+        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "WORLD PRESETS (%s)", genMode.c_str());
+
+        if (_espaceJson.contains(presetKey)) {
+            for (auto& [presetName, weightsObj] : _espaceJson[presetKey].items()) {
                 if (ImGui::Button(presetName.c_str(), ImVec2(400, 30))) {
-                    for (auto& [symbStr, weightVal] : weightsObj.items()) {
-                        if (!symbStr.empty()) {
-                            _customWeights[symbStr[0]] = weightVal.get<int>();
+                    if (genMode == "random") {
+                        for (auto& [symbStr, weightVal] : weightsObj.items()) {
+                            if (!symbStr.empty() && weightVal.is_number_integer()) {
+                                _customWeights[symbStr[0]] = weightVal.get<int>();
+                            }
                         }
                     }
+                    _activePresetName = presetName;
                     sendLobbySync();
                 }
             }
         } else {
-            ImGui::TextDisabled("Aucun preset 'presets_world' trouve dans la configuration.");
+            ImGui::TextDisabled("Aucun preset '%s' trouve dans la configuration.", presetKey.c_str());
         }
 
-        // Colonne droite (poids)
+        // Colonne droite (poids ou infos)
         ImGui::TableSetColumnIndex(1);
-        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "TILE DISTRIBUTION (%%)");
+        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "PRESET INFO");
         ImGui::Dummy(ImVec2(0, 10));
 
-        std::string activePreset = "Custom";
-        if (_espaceJson.contains("presets_world")) {
-            for (auto& [presetName, weightsObj] : _espaceJson["presets_world"].items()) {
-                bool matches = true;
-                for (auto& [symbStr, weightVal] : weightsObj.items()) {
-                    if (!symbStr.empty()) {
-                        char s = symbStr[0];
-                        if (_customWeights.find(s) == _customWeights.end() || _customWeights[s] != weightVal.get<int>()) {
-                            matches = false;
-                            break;
-                        }
+        ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Preset selectionne : %s", _activePresetName.empty() ? "Custom" : _activePresetName.c_str());
+        ImGui::Dummy(ImVec2(0, 10));
+
+        if (genMode == "random") {
+            if (_espaceJson.contains("tiles")) {
+                for (auto& t : _espaceJson["tiles"]) {
+                    std::string nom = t["nom"];
+                    char symb = std::string(t["symbole"])[0];
+                    if (symb == '#') continue; 
+                    if (_customWeights.find(symb) == _customWeights.end()) _customWeights[symb] = t["gen"]["poids"];
+
+                    ImGui::Text("%s:", nom.c_str());
+                    if (ImGui::SliderInt((std::string("##w_") + symb).c_str(), &_customWeights[symb], 0, 100)) {
+                        _activePresetName = "Custom";
+                        sendLobbySync();
                     }
                 }
-                if (matches) {
-                    activePreset = presetName;
-                    break;
-                }
             }
-        }
-        
-        ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Preset selectionne : %s", activePreset.c_str());
-        ImGui::Dummy(ImVec2(0, 10));
-
-        if (_espaceJson.contains("tiles")) {
-            for (auto& t : _espaceJson["tiles"]) {
-                std::string nom = t["nom"];
-                char symb = std::string(t["symbole"])[0];
-                if (symb == '#') continue; 
-                if (_customWeights.find(symb) == _customWeights.end()) _customWeights[symb] = t["gen"]["poids"];
-
-                ImGui::Text("%s:", nom.c_str());
-                if (ImGui::SliderInt((std::string("##w_") + symb).c_str(), &_customWeights[symb], 0, 100)) {
-                    sendLobbySync();
-                }
-            }
+        } else {
+            ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Mode Perlin Actif.");
+            ImGui::TextWrapped("Les pourcentages de tuiles sont ignores. Le relief et la repartition sont geres algorithmiquement via les parametres du preset selectionne.");
         }
 
         ImGui::EndTable();
@@ -1046,7 +1186,8 @@ void InterfaceManager::renderMapConfig() {
         if (_network.getState() == NetworkState::CONNECTED && _network.isHost()) {
             sf::Packet startPacket;
             startPacket << static_cast<sf::Int32>(PacketType::GAME_START) << static_cast<sf::Int32>(_mapSeed) << static_cast<sf::Int32>(_numPlayers) << static_cast<sf::Int32>(_selectedVictoryIndex); 
-            startPacket << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["x"]) << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["y"]);
+            startPacket << static_cast<sf::Int32>(_rulesJson.value("_selected_size_x", 100)) << static_cast<sf::Int32>(_rulesJson.value("_selected_size_y", 100));
+            startPacket << _activePresetName;
             startPacket << static_cast<sf::Int32>(_customWeights.size());
             for (auto const& [symb, weight] : _customWeights) {
                 startPacket << static_cast<sf::Int32>(symb) << static_cast<sf::Int32>(weight);
@@ -1399,8 +1540,9 @@ void InterfaceManager::updateNetworkLoop() {
 
                         sf::Int32 sizeX, sizeY;
                         packet >> sizeX >> sizeY;
-                        _rulesJson["taille_plateau"]["x"] = sizeX;
-                        _rulesJson["taille_plateau"]["y"] = sizeY;
+                        packet >> _activePresetName;
+                        _rulesJson["_selected_size_x"] = sizeX;
+                        _rulesJson["_selected_size_y"] = sizeY;
 
                         sf::Int32 wCount; 
                         packet >> wCount;
@@ -1439,10 +1581,12 @@ void InterfaceManager::updateNetworkLoop() {
                         _moteur.setActiveVictorySet(vicIdx);
 
                         sf::Int32 sizeX, sizeY, weightsCount;
-                        packet >> sizeX >> sizeY >> weightsCount;
+                        packet >> sizeX >> sizeY;
+                        packet >> _activePresetName;
+                        packet >> weightsCount;
                         
-                        _rulesJson["taille_plateau"]["x"] = sizeX;
-                        _rulesJson["taille_plateau"]["y"] = sizeY;
+                        _rulesJson["_selected_size_x"] = sizeX;
+                        _rulesJson["_selected_size_y"] = sizeY;
                         saveConfig();
 
                         _customWeights.clear();
@@ -1472,19 +1616,7 @@ void InterfaceManager::updateNetworkLoop() {
                             }
                         }
                         
-                        std::srand(_mapSeed);
-                        
-                        // Initialisation avec la nouvelle architecture
-                        _moteur.overrideWorldWeights(_customWeights);
-                        _moteur.initGame(_mapSeed, noms, _playerFactions);
-                        
-                        if (_localPlayerIndex < (int)_moteur.getJoueurs().size() && !_moteur.getJoueurs()[_localPlayerIndex].getCities().empty()) {
-                            City* cap = _moteur.getJoueurs()[_localPlayerIndex].getCities().front();
-                            float R = _tileSize / 2.0f;
-                            float W = std::sqrt(3.0f) * R;
-                            _gameView.setCenter(W * cap->getY() + W * 0.5f * (std::abs(cap->getX()) % 2), 1.5f * R * cap->getX());
-                        }
-                        
+                        initGame();
                         _currentState = GameState::IN_GAME;
                     }
                     break;
@@ -1523,6 +1655,7 @@ void InterfaceManager::updateNetworkLoop() {
                 // L'autre joueur a passé son tour
                 case PacketType::END_TURN: {
                     _moteur.passerTour();
+                    invaliderCaches();
                     _hasSelection = false;
                     // La caméra reste où le joueur l'a laissée (pas de recentrage)
                     break;
@@ -1535,6 +1668,7 @@ void InterfaceManager::updateNetworkLoop() {
                     if (packet >> pIdx >> xSrc >> ySrc >> xDest >> yDest) {
                         CmdDeplacement cmd = { xSrc, ySrc, xDest, yDest };
                         _moteur.soumettreCommande(pIdx, cmd);
+                        invaliderCaches();
                     }
                     break;
                 }
@@ -1545,6 +1679,7 @@ void InterfaceManager::updateNetworkLoop() {
                     if (packet >> pIdx >> x >> y >> nomUnite) {
                         CmdRecrutement cmd = { x, y, nomUnite };
                         _moteur.soumettreCommande(pIdx, cmd);
+                        invaliderCaches();
                     }
                     break;
                 }
@@ -1632,6 +1767,7 @@ void InterfaceManager::updateNetworkLoop() {
                     if (packet >> pIdx >> x >> y >> nomVille) {
                         CmdFonderVille cmd = { x, y, nomVille };
                         _moteur.soumettreCommande(pIdx, cmd);
+                        invaliderCaches();
                     }
                     break;
                 }
@@ -1643,6 +1779,7 @@ void InterfaceManager::updateNetworkLoop() {
                     if (packet >> pIdx >> x >> y) {
                         CmdAmeliorer cmd = { x, y };
                         _moteur.soumettreCommande(pIdx, cmd);
+                        invaliderCaches();
                     }
                     break;
                 }
@@ -1654,6 +1791,7 @@ void InterfaceManager::updateNetworkLoop() {
                     if (packet >> pIdx >> x >> y) {
                         CmdAcheterCase cmd = { x, y };
                         _moteur.soumettreCommande(pIdx, cmd);
+                        invaliderCaches();
                     }
                     break;
                 }
@@ -1721,8 +1859,12 @@ void InterfaceManager::renderGame() {
     // -- DETECTION CHANGEMENT DE TOUR ---
     if (isMyTurn && !_wasMyTurn) {
         _turnNotificationTimer = 2.5f;
+        invaliderCaches();
     }
     _wasMyTurn = isMyTurn;
+
+    // OPTIMISATION : Recalculer les caches une seule fois quand nécessaire
+    recalculerCachesSiNecessaire(viewIndex);
 
     float R = _tileSize / 2.0f;
     float W = std::sqrt(3.0f) * R;
@@ -1882,76 +2024,75 @@ void InterfaceManager::renderGame() {
                 }
             }
 
-            // --- TRACÉ DES TERRITOIRES ---
-            static const sf::Color playerColors[] = {
-                sf::Color(80, 180, 255, 255), sf::Color(255, 80, 80, 255), sf::Color(80, 255, 80, 255), sf::Color(255, 200, 0, 255)
-            };
-
-            for (int pIdx = 0; pIdx < (int)_moteur.getJoueurs().size(); ++pIdx) {
-                auto territoireVec = _moteur.getTerritoireJoueur(pIdx);
-                if (territoireVec.empty()) continue;
-
-                std::set<std::pair<int, int>> territoireMap(territoireVec.begin(), territoireVec.end());
-                
-                const int neighEven[6][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 0}, {0, -1}, {-1, -1}};
-                const int neighOdd[6][2]  = {{-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
-
-                for (const auto& tuile : territoireVec) {
-                    int i = tuile.first;
-                    int j = tuile.second;
-                    
-                    if (i < startRow - 2 || i > endRow + 2 || j < startCol - 2 || j > endCol + 2) continue;
-
-                    if (joueurValide && !_moteur.getJoueurs()[viewIndex].estDecouvert(i, j)) continue;
-
-                    float posX = W * j + W * 0.5f * (std::abs(i) % 2);
-                    float posY = 1.5f * R * i;
-
-                    const auto& neigh = (std::abs(i) % 2 == 0) ? neighEven : neighOdd;
-
-                    for (int side = 0; side < 6; ++side) {
-                        int ni = i + neigh[side][0];
-                        int nj = j + neigh[side][1];
-
-                        if (territoireMap.find({ni, nj}) == territoireMap.end()) {
-                            sf::Color borderCol = playerColors[pIdx % 4];
-
-                            sf::Vector2f p1(posX + R * std::cos(PI/180.0f * (60.0f * side - 30.0f)), posY + R * std::sin(PI/180.0f * (60.0f * side - 30.0f)));
-                            sf::Vector2f p2(posX + R * std::cos(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)), posY + R * std::sin(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)));
-
-                            sf::Vector2f dir = p2 - p1;
-                            float len = std::sqrt(dir.x*dir.x + dir.y*dir.y);
-                            dir.x /= len; dir.y /= len;
-                            sf::Vector2f normal(-dir.y, dir.x);
-                            
-                            float thickness = 3.0f;
-                            float extension = thickness / 1.732f;
-                            p1 -= dir * extension;
-                            p2 += dir * extension;
-
-                            sf::Vertex q1, q2, q3, q4;
-                            q1.position = p1 - normal * (thickness / 2.0f); q1.color = borderCol;
-                            q2.position = p2 - normal * (thickness / 2.0f); q2.color = borderCol;
-                            q3.position = p2 + normal * (thickness / 2.0f); q3.color = borderCol;
-                            q4.position = p1 + normal * (thickness / 2.0f); q4.color = borderCol;
-
-                            territoryBatch.append(q1); territoryBatch.append(q2);
-                            territoryBatch.append(q3); territoryBatch.append(q4);
-                        }
-                    }
+            // --- CASES ACHETABLES (utilise le cache pré-calculé) ---
+            if (joueurValide && _casesAchetablesCache.count({i, j})) {
+                sf::Color buyColor(0, 255, 100, 30);
+                for (int tri = 0; tri < 6; ++tri) {
+                    sf::Vertex v0, v1, v2;
+                    v0.position = {posX, posY}; v0.color = buyColor;
+                    v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = buyColor;
+                    v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = buyColor;
+                    buyBatch.append(v0); buyBatch.append(v1); buyBatch.append(v2);
                 }
             }
+        }
+    }
 
-            // --- CASES ACHETABLES (S'il y a une sélection de territoire en cours ou simplement visible) ---
-            if (joueurValide) {
-                if (_moteur.peutAcheterTerritoire(viewIndex, i, j)) {
-                    sf::Color buyColor(0, 255, 100, 30);
-                    for (int tri = 0; tri < 6; ++tri) {
-                        sf::Vertex v0, v1, v2;
-                        v0.position = {posX, posY}; v0.color = buyColor;
-                        v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = buyColor;
-                        v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = buyColor;
-                        buyBatch.append(v0); buyBatch.append(v1); buyBatch.append(v2);
+    // ==========================================================
+    // TRACÉ DES TERRITOIRES (hors boucle de tuiles, utilise le cache)
+    // ==========================================================
+    {
+        static const sf::Color playerColors[] = {
+            sf::Color(80, 180, 255, 255), sf::Color(255, 80, 80, 255), sf::Color(80, 255, 80, 255), sf::Color(255, 200, 0, 255)
+        };
+        const int neighEven[6][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 0}, {0, -1}, {-1, -1}};
+        const int neighOdd[6][2]  = {{-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+
+        for (int pIdx = 0; pIdx < (int)_territoireCache.vecParJoueur.size(); ++pIdx) {
+            const auto& territoireVec = _territoireCache.vecParJoueur[pIdx];
+            const auto& territoireMap = _territoireCache.setParJoueur[pIdx];
+            if (territoireVec.empty()) continue;
+
+            for (const auto& tuile : territoireVec) {
+                int ti = tuile.first;
+                int tj = tuile.second;
+                
+                if (ti < startRow - 2 || ti > endRow + 2 || tj < startCol - 2 || tj > endCol + 2) continue;
+                if (joueurValide && !_moteur.getJoueurs()[viewIndex].estDecouvert(ti, tj)) continue;
+
+                float tposX = W * tj + W * 0.5f * (std::abs(ti) % 2);
+                float tposY = 1.5f * R * ti;
+
+                const auto& neigh = (std::abs(ti) % 2 == 0) ? neighEven : neighOdd;
+
+                for (int side = 0; side < 6; ++side) {
+                    int ni = ti + neigh[side][0];
+                    int nj = tj + neigh[side][1];
+
+                    if (territoireMap.find({ni, nj}) == territoireMap.end()) {
+                        sf::Color borderCol = playerColors[pIdx % 4];
+
+                        sf::Vector2f p1(tposX + R * std::cos(PI/180.0f * (60.0f * side - 30.0f)), tposY + R * std::sin(PI/180.0f * (60.0f * side - 30.0f)));
+                        sf::Vector2f p2(tposX + R * std::cos(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)), tposY + R * std::sin(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)));
+
+                        sf::Vector2f dir = p2 - p1;
+                        float len = std::sqrt(dir.x*dir.x + dir.y*dir.y);
+                        dir.x /= len; dir.y /= len;
+                        sf::Vector2f normal(-dir.y, dir.x);
+                        
+                        float thickness = 3.0f;
+                        float extension = thickness / 1.732f;
+                        p1 -= dir * extension;
+                        p2 += dir * extension;
+
+                        sf::Vertex q1, q2, q3, q4;
+                        q1.position = p1 - normal * (thickness / 2.0f); q1.color = borderCol;
+                        q2.position = p2 - normal * (thickness / 2.0f); q2.color = borderCol;
+                        q3.position = p2 + normal * (thickness / 2.0f); q3.color = borderCol;
+                        q4.position = p1 + normal * (thickness / 2.0f); q4.color = borderCol;
+
+                        territoryBatch.append(q1); territoryBatch.append(q2);
+                        territoryBatch.append(q3); territoryBatch.append(q4);
                     }
                 }
             }
@@ -1961,14 +2102,14 @@ void InterfaceManager::renderGame() {
     // ==========================================================
     // DRAW CALLS BATCHÉS (1 par type de texture + fog + overlays)
     // ==========================================================
-    // 1. D'abord le fog noir opaque (fond pour les zones inexplorées)
+    // 1. fog noir (les zones inexplorées)
     if (fogBlackBatch.getVertexCount() > 0) _window.draw(fogBlackBatch);
-    // 2. Ensuite les tuiles texturées (par-dessus le fond noir)
+    // 2. tuiles texturées (par-dessus le fond noir)
     for (auto& [sym, va] : batches) {
         if (va.getVertexCount() > 0)
             _window.draw(va, &_textures[sym]);
     }
-    // 3. Puis le shroud semi-transparent (assombrit les tuiles découvertes mais hors de vue)
+    // 3. fog semi-transparent (assombrit les tuiles découvertes mais hors de vue)
     if (shroudBatch.getVertexCount() > 0) _window.draw(shroudBatch);
     if (buyBatch.getVertexCount() > 0) _window.draw(buyBatch);
     if (moveBatch.getVertexCount() > 0) _window.draw(moveBatch);
@@ -2002,6 +2143,38 @@ void InterfaceManager::renderGame() {
                             citySpr.setPosition(posX, posY - 10.0f);
                             citySpr.setColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(200, 230, 255));
                             _window.draw(citySpr);
+                        }
+
+                        Joueur* prop = tc->getProprietaire();
+                        if (prop) {
+                            int pIdx = -1;
+                            for (size_t p = 0; p < _moteur.getJoueurs().size(); ++p) {
+                                if (&_moteur.getJoueurs()[p] == prop) { pIdx = p; break; }
+                            }
+                            if (pIdx != -1) {
+                                static const sf::Color playerColors[] = {
+                                    sf::Color(80, 180, 255), sf::Color(255, 80, 80), sf::Color(80, 255, 80), sf::Color(255, 200, 0)
+                                };
+                                sf::Color pCol = playerColors[pIdx % 4];
+                                
+                                if (tc->getCity()->estCapitale()) {
+                                    sf::CircleShape capitalSymbol(R * 0.4f, 5); // etoile/pentagone
+                                    capitalSymbol.setFillColor(pCol);
+                                    capitalSymbol.setOutlineThickness(2.0f);
+                                    capitalSymbol.setOutlineColor(sf::Color::White);
+                                    capitalSymbol.setOrigin(R * 0.4f, R * 0.4f);
+                                    capitalSymbol.setPosition(posX, posY - 25.0f);
+                                    _window.draw(capitalSymbol);
+                                } else {
+                                    sf::CircleShape citySymbol(R * 0.3f, 4); // carre/losange
+                                    citySymbol.setFillColor(pCol);
+                                    citySymbol.setOutlineThickness(1.5f);
+                                    citySymbol.setOutlineColor(sf::Color::White);
+                                    citySymbol.setOrigin(R * 0.3f, R * 0.3f);
+                                    citySymbol.setPosition(posX, posY - 20.0f);
+                                    _window.draw(citySymbol);
+                                }
+                            }
                         }
                     }
                     if (tc->getBatimentSpecial()) {
@@ -2669,6 +2842,7 @@ void InterfaceManager::renderGame() {
         _hasSelection = false;
         
         _moteur.passerTour();
+        invaliderCaches();
         
         if (isMultiplayer) {
             sf::Packet turnPacket; turnPacket << static_cast<sf::Int32>(PacketType::END_TURN);
@@ -2903,6 +3077,7 @@ void InterfaceManager::renderGame() {
                                 p << static_cast<sf::Int32>(PacketType::ACTION_BUILD_CITY) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY << nom;
                                 _network.sendData(p);
                             }
+                            invaliderCaches();
                         } else {
                             _popupMsg = "Erreur: Impossible de fonder la ville.";
                         }
@@ -3908,8 +4083,9 @@ void InterfaceManager::sendLobbySync() {
 
         // 3. Les paramètres de la carte
         p << static_cast<sf::Int32>(_mapSeed) << static_cast<sf::Int32>(_numPlayers) << static_cast<sf::Int32>(_selectedVictoryIndex);
-        p << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["x"].get<int>());
-        p << static_cast<sf::Int32>(_rulesJson["taille_plateau"]["y"].get<int>());
+        p << static_cast<sf::Int32>(_rulesJson.value("_selected_size_x", 100));
+        p << static_cast<sf::Int32>(_rulesJson.value("_selected_size_y", 100));
+        p << _activePresetName;
         
         // 4. Les poids du générateur (Custom Weights)
         p << static_cast<sf::Int32>(_customWeights.size());

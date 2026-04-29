@@ -1,6 +1,7 @@
 #include "jeu.hh"
 #include "unite.hh"
 #include "FastNoiseLite.hh"
+#include <limits>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -125,47 +126,87 @@ board::board(int seed, WorldFactory & world, const GameConfig& config): _config(
     FastNoiseLite noise;
     noise.SetSeed(seed);
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    //noise.SetFractalType(FastNoiseLite::FractalType_FBm);
 
     std::string mode = world.getGenerationMode();
     float scale = world.getPerlinScale();
+    noise.SetFrequency(scale);
 
-    for (int i = 0; i < _height; ++i) {
-        std::vector<std::unique_ptr<hexa>> ligne;
-        for (int j = 0; j < _width; ++j) {
-            if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1) {
-                ligne.push_back(world.createTile('#'));
+    // Activer FBm multi-octaves pour un terrain riche et organique
+    if (mode == "perlin") {
+        noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+        noise.SetFractalOctaves(world.getPerlinOctaves());
+        noise.SetFractalLacunarity(world.getPerlinLacunarity());
+        noise.SetFractalGain(world.getPerlinPersistence());
+    }
+
+    if (mode == "perlin" && !world.getSeuilsPerlin().empty()) {
+        float globalMin = std::numeric_limits<float>::max();
+        float globalMax = std::numeric_limits<float>::lowest();
+        
+        std::vector<std::vector<float>> noiseGrid(_height, std::vector<float>(_width, 0.0f));
+        
+        for (int i = 1; i < _height - 1; ++i) {
+            for (int j = 1; j < _width - 1; ++j) {
+                float val = noise.GetNoise((float)j, (float)i);
+                noiseGrid[i][j] = val;
+                if (val < globalMin) globalMin = val;
+                if (val > globalMax) globalMax = val;
             }
-            else {
-                if (mode == "perlin" && !world.getSeuilsPerlin().empty()) {
-                    // Récupération du bruit (-1.0 à 1.0)
-                    float nx = (float)j * scale;
-                    float ny = (float)i * scale;
-                    float noiseValue = noise.GetNoise(nx, ny);
+        }
+        
+        float range = globalMax - globalMin;
+        if (range < 0.001f) range = 1.0f;
+        
+        float redistribution = world.getPerlinRedistribution();
+        bool inversion = world.getPerlinInversion();
+        
+        for (int i = 0; i < _height; ++i) {
+            std::vector<std::unique_ptr<hexa>> ligne;
+            for (int j = 0; j < _width; ++j) {
+                if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1) {
+                    ligne.push_back(world.createTile('#'));
+                } else {
+                    // Normalisation dynamique
+                    float normalized = (noiseGrid[i][j] - globalMin) / range;
                     
-                    // Normalisation entre 0.0 et 1.0 pour comparer avec tes seuils JSON
-                    noiseValue = (noiseValue + 1.0f) / 2.0f;
-                    if (noiseValue < 0.0f) noiseValue = 0.0f;
-                    if (noiseValue > 1.0f) noiseValue = 1.0f;
-
+                    // Redistribution (power curve) pour enrichir la distribution
+                    normalized = std::pow(normalized, redistribution);
+                    
+                    // Inversion pour thèmes îles (hautes valeurs = terre)
+                    if (inversion) normalized = 1.0f - normalized;
+                    
+                    // Clamp
+                    if (normalized < 0.0f) normalized = 0.0f;
+                    if (normalized > 1.0f) normalized = 1.0f;
+                    
                     // Application des seuils
                     char symboleChoisi = '.';
                     for (const auto& [seuil, symb] : world.getSeuilsPerlin()) {
-                        if (noiseValue <= seuil) {
+                        if (normalized <= seuil) {
                             symboleChoisi = symb;
                             break;
                         }
                     }
                     ligne.push_back(world.createTile(symboleChoisi));
-                } 
-                else {
-                    // Mode Random classique (avec _customWeights)
+                }
+            }
+            _matrix.push_back(std::move(ligne));
+        }
+    } else {
+        // Mode Random (_customWeights)
+        for (int i = 0; i < _height; ++i) {
+            std::vector<std::unique_ptr<hexa>> ligne;
+            for (int j = 0; j < _width; ++j) {
+                if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1) {
+                    ligne.push_back(world.createTile('#'));
+                } else {
                     ligne.push_back(world.createRandomTile());
                 }
             }
+            _matrix.push_back(std::move(ligne));
         }
-        _matrix.push_back(std::move(ligne));
     }
+    
     world.postGeneration(_matrix, _width, _height);
 }
 
@@ -361,6 +402,11 @@ void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::stri
         auto& gen = data["generation_map"];
         factory.setGenerationMode(gen.value("mode", "random"));
         factory.setPerlinScale(gen.value("perlin_scale", 0.15f));
+        factory.setPerlinOctaves(gen.value("octaves", 4));
+        factory.setPerlinLacunarity(gen.value("lacunarity", 2.0f));
+        factory.setPerlinPersistence(gen.value("persistence", 0.5f));
+        factory.setPerlinRedistribution(gen.value("redistribution", 1.0f));
+        factory.setPerlinInversion(gen.value("inversion", false));
         
         if (gen.contains("seuils_perlin")) {
             for (auto& [symbStr, seuil] : gen["seuils_perlin"].items()) {
@@ -370,11 +416,11 @@ void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::stri
     }
 
     // Presets Worlds
-    if (data.contains("presets_world")) {
-        for (auto& [presetName, weightsObj] : data["presets_world"].items()) {
+    if (data.contains("presets_random")) {
+        for (auto& [presetName, weightsObj] : data["presets_random"].items()) {
             std::map<char, int> w;
             for (auto& [symbStr, weightVal] : weightsObj.items()) {
-                if (!symbStr.empty()) w[symbStr[0]] = weightVal.get<int>();
+                if (!symbStr.empty() && weightVal.is_number_integer()) w[symbStr[0]] = weightVal.get<int>();
             }
             factory.ajouterPreset(presetName, w);
         }
