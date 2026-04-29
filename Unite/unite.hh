@@ -50,6 +50,10 @@ private:
     char _symbol;
     std::string _texturePath;
 
+    std::map<const Ressource*, int> _inventaireInterne; 
+    std::map<const Ressource*, int> _capaciteMax;
+
+
 public:
     Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc, std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, char symbole, const std::string& texturePath = "");
     virtual ~Unite() = default;
@@ -64,11 +68,13 @@ public:
     void setTemporary_health(int newTemporary_health);
     void setTemporary_damage(int newTemporary_damage);
     void setSymbol(char s);
+    void setInventaireInterne(std::map<const Ressource*, int> inventaire);
 
     // MODIFIE PAR NAIM
     std::string texturePath() const { return _texturePath; }
     void setProprietaire(Joueur* j) { _proprietaire = j; }
     Joueur* getProprietaire() const { return _proprietaire; }
+
 
     /*Getters*/
     std::string name() const;
@@ -87,6 +93,8 @@ public:
     int temporary_damage() const;
     bool defensif() const;
     char getSymbol() const;
+    std::map<const Ressource*, int> getInventaireInterne() const; 
+    std::map<const Ressource*, int> getCapaciteMax() const;
 
     // Vision
     int visionRange() const { return _visionRange; }
@@ -112,6 +120,9 @@ public:
 
     const std::map<const Ressource*, int>& getCoutEntretien() const { return _cout_entretien; }
     void setCoutEntretien(const std::map<const Ressource*, int>& cout) { _cout_entretien = cout; }
+
+    void consommerPourAction(const std::map<const Ressource*, int>& cout);
+    void ravitaillement(const Ressource* res, int qte);
 };
 
 

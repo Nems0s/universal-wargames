@@ -3,6 +3,7 @@
 #include <memory>
 #include <list>
 #include "orientation.hh"
+#include "ressource.hh"
 
 enum class NatureMouv {TERRE, MER, AIR};
 
@@ -13,8 +14,9 @@ class IComportement
 public:
     virtual ~IComportement() = default;
     virtual void affiche() const = 0;
-    virtual void update() {}; // On la met vide pour pas avoir à la redefinir dans tout les classes qui hérite 
-    virtual void action() = 0;
+    virtual void update(){}; // On la met vide pour pas avoir à la redefinir dans tout les classes qui hérite 
+    virtual void action(){};
+
     virtual bool executerAction() {
         this->action();
         return true;
@@ -38,6 +40,18 @@ public:
     bool estPret()const;
 };
 
+class ComportementConsommable 
+{
+protected:
+    std::map<const Ressource*, int> _coutAction;
+public:
+    ComportementConsommable(const std::map<const Ressource*, int>& cout);
+    virtual ~ComportementConsommable() = default;
+
+    const std::map<const Ressource*, int>& getCoutAction() const;
+    bool estPayable(const Unite& u) const;
+};
+
 
 //===================================================================
 //                     Comportement Mouvement
@@ -59,7 +73,7 @@ public:
 class CompMouvVolant : public CompMouv
 {
 public:
-    CompMouvVolant(int mouvement_par_tour = 2);
+    CompMouvVolant(int mouvement_par_tour);
 
     void affiche() const override;
 
@@ -69,7 +83,7 @@ public:
 class CompMouvMarin : public CompMouv
 {
 public:
-    CompMouvMarin(int mouvement_par_tour = 1);
+    CompMouvMarin(int mouvement_par_tour);
 
     void affiche() const override;
 
@@ -79,7 +93,7 @@ public:
 class CompMouvTerrestre : public CompMouv
 {
 public:
-    CompMouvTerrestre(int mouvement_par_tour = 1);
+    CompMouvTerrestre(int mouvement_par_tour);
 
     void affiche() const override;
 
@@ -119,13 +133,10 @@ public:
 class CompAttDistance : public CompAtt
 {
 private:
-    int _munitions;
     int _portee_mini;
 public:
-    CompAttDistance(int damage_point, int portee = 2, int munitions = 10, int portee_mini = 2);
+    CompAttDistance(int damage_point, int portee, int portee_mini);
 
-    int munitions() const;
-    void setMunitions(int newMunitions);
     int portee_mini() const;
     void setPortee_mini(int newPortee_mini);
 
@@ -151,7 +162,7 @@ private:
     int _nombre_de_tour_infection;
     std::list<infecter> _liste_infecter;
 public:
-    CompAttIndirect(int damage_point, int portee = 1, int nombre_de_tour_infection = 2);
+    CompAttIndirect(int damage_point, int portee, int nombre_de_tour_infection);
 
     void setNombreDeTourInfection(int newNombreDeTourInfection);
     int nombredetourinfection() const;
@@ -231,7 +242,7 @@ class CompSoinDirect: public CompSoin
 private:
     int _rayon;
 public:
-    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2);
+    CompSoinDirect(int healing_point, int portee, int rayon);
 
     int rayon() const;
     void setRayon(int newRayon);
@@ -258,7 +269,7 @@ private:
     int _nombre_de_tour_regeneration;
     std::list<soigner> _liste_soigner;
 public:
-    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2);
+    CompSoinIndirect(int healing_point, int portee, int nombre_de_tour_regeneration);
 
     void setNombreDeTourRegen(int newNombreDeTourRegen);
     int nombredetourregen() const;
@@ -280,7 +291,7 @@ private:
     std::list<std::shared_ptr<Unite>> _liste_unite_transporter;
     int _max_unite_transporter;
 public:
-    CompTransport(int max_unite_transporter = 3);
+    CompTransport(int max_unite_transporter);
 
     std::list<std::shared_ptr<Unite> > liste_unite_transporter() const;
     void setListe_unite_transporter(const std::list<std::shared_ptr<Unite> > &newListe_unite_transporter);
@@ -324,7 +335,8 @@ public:
 //===================================================================
 //===================================================================
 template <typename BaseComportement>
-class AvecCooldown : public BaseComportement, public ComportementCooldown {
+class AvecCooldown : public BaseComportement, public ComportementCooldown 
+{
 public:
 
     template <typename... Args> // Permet d'avoir X types d'Arg
@@ -332,6 +344,12 @@ public:
         BaseComportement(std::forward<Args>(args)...), // On lance le constructeur avec le bon nombre d'arg
         ComportementCooldown(cooldownValue) 
     {}
+
+    void affiche() const override 
+    {
+        BaseComportement::affiche(); 
+        std::cout<<"Cooldown: "<<_current_cooldown<<"/"<<_cooldown<<std::endl;
+    }
 
     void update() override 
     {
@@ -352,5 +370,36 @@ public:
             return true;
         }
         return false;
+    }
+};
+
+
+//===================================================================
+//===================================================================
+//===================================================================
+//                   Template pour Consommable
+//===================================================================
+//===================================================================
+//===================================================================
+template <typename BaseComportement>
+class AvecConsommable : public BaseComportement, public ComportementConsommable 
+{
+public:
+
+    template <typename... Args>
+    AvecConsommable(std::map<const Ressource*, int> coutAction, Args&&... args):
+        BaseComportement(std::forward<Args>(args)...),
+        ComportementConsommable(coutAction) 
+    {}
+
+    void affiche() const override 
+    {
+        BaseComportement::affiche(); 
+        std::cout << "Cout Action: ";
+        for(auto const& [res, val] : _coutAction)
+        {
+            std::cout << res->getName() << ": " << val << " "; 
+        }
+        std::cout << std::endl;
     }
 };

@@ -12,8 +12,7 @@
                 "Commandant Allie",
                 "Sniper",
                 "Tank de Garde",
-                "Gros Tank",
-                "Croiseur de Siege"
+                "Gros Tank"
             ]
         },
         {
@@ -27,8 +26,6 @@
             "unites": [
                 "Infanterie d'Elite",
                 "Medecin",
-                "Drone Infectieux",
-                "Swarmer",
                 "Pretre de Guerre"
             ]
         }

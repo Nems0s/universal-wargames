@@ -33,8 +33,34 @@ void ComportementCooldown::setCooldown(int newCooldown)
     _cooldown = newCooldown;
 }
 
-bool ComportementCooldown::estPret() const {
+bool ComportementCooldown::estPret() const 
+{
     return _current_cooldown == 0;
+}
+
+ComportementConsommable::ComportementConsommable(const std::map<const Ressource*, int>& cout) :
+    _coutAction(cout)
+{}
+
+const std::map<const Ressource*, int>& ComportementConsommable::getCoutAction() const 
+{ 
+    return _coutAction; 
+}
+
+
+bool ComportementConsommable::estPayable(const Unite& u) const 
+{
+    const auto& inventaire = u.getInventaireInterne(); 
+     
+    for(auto const& [res, qteRequise] : this->_coutAction) 
+    {
+        auto it = inventaire.find(res);
+        if (it == inventaire.end() || it->second < qteRequise) 
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 
@@ -183,20 +209,11 @@ bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)cons
 //===================================================================
 //                        Attaque Distance
 //===================================================================
-CompAttDistance::CompAttDistance(int damage_point, int portee, int munitions, int portee_mini):
+CompAttDistance::CompAttDistance(int damage_point, int portee, int portee_mini):
     CompAtt(damage_point, portee),
-    _munitions(munitions),
     _portee_mini(portee_mini)
 {}
 
-void CompAttDistance::setMunitions(int newMunitions)
-{
-    _munitions = newMunitions;
-}
-int CompAttDistance::munitions() const
-{
-    return _munitions;
-}
 int CompAttDistance::portee_mini() const
 {
     return _portee_mini;
@@ -209,13 +226,12 @@ void CompAttDistance::setPortee_mini(int newPortee_mini)
 
 void CompAttDistance::affiche()const
 {
-    std::cout << "[Attaque] Distance : Dgt=" << damage_point() << ", Portée max=" << portee() << "|Portée min=" << _portee_mini<< ", Munitions="  << _munitions << std::endl;
+    std::cout << "[Attaque] Distance : Dgt=" << damage_point() << ", Portée max=" << portee() << "|Portée min=" << _portee_mini<< std::endl;
 }
 
 
 bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
-    if(_munitions<=0) return false;
     auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
     auto cases_impossibles = case_adjascentes(attaquante.location(), _portee_mini-1);
 

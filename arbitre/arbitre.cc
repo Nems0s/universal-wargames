@@ -160,13 +160,21 @@ bool Arbitre::moveUnite(const Joueur & j, const board & game, const Unite & u, i
     for(auto mov : mobilites)
     {
         auto* avecCD = dynamic_cast<ComportementCooldown*>(mov);
-        if(avecCD) 
+        auto* avecConso = dynamic_cast<ComportementConsommable*>(mov);
+        if((avecCD && avecConso) && (avecCD->estPret() && avecConso->estPayable(u))) // Comme on évalue de gauche à droite si avecCD est nullptr on a pas d'erreur car on s'arrete immediatement
         {
-            if(avecCD->estPret())
-            {
-                deplacementPossible = true;
-                break;
-            }
+            deplacementPossible = true;
+            break;
+        }
+        else if(avecCD && avecCD->estPret() && avecConso == nullptr)
+        {
+            deplacementPossible = true;
+            break;
+        }
+        else if(avecConso && avecConso->estPayable(u) && avecCD == nullptr)
+        {
+            deplacementPossible = true;
+            break;
         }
         else
         {
@@ -367,17 +375,6 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*
 }
 
 
-bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
-{
-    if (!peutPayer(cout, j)) {
-        return false;
-    }
-    if (invocation.health_point() <= 0) {
-        return false;
-    }
-    return true;
-}
-
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const
 {
     if(attaque.point_action() <= 0) return false;
@@ -388,9 +385,15 @@ bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& c
     }
 
     auto* avecCD = dynamic_cast<ComportementCooldown*>(TypeAttaque);
-    if(avecCD) 
+    if(avecCD && !avecCD->estPret()) 
     {
-        if(!avecCD->estPret()) return false;
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(TypeAttaque);
+    if(avecConso && !avecConso->estPayable(attaque)) 
+    {
+        return false;
     }
 
     auto styles_attaque = attaque.Offensive();
@@ -415,9 +418,15 @@ bool Arbitre::peutSoigner(const Joueur& j, const Unite& healer, const Unite& cib
     }
 
     auto* avecCD = dynamic_cast<ComportementCooldown*>(TypeSoin);
-    if(avecCD) 
+    if(avecCD && !avecCD->estPret()) 
     {
-        if(!avecCD->estPret()) return false;
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(TypeSoin);
+    if(avecConso && !avecConso->estPayable(healer)) 
+    {
+        return false;
     }
 
     auto styles_healer = healer.Soin();
@@ -444,10 +453,17 @@ bool Arbitre::peutActiverCamouflage(const Joueur& j, const Unite& unite)const
     auto cammouflage = unite.Cammouflage();
 
     auto* avecCD = dynamic_cast<ComportementCooldown*>(cammouflage);
-    if(avecCD) 
+    if(avecCD && !avecCD->estPret()) 
     {
-        if(!avecCD->estPret()) return false;
+        return false;
     }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(cammouflage);
+    if(avecConso && !avecConso->estPayable(unite)) 
+    {
+        return false;
+    }
+
 
     if(cammouflage)
     {
@@ -473,9 +489,15 @@ bool Arbitre::peutTransporter(const Joueur& j, const Unite& unite)const
     auto transport = unite.Transport();
 
     auto* avecCD = dynamic_cast<ComportementCooldown*>(transport);
-    if(avecCD) 
+    if(avecCD && !avecCD->estPret()) 
     {
-        if(!avecCD->estPret()) return false;
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(transport);
+    if(avecConso && !avecConso->estPayable(unite)) 
+    {
+        return false;
     }
 
     if(transport)
@@ -529,9 +551,15 @@ bool Arbitre::peutDechargerTransport(const Joueur& j, const Unite& transporteur,
     if(!transport || transport->nb_unite_actuelle() <= 0) return false;
 
     auto* avecCD = dynamic_cast<ComportementCooldown*>(transport);
-    if(avecCD) 
+    if(avecCD && !avecCD->estPret()) 
     {
-        if(!avecCD->estPret()) return false;
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(transport);
+    if(avecConso && !avecConso->estPayable(transporteur)) 
+    {
+        return false;
     }
 
     bool estPresent = false;

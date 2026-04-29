@@ -201,15 +201,6 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
         }
     }
     
-    if(auto* dist = dynamic_cast<CompAttDistance*>(*it))
-    {
-        if(dist->munitions() == 0) return false;
-        else
-        {
-            dist->setMunitions(dist->munitions() - 1);
-        }
-    }
-
     // Sert à eviter un test sur cammouflage alors que l'unite en à pas
     bool estCamoufle = false;
     auto furtifAtt = attaquant.Cammouflage();

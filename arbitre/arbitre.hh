@@ -29,7 +29,7 @@ public:
     bool buildCity(const Joueur & j, const board & game, int x, int y) const;
     bool buildBuildingInCity(const Joueur & j, const City & city, const Batiment & b) const;
     bool buildSpecialBuilding(const Joueur & j, const board & game, const Batiment & b, int x, int y) const;
-    bool moveUnite(const Joueur & j, const board & game, const Unite & u, int xDest, int yDest) const;
+    bool moveUnite(const Joueur & j, const board & game, const Unite & u, int xDest, int yDest) const;                                  //Modifier par Simon
     bool validPayRessource(Joueur & j, const Batiment & b);
 
     bool peutAmeliorerVille(const Joueur& j, const City& ville, const GameConfig & config) const;
@@ -46,11 +46,11 @@ public:
     // --- ZONE UNITÉS & COMBAT ---
     bool appartientJoueur(const Joueur& j, const Unite& unite)const;
     bool peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation)const;
-    bool peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const;
-    bool peutSoigner(const Joueur& j, const Unite& healer, const Unite& cible, CompSoin* const& TypeSoin)const;
-    bool peutActiverCamouflage(const Joueur& j, const Unite& unite)const;
-    bool peutTransporter(const Joueur& j, const Unite& unite)const;
-    bool peutRejoindreCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const;
+    bool peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const;                     //Modifier par Simon
+    bool peutSoigner(const Joueur& j, const Unite& healer, const Unite& cible, CompSoin* const& TypeSoin)const;                         //Modifier par Simon
+    bool peutActiverCamouflage(const Joueur& j, const Unite& unite)const;                                                               //Modifier par Simon
+    bool peutTransporter(const Joueur& j, const Unite& unite)const;                                                                     //Modifier par Simon
+    bool peutRejoindreCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const;                                    //Modifier par Simon
     bool peutDechargerTransport(const Joueur& j, const Unite& transporteur,const Unite& transporter, int xDest, int yDest) const;
 
     std::vector<std::pair<int, int>> getCasesDeplacementPossibles(const board& game, const Unite& u) const;
