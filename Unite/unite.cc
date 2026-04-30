@@ -26,6 +26,16 @@ Unite::Unite(const std::string &name, int hp, int point_action, int vision, int 
     _defensif(false)
 {}
 
+
+
+void Unite::actualiserVision() 
+{
+    _tuilesVisibles = ConeVision(_location, _regarde, _visionRange, _fov);
+}
+
+/*==============================================================================================*/
+/*                                     Getters et Setters                                       */
+/*==============================================================================================*/
 std::string Unite::name() const
 {
     return _name;
@@ -89,6 +99,7 @@ direction Unite::regarde() const
 void Unite::setRegarde(direction newRegarde)
 {
     _regarde = newRegarde;
+    actualiserVision();
 }
 
 Coord Unite::location() const
@@ -99,6 +110,7 @@ Coord Unite::location() const
 void Unite::setLocation(const Coord &newLocation)
 {
     _location = newLocation;
+    actualiserVision();
 }
 
 std::shared_ptr<IRank> Unite::rank() const
@@ -152,7 +164,6 @@ std::map<const Ressource*, int> Unite::getInventaireInterne()const
 {
     return _inventaireInterne;
 }
-
 void Unite::setInventaireInterne(std::map<const Ressource*, int> inventaire)
 {
     _inventaireInterne = inventaire;
@@ -163,7 +174,37 @@ std::map<const Ressource*, int> Unite::getCapaciteMax()const
     return _capaciteMax;
 }
 
+const std::list<Coord>&  Unite::getTuilesVisibles() const 
+{ 
+    return _tuilesVisibles; 
+}
+void Unite::setTuilesVisibles(const std::list<Coord>& liste) 
+{ 
+    _tuilesVisibles = liste; 
+}
 
+
+int Unite::getVisionRange() const 
+{ 
+    return _visionRange; 
+}
+void Unite::setVisionRange(int r) 
+{ 
+    _visionRange = r; 
+}
+
+int Unite::getFov() const 
+{ 
+    return _fov; 
+}
+void Unite::setFov(int f) 
+{ 
+    _fov = f; 
+}
+
+/*==============================================================================================*/
+/*==============================================================================================*/
+/*==============================================================================================*/
 
 bool Unite::defensif() const
 {
@@ -311,7 +352,7 @@ void Unite::ravitaillement(const Ressource* res, int qte)
     auto it = _inventaireInterne.find(res);
     auto it_max = _capaciteMax.find(res);
 
-    if(it != _inventaireInterne.end() && it != _capaciteMax.end())
+    if(it != _inventaireInterne.end() && it_max != _capaciteMax.end())
     {
         if(it->second + qte <= it_max->second)
         {

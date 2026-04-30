@@ -223,7 +223,7 @@ bool Combat::fight(Unite &attaquant, CompAtt* const& TypeAttaque, Unite &defense
     int newmoralAtt = 0;
     int newmoralDef = 0;
 
-    if(((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde())) && (defenseur.defensif() == false))|| estCamoufle == true )
+    if(((avantage_attaque(attaquant.location(), defenseur.location(), defenseur.regarde(), defenseur.getFov())) && (defenseur.defensif() == false))|| estCamoufle == true )
     {
         degats_finals = puissance_attaque * 1.5;
         newmoralDef = MAX_MORAL * (GROS_CHANGE / 100.0);

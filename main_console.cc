@@ -4,14 +4,33 @@
 #include <regex>
 #include <cstdlib>
 #include <ctime>
+#include <map>
 
 #include "moteur.hh"
 #include "commandes.hh"
+#include "orientation.hh"
 
 // ===========================================================
 // Regex de validation oui/non
 // ===========================================================
 std::regex pattern_validation(R"(^(yes|y|oui|o)$)", std::regex_constants::icase);
+
+// ===========================================================
+// Conversion texte → direction
+// ===========================================================
+bool stringToDirection(const std::string& s, direction& out) {
+    static const std::map<std::string, direction> table = {
+        {"nord_ouest", direction::nord_ouest},
+        {"nord_est",   direction::nord_est},
+        {"ouest",      direction::ouest},
+        {"est",        direction::est},
+        {"sud_ouest",  direction::sud_ouest},
+        {"sud_est",    direction::sud_est},
+    };
+    auto it = table.find(s);
+    if (it != table.end()) { out = it->second; return true; }
+    return false;
+}
 
 // ===========================================================
 // Utilitaires d'affichage
@@ -36,7 +55,8 @@ void afficherResultat(ResultatAction res) {
             std::cout << "[ÉCHEC] Ressources insuffisantes." << std::endl;
             break;
         case ResultatAction::ECHEC_PA_INSUFFISANTS:
-            std::cout << "[ÉCHEC] Points d'action insuffisants." << std::endl;
+            std::cout << "[ÉCHEC] Points d'action insuffisants (coût rotation : "
+                      << "voir config)." << std::endl;
             break;
         case ResultatAction::ECHEC_COORD_INVALIDE:
             std::cout << "[ÉCHEC] Coordonnées invalides." << std::endl;
@@ -48,11 +68,30 @@ void afficherResultat(ResultatAction res) {
 }
 
 // ===========================================================
+// Affichage du cône de vision d'une unité
+// ===========================================================
+void afficherConeVision(const Unite* u) {
+    if (!u) return;
+    const auto& visibles = u->getTuilesVisibles();
+    std::cout << "  Regarde     : " << directionToString(u->regarde()) << std::endl;
+    std::cout << "  Vision      : range=" << u->getVisionRange()
+              << "  fov=" << u->getFov() << " cases" << std::endl;
+    std::cout << "  Cases vues  : ";
+    if (visibles.empty()) {
+        std::cout << "(aucune)";
+    } else {
+        for (const auto& c : visibles) {
+            std::cout << "(" << c.first << "," << c.second << ") ";
+        }
+    }
+    std::cout << std::endl;
+}
+
+// ===========================================================
 // Affichage de l'état du joueur actif
 // ===========================================================
 void afficherEtatJoueur(const MoteurDeJeu& moteur, int pIdx) {
-    const auto& joueurs = moteur.getJoueurs();
-    const Joueur& j = joueurs[pIdx];
+    const Joueur& j = moteur.getJoueurs()[pIdx];
 
     afficherSeparateur("TOUR DE : " + j.getName()
         + "  (Tour " + std::to_string(moteur.getTourActuel()) + ")");
@@ -66,27 +105,26 @@ void afficherEtatJoueur(const MoteurDeJeu& moteur, int pIdx) {
             std::cout << res->getName() << ": " << qty << "  ";
         }
     }
-    std::cout << std::endl;
+    std::cout << "\n" << std::endl;
 
-    // Unités
-    std::cout << "Unités    : " << j.getUnites().size() << "   ";
+    // Unités (résumé une ligne par unité avec direction)
+    int idx = 0;
     for (auto* u : j.getUnites()) {
-        if (u) {
-            std::cout << u->name()
-                      << "(" << u->location().first << "," << u->location().second << ")"
-                      << " PA:" << u->point_action()
-                      << " PV:" << u->health_point()
-                      << "   ";
-        }
+        if (!u) continue;
+        std::cout << "  [" << idx << "] " << u->name()
+                  << "  pos=(" << u->location().first << "," << u->location().second << ")"
+                  << "  dir=" << directionToString(u->regarde())
+                  << "  PA=" << u->point_action() << "/" << u->point_action_max()
+                  << "  PV=" << u->health_point() << "/" << u->health_point_max()
+                  << std::endl;
+        ++idx;
     }
-    std::cout << std::endl;
 
     // Villes
-    std::cout << "Villes    : " << j.getCities().size() << "   ";
+    std::cout << "\nVilles : ";
     for (auto* c : j.getCities()) {
-        if (c) {
-            std::cout << "(" << c->getX() << "," << c->getY() << ") Niv." << c->getLevel() << "   ";
-        }
+        if (c) std::cout << "(" << c->getX() << "," << c->getY()
+                         << ") Niv." << c->getLevel() << "  ";
     }
     std::cout << std::endl;
 }
@@ -96,54 +134,105 @@ void afficherEtatJoueur(const MoteurDeJeu& moteur, int pIdx) {
 // ===========================================================
 bool menuAction(MoteurDeJeu& moteur, int pIdx) {
 
-    const auto& joueurs = moteur.getJoueurs();
-    const Joueur& j = joueurs[pIdx];
+    const Joueur& j = moteur.getJoueurs()[pIdx];
 
     std::cout << "\n--- ACTIONS POSSIBLES ---" << std::endl;
-    std::cout << " 1. Déplacer              |  2. Attaquer             |  3. Soigner" << std::endl;
-    std::cout << " 4. Recruter              |  5. Fonder une Ville     |  6. Acheter une Case" << std::endl;
-    std::cout << " 7. Améliorer Ville       |  8. Construire Bâtiment  |  9. Camoufler" << std::endl;
-    std::cout << "10. Charger (transport)   | 11. Décharger (transport)| 12. Enrôler (commandant)" << std::endl;
-    std::cout << "13. Détruire une unité    | 14. FIN DE TOUR" << std::endl;
+    std::cout << " 1. Déplacer              |  2. Pivoter (changer direction)  |  3. Attaquer"    << std::endl;
+    std::cout << " 4. Soigner               |  5. Recruter                      |  6. Fonder Ville" << std::endl;
+    std::cout << " 7. Acheter une Case      |  8. Améliorer Ville               |  9. Construire Bâtiment" << std::endl;
+    std::cout << "10. Camoufler             | 11. Charger (transport)           | 12. Décharger (transport)" << std::endl;
+    std::cout << "13. Enrôler (commandant)  | 14. Détruire une unité            | 15. FIN DE TOUR" << std::endl;
 
     int choix = 0;
     std::cout << "Choix : ";
     std::cin >> choix;
 
-    CommandeJeu cmd = CmdFinTour{}; // valeur par défaut
+    CommandeJeu cmd = CmdFinTour{};
     bool valide = true;
 
     switch (choix) {
 
         // ---------------------------
         case 1: { // DEPLACEMENT
-            std::cout << "\nUnités disponibles : ";
+            std::cout << "\nUnités disponibles :" << std::endl;
             for (auto* u : j.getUnites()) {
-                if (u) std::cout << u->name()
-                                 << "(" << u->location().first << "," << u->location().second << ")  ";
+                if (u) {
+                    std::cout << "  " << u->name()
+                              << " pos=(" << u->location().first << "," << u->location().second << ")"
+                              << " dir=" << directionToString(u->regarde())
+                              << " PA=" << u->point_action() << std::endl;
+
+                    // Afficher les déplacements possibles
+                    auto possibles = moteur.getDeplacementsPossibles(pIdx, u->location().first, u->location().second);
+                    if (!possibles.empty()) {
+                        std::cout << "    Déplacements possibles : ";
+                        for (auto& p : possibles) std::cout << "(" << p.first << "," << p.second << ") ";
+                        std::cout << std::endl;
+                    }
+                }
             }
             int xSrc, ySrc, xDest, yDest;
-            std::cout << "\nCoord. unité (x y) : ";
+            std::cout << "Coord. unité source (x y) : ";
             std::cin >> xSrc >> ySrc;
-            std::cout << "Coord. destination (x y) : ";
+            std::cout << "Coord. destination  (x y) : ";
             std::cin >> xDest >> yDest;
             cmd = CmdDeplacement{xSrc, ySrc, xDest, yDest};
             break;
         }
 
         // ---------------------------
-        case 2: { // ATTAQUE
+        case 2: { // PIVOTER (Rotation / Orientation)
+            std::cout << "\nPivoter une unité — coût : " << moteur.getCoutRotation() << " PA" << std::endl;
+            std::cout << "Unités disponibles :" << std::endl;
+            for (auto* u : j.getUnites()) {
+                if (u) {
+                    std::cout << "  " << u->name()
+                              << " pos=(" << u->location().first << "," << u->location().second << ")"
+                              << " dir=" << directionToString(u->regarde())
+                              << " PA=" << u->point_action() << std::endl;
+                }
+            }
+            int x, y;
+            std::string dirStr;
+            std::cout << "Coord. unité (x y) : ";
+            std::cin >> x >> y;
+            std::cout << "Nouvelle direction (nord_ouest / nord_est / ouest / est / sud_ouest / sud_est) : ";
+            std::cin >> dirStr;
+
+            direction dir;
+            if (!stringToDirection(dirStr, dir)) {
+                std::cout << "[ERREUR] Direction invalide." << std::endl;
+                return false;
+            }
+
+            // Afficher le cône avant/après pour info
+            const board* plateau = moteur.getPlateau();
+            Unite* u = plateau->getUnite(x, y);
+            if (u) {
+                std::cout << "  Cône actuel  → ";
+                afficherConeVision(u);
+            }
+
+            cmd = CmdRotation{x, y, dir};
+            break;
+        }
+
+        // ---------------------------
+        case 3: { // ATTAQUE
             int xSrc, ySrc, xDest, yDest;
             std::cout << "\nCoord. attaquant (x y) : ";
             std::cin >> xSrc >> ySrc;
 
-            // Afficher les attaques disponibles si l'unité existe
             const board* plateau = moteur.getPlateau();
             Unite* att = plateau->getUnite(xSrc, ySrc);
             if (att) {
+                std::cout << "\nAttaquant : " << att->name()
+                          << "  dir=" << directionToString(att->regarde()) << std::endl;
+                afficherConeVision(att);
+
                 auto attaques = att->Offensive();
                 if (!attaques.empty()) {
-                    std::cout << "Attaques disponibles pour " << att->name() << " :" << std::endl;
+                    std::cout << "Attaques disponibles :" << std::endl;
                     int i = 0;
                     for (auto* comp : attaques) {
                         std::cout << "  " << i << ". ";
@@ -154,6 +243,16 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
                     std::cout << "Cette unité n'a aucune capacité offensive." << std::endl;
                     return false;
                 }
+
+                // Afficher les cases attaquables
+                auto attaquables = moteur.getAttaquesPossibles(pIdx, xSrc, ySrc);
+                if (!attaquables.empty()) {
+                    std::cout << "Cibles dans le cône et à portée : ";
+                    for (auto& p : attaquables) std::cout << "(" << p.first << "," << p.second << ") ";
+                    std::cout << std::endl;
+                } else {
+                    std::cout << "(Aucune cible dans le cône de vision et à portée)" << std::endl;
+                }
             } else {
                 std::cout << "Aucune unité à ces coordonnées." << std::endl;
                 return false;
@@ -161,12 +260,24 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
 
             std::cout << "Coord. cible (x y) : ";
             std::cin >> xDest >> yDest;
+
+            // Informer sur l'avantage d'attaque
+            Unite* def = plateau->getUnite(xDest, yDest);
+            if (def) {
+                bool avantage = avantage_attaque(att->location(), def->location(), def->regarde(), def->getFov());
+                if (avantage) {
+                    std::cout << "  ★ AVANTAGE : vous attaquez dans le DOS du défenseur !" << std::endl;
+                } else {
+                    std::cout << "  ▲ Attaque de face : le défenseur vous voit." << std::endl;
+                }
+            }
+
             cmd = CmdAttaque{xSrc, ySrc, xDest, yDest};
             break;
         }
 
         // ---------------------------
-        case 3: { // SOIGNER
+        case 4: { // SOIGNER
             int xSrc, ySrc, xDest, yDest;
             std::cout << "\nCoord. soigneur (x y) : ";
             std::cin >> xSrc >> ySrc;
@@ -199,21 +310,23 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 4: { // RECRUTEMENT
-            std::cout << "\nVilles disponibles pour le recrutement : ";
+        case 5: { // RECRUTEMENT
+            std::cout << "\nVilles disponibles pour le recrutement :" << std::endl;
             for (auto* c : j.getCities()) {
-                if (c) std::cout << "(" << c->getX() << "," << c->getY() << ")  ";
+                if (c) {
+                    std::cout << "  (" << c->getX() << "," << c->getY() << ")  Niv." << c->getLevel() << std::endl;
+                    std::cout << "    Cases adjacentes : ";
+                    for (auto& voisin : Voisins({c->getX(), c->getY()}))
+                        std::cout << "(" << voisin.first << "," << voisin.second << ") ";
+                    std::cout << std::endl;
+                }
             }
 
-            // Afficher les unités de la faction
             const FactionParams* faction = j.getFaction();
             if (faction) {
-                std::cout << "\nUnités disponibles dans votre faction :" << std::endl;
-                for (const auto& nomU : faction->unites_disponibles) {
+                std::cout << "Unités disponibles dans votre faction :" << std::endl;
+                for (const auto& nomU : faction->unites_disponibles)
                     std::cout << "  - " << nomU << std::endl;
-                }
-            } else {
-                std::cout << "\n(Aucune faction assignée)" << std::endl;
             }
 
             int x, y;
@@ -228,17 +341,16 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 5: { // FONDER VILLE
+        case 6: { // FONDER VILLE
             int x, y;
             std::string nomVille;
-            std::cout << "\nCoord. nouvelle ville (x y) : ";
-            std::cin >> x >> y;
-
-            // Afficher les types de villes disponibles
+            std::cout << "\nTypes de ville disponibles :" << std::endl;
             for (const auto& [nom, city] : moteur.getCityFactory().getCatalogue()) {
                 std::cout << "  - " << nom
                           << (city->estCapitale() ? " (Capitale)" : "") << std::endl;
             }
+            std::cout << "Coord. nouvelle ville (x y) : ";
+            std::cin >> x >> y;
             std::cout << "Nom du type de ville : ";
             std::cin >> nomVille;
             cmd = CmdFonderVille{x, y, nomVille};
@@ -246,7 +358,7 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 6: { // ACHETER CASE
+        case 7: { // ACHETER CASE
             int x, y;
             std::cout << "\nCoord. de la case à acheter (x y) : ";
             std::cin >> x >> y;
@@ -255,7 +367,7 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 7: { // AMELIORER VILLE
+        case 8: { // AMELIORER VILLE
             int x, y;
             std::cout << "\nCoord. ville à améliorer (x y) : ";
             std::cin >> x >> y;
@@ -264,16 +376,14 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 8: { // CONSTRUIRE BATIMENT
+        case 9: { // CONSTRUIRE BATIMENT
             int x, y;
             std::string nomBat;
-            std::cout << "\nCoord. ville (x y) : ";
-            std::cin >> x >> y;
-
-            // Afficher les bâtiments disponibles
-            for (const auto& [nom, bat] : moteur.getBatimentFactory().getCatalogue()) {
+            std::cout << "\nBâtiments disponibles :" << std::endl;
+            for (const auto& [nom, bat] : moteur.getBatimentFactory().getCatalogue())
                 std::cout << "  - " << nom << std::endl;
-            }
+            std::cout << "Coord. ville (x y) : ";
+            std::cin >> x >> y;
             std::cout << "Nom du bâtiment : ";
             std::cin >> nomBat;
             cmd = CmdConstruction{x, y, nomBat};
@@ -281,7 +391,7 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 9: { // CAMOUFLER
+        case 10: { // CAMOUFLER
             int x, y;
             std::cout << "\nCoord. unité à camoufler (x y) : ";
             std::cin >> x >> y;
@@ -290,23 +400,22 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 10: { // CHARGER (transport)
+        case 11: { // CHARGER (transport)
             int xTrans, yTrans, xPass, yPass;
             std::cout << "\nCoord. transporteur (x y) : ";
             std::cin >> xTrans >> yTrans;
-            std::cout << "Coord. passager (x y) : ";
+            std::cout << "Coord. passager    (x y) : ";
             std::cin >> xPass >> yPass;
             cmd = CmdCharger{xPass, yPass, xTrans, yTrans};
             break;
         }
 
         // ---------------------------
-        case 11: { // DECHARGER (transport)
+        case 12: { // DECHARGER (transport)
             int xTrans, yTrans, xDest, yDest, idx;
             std::cout << "\nCoord. transporteur (x y) : ";
             std::cin >> xTrans >> yTrans;
 
-            // Afficher les passagers
             const board* plateau = moteur.getPlateau();
             Unite* trans = plateau->getUnite(xTrans, yTrans);
             if (trans && trans->Transport()) {
@@ -316,7 +425,7 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
                     ++i;
                 }
             } else {
-                std::cout << "Pas de transport à ces coordonnées." << std::endl;
+                std::cout << "Pas de transporteur à ces coordonnées." << std::endl;
                 return false;
             }
 
@@ -329,18 +438,18 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 12: { // ENROLER (commandant)
+        case 13: { // ENROLER (commandant)
             int xCom, yCom, xRec, yRec;
             std::cout << "\nCoord. Commandant (x y) : ";
             std::cin >> xCom >> yCom;
-            std::cout << "Coord. Recrue (x y) : ";
+            std::cout << "Coord. Recrue     (x y) : ";
             std::cin >> xRec >> yRec;
             cmd = CmdEnroler{xCom, yCom, xRec, yRec};
             break;
         }
 
         // ---------------------------
-        case 13: { // DETRUIRE UNITE
+        case 14: { // DETRUIRE UNITE
             int x, y;
             std::cout << "\nCoord. unité à détruire (x y) : ";
             std::cin >> x >> y;
@@ -356,7 +465,7 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 14: { // FIN DE TOUR
+        case 15: { // FIN DE TOUR
             std::cout << "\n[FIN DE TOUR]" << std::endl;
             cmd = CmdFinTour{};
             break;
@@ -369,6 +478,15 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
 
     ResultatAction res = moteur.soumettreCommande(pIdx, cmd);
     afficherResultat(res);
+
+    // Si rotation réussie : afficher le nouveau cône
+    if (res == ResultatAction::SUCCES && choix == 2) {
+        int x = 0, y = 0;
+        // Relire la position (on ne peut pas accéder à cmd facilement via le variant ici)
+        // On informe l'utilisateur de consulter le détail de l'unité
+        std::cout << "  → Utilisez 'Voir mes unités' pour voir le nouveau cône de vision." << std::endl;
+    }
+
     return (res == ResultatAction::FIN_TOUR);
 }
 
@@ -386,8 +504,9 @@ int main() {
 
     std::cout << "\nChargement des configurations depuis configs/..." << std::endl;
     try {
-        moteur.chargerConfiguration("configs/config_rules.json");
+        moteur.chargerConfiguration("configs/config_regles.json");
         std::cout << "[SYSTEME] Configuration chargée." << std::endl;
+        std::cout << "  Coût de rotation : " << moteur.getCoutRotation() << " PA" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Erreur critique lors du chargement : " << e.what() << std::endl;
         return 1;
@@ -408,10 +527,14 @@ int main() {
     std::vector<std::string> noms;
     std::vector<std::string> factions;
 
-    // Afficher les factions disponibles
     std::cout << "\nFactions disponibles :" << std::endl;
     for (const auto& [nom, fp] : moteur.getFactionsAvailable()) {
         std::cout << "  - " << nom << std::endl;
+        if (!fp.unites_disponibles.empty()) {
+            std::cout << "    Unités : ";
+            for (const auto& u : fp.unites_disponibles) std::cout << u << "  ";
+            std::cout << std::endl;
+        }
     }
 
     for (int i = 0; i < nbJoueurs; ++i) {
@@ -433,23 +556,23 @@ int main() {
     if (seed == 0) seed = static_cast<int>(std::time(nullptr));
 
     // -------------------------------------------------------
-    // 4. Initialisation du jeu
+    // 4. Conditions de victoire
+    // -------------------------------------------------------
+    std::cout << "Index des conditions de victoire (0 par défaut) : ";
+    int victorySet = 0;
+    std::cin >> victorySet;
+
+    // -------------------------------------------------------
+    // 5. Initialisation
     // -------------------------------------------------------
     try {
         moteur.initGame(seed, noms, factions);
+        moteur.setActiveVictorySet(victorySet);
         std::cout << "[SYSTEME] Partie initialisée (graine : " << seed << ")." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Erreur lors de l'initialisation : " << e.what() << std::endl;
         return 1;
     }
-
-    // -------------------------------------------------------
-    // 5. Choix des conditions de victoire
-    // -------------------------------------------------------
-    std::cout << "\nIndex des conditions de victoire (0 par défaut) : ";
-    int victorySet = 0;
-    std::cin >> victorySet;
-    moteur.setActiveVictorySet(victorySet);
 
     // -------------------------------------------------------
     // 6. Boucle de jeu
@@ -463,15 +586,14 @@ int main() {
 
         std::cout << "\n1. Voir la carte" << std::endl;
         std::cout << "2. Faire une action" << std::endl;
-        std::cout << "3. Voir mes unités (détail)" << std::endl;
-        std::cout << "4. Voir mes villes (détail)" << std::endl;
+        std::cout << "3. Voir mes unités (détail + cône de vision)" << std::endl;
+        std::cout << "4. Voir mes villes" << std::endl;
         std::cout << "5. Déclarer forfait" << std::endl;
         std::cout << "Choix : ";
 
         int choixMenu = 0;
         std::cin >> choixMenu;
 
-        // Sécurité : si cin échoue (ex: entrée non entière), réinitialiser
         if (std::cin.fail()) {
             std::cin.clear();
             std::cin.ignore(10000, '\n');
@@ -480,24 +602,21 @@ int main() {
         }
 
         if (choixMenu == 1) {
-            // Affichage plateau
             const board* plateau = moteur.getPlateau();
             if (plateau) plateau->affichage();
 
         } else if (choixMenu == 2) {
-            // Sous-menu actions
-            bool finTour = menuAction(moteur, pIdx);
-            (void)finTour; // le moteur gère lui-même le changement de joueur
+            menuAction(moteur, pIdx);
 
         } else if (choixMenu == 3) {
-            // Détail unités
-            const auto& j = moteur.getJoueurs()[pIdx];
+            const Joueur& j = moteur.getJoueurs()[pIdx];
             std::cout << "\n--- VOS UNITÉS ---" << std::endl;
             for (auto* u : j.getUnites()) {
-                if (u) {
-                    std::cout << "\n";
-                    u->affiche();
-                }
+                if (!u) continue;
+                std::cout << "\n";
+                u->affiche();
+                // Affichage du cône de vision
+                afficherConeVision(u);
             }
 
         } else if (choixMenu == 4) {
@@ -555,7 +674,6 @@ int main() {
             }
 
         } else if (choixMenu == 5) {
-            // Forfait
             std::string confirm;
             std::cout << "\nÊtes-vous sûr de déclarer forfait ? (Y/N) : ";
             std::cin >> confirm;
@@ -575,14 +693,14 @@ int main() {
     afficherSeparateur("FIN DE PARTIE");
 
     if (moteur.isPartieTerminee()) {
-        std::cout << "\n★★★ FÉLICITATIONS ★★★" << std::endl;
+        std::cout << "\n★★★  FÉLICITATIONS  ★★★" << std::endl;
         std::cout << moteur.getNomVainqueur() << " REMPORTE LA PARTIE !" << std::endl;
     } else {
-        std::cout << "\nLa partie s'est terminée sans vainqueur." << std::endl;
+        std::cout << "\nLa partie s'est terminée sans vainqueur déclaré." << std::endl;
     }
 
     std::cout << "\nTours joués : " << moteur.getTourActuel() << std::endl;
-    std::cout << "\nMerci d'avoir joué à Space Wargames !" << std::endl;
+    std::cout << "Merci d'avoir joué à Space Wargames !\n" << std::endl;
 
     return 0;
 }

@@ -414,7 +414,7 @@ void MoteurDeJeu::actualiserVisibiliteJoueur(int pIdx) {
     int h = _plateau->getCols();
 
     for (Unite* u : j.getUnites()) {
-        if (u) j.decouvrirZoneVision(u->location().first, u->location().second, u->visionRange(), u->fov(), w, h, u->regarde(), false);
+        if (u) j.decouvrirZoneVision(u->location().first, u->location().second, u->getVisionRange(), u->getFov(), w, h, u->regarde(), false);
     }
     for (City* c : j.getCities()) {
         if (c) j.decouvrirZoneVision(c->getX(), c->getY(), c->getVisionRange(), 360, w, h, direction::est, true);

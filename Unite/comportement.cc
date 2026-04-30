@@ -177,7 +177,7 @@ void CompAttMelee::affiche() const
 
 bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
-    auto cases_possibles = Voisins(attaquante.location());
+    auto cases_possibles = attaquante.getTuilesVisibles();
 
     auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
 
@@ -232,14 +232,26 @@ void CompAttDistance::affiche()const
 
 bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
-    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
-    auto cases_impossibles = case_adjascentes(attaquante.location(), _portee_mini-1);
+    auto cases_possibles = attaquante.getTuilesVisibles();
+    auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
+    
+    if (it == cases_possibles.end()) return false;
 
-    if((cases_possibles.count(cible.location()) > 0) && (cases_impossibles.count(cible.location()) == 0)) //On peut utiliser .contains(cible) en C++
+    if (_portee_mini > 1) 
     {
-        return true; //Chaque unité distance peut toucher n'importe quel unité
+        auto cases_impossibles = case_adjascentes(attaquante.location(), _portee_mini - 1);
+        if (cases_impossibles.count(cible.location()) > 0) 
+        {
+            return false;
+        }
     }
-    else return false;
+
+    auto cases_a_portee = case_adjascentes(attaquante.location(), _portee);
+    if (cases_a_portee.count(cible.location()) == 0)
+    {
+        return false;
+    }
+    return true;
 }
 
 //===================================================================
@@ -286,13 +298,17 @@ void CompAttIndirect::update()
 
 bool CompAttIndirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible) const
 {
-    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
+    auto cases_possibles = attaquante.getTuilesVisibles();
+    auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
+    
+    if (it == cases_possibles.end()) return false;
 
-    if(cases_possibles.count(cible.location()) > 0)
+    auto cases_a_portee = case_adjascentes(attaquante.location(), _portee);
+    if (cases_a_portee.count(cible.location()) == 0)
     {
-        return true;
+        return false;
     }
-    else return false;
+    return true;
 }
 void CompAttIndirect::AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible)
 {
