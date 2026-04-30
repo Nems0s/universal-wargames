@@ -1,48 +1,162 @@
 {
+    "generation_map": {
+        "mode": "perlin",
+        "seed_offset": 0,
+        "perlin_scale": 0.12,
+        "octaves": 3,
+        "lacunarity": 2.0,
+        "persistence": 0.3,
+        "redistribution": 2.8,
+        "inversion": false,
+        "seuils_perlin": {
+            ".": 0.45,
+            "P": 0.70,
+            "E": 0.90,
+            "X": 1.0
+        }
+    },
+    "presets_perlin": {
+        "GALAXY (Balanced)": {
+            "perlin_scale": 0.12,
+            "octaves": 3,
+            "persistence": 0.3,
+            "redistribution": 2.8
+        },
+        "STELLAR SYSTEMS (Scattered)": {
+            "perlin_scale": 0.22,
+            "octaves": 3,
+            "persistence": 0.25,
+            "redistribution": 4.5
+        },
+        "NEBULA (Dense)": {
+            "perlin_scale": 0.06,
+            "octaves": 5,
+            "persistence": 0.55,
+            "redistribution": 0.9
+        }
+    },
+    "presets_random": {
+        "GALAXY (Balanced)": {
+            ".": 90,
+            "E": 3,
+            "P": 5,
+            "X": 2
+        },
+        "STELLAR SYSTEMS (Scattered)": {
+            ".": 95,
+            "E": 1,
+            "P": 3,
+            "X": 1
+        },
+        "NEBULA (Dense)": {
+            ".": 60,
+            "E": 15,
+            "P": 20,
+            "X": 5
+        }
+    },
     "tiles": [
         {
             "nom": "Espace",
             "symbole": ".",
             "cout": 1,
             "constructible": false,
-            "mouv": { "marche": true, "nage": false, "aerien": true },
-            "gen": { "poids": 1000, "nbMin": 0 },
-            "env": { "temperature": 0.0, "radiation": 0.0, "gravite": 0.0 },
+            "mouv": {
+                "marche": true,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 1000,
+                "nbMin": 0
+            },
+            "env": {
+                "temperature": 0.0,
+                "radiation": 0.0,
+                "gravite": 0.0
+            },
             "ressources": [],
-            "properties": {}
+            "properties": {},
+            "texture": "assets/space.png"
         },
         {
             "nom": "Planete",
             "symbole": "P",
             "cout": 1,
             "constructible": true,
-            "mouv": { "marche": true, "nage": true, "aerien": true },
-            "gen": { "poids": 5, "nbMin": 3 },
-            "env": { "temperature": 0.5, "radiation": 0.0, "gravite": 0.5 },
+            "mouv": {
+                "marche": true,
+                "nage": true,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 5,
+                "nbMin": 3
+            },
+            "env": {
+                "temperature": 0.5,
+                "radiation": 0.0,
+                "gravite": 0.5
+            },
             "ressources": [],
-            "properties": { "temperature": 15.0, "gravite": 1.0 }
+            "properties": {
+                "temperature": 15.0,
+                "gravite": 1.0,
+                "spawn_capitale": 1.0
+            },
+            "texture": "assets/planet.png"
         },
         {
             "nom": "Etoile",
             "symbole": "E",
             "cout": 1,
-            "constructible": true,
-            "mouv": { "marche": true, "nage": true, "aerien": true },
-            "gen": { "poids": 3, "nbMin": 2 },
-            "env": { "temperature": 1.0, "radiation": 0.0, "gravite": 0.8 },
-            "ressources": ["poussiereDEtoile", "Or"],
-            "properties": { "eruption_proba": 0.1, "rayon_activate": 3.0 }
+            "constructible": false,
+            "mouv": {
+                "marche": true,
+                "nage": true,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 3,
+                "nbMin": 2
+            },
+            "env": {
+                "temperature": 1.0,
+                "radiation": 0.0,
+                "gravite": 0.8
+            },
+            "ressources": [
+                "poussiereDEtoile",
+                "Or"
+            ],
+            "properties": {
+                "eruption_proba": 0.1,
+                "rayon_activate": 3.0
+            },
+            "texture": "assets/star.png"
         },
         {
             "nom": "TrouNoir",
             "symbole": "X",
             "cout": 99,
             "constructible": false,
-            "mouv": { "marche": false, "nage": false, "aerien": false },
-            "gen": { "poids": 2, "nbMin": 1 },
-            "env": { "temperature": 1.0, "radiation": 0.0, "gravite": 1.0 },
+            "mouv": {
+                "marche": false,
+                "nage": false,
+                "aerien": false
+            },
+            "gen": {
+                "poids": 2,
+                "nbMin": 1
+            },
+            "env": {
+                "temperature": 1.0,
+                "radiation": 0.0,
+                "gravite": 1.0
+            },
             "ressources": [],
-            "properties": {}
+            "properties": {},
+            "texture": "assets/black_hole.png"
         }
     ]
 }

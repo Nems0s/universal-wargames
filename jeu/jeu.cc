@@ -1,5 +1,7 @@
 #include "jeu.hh"
-#include "comportement.hh"
+#include "unite.hh"
+#include "FastNoiseLite.hh"
+#include <limits>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -21,7 +23,7 @@ int TuileConfigurable::getCoutDeplacement() const {
     return _d->cout;
 }
 
-std::vector<Ressource *> TuileConfigurable::getRessource() const {
+std::vector<const Ressource*> TuileConfigurable::getRessource() const {
     return _d->ressourceSpeciale;
 }
 
@@ -68,9 +70,9 @@ bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
     const auto& requis = br->getRessourcesSolRequired();
     if (requis.empty()) return true;
 
-    for (Ressource* req : requis) {
+    for (const Ressource* req : requis) {
         bool trouve = false;
-        for (Ressource* rTuile : _d->ressourceSpeciale) {
+        for (const Ressource* rTuile : _d->ressourceSpeciale) {
             if (rTuile == req) {
                 trouve = true;
                 break;
@@ -82,9 +84,9 @@ bool TuileConfigurable::peutConstrBatimentSpecial(const Batiment & b) const {
     return true;
 }
 
-void TuileConfigurable::constrVille(int x, int y, const GameConfig& config, int max, bool capitale) {
+void TuileConfigurable::placerVille(std::unique_ptr<City> c) {
     if (peutConstrVille()) {
-        _city = std::make_unique<City>(x, y, config, max, capitale);
+        _city = std::move(c);
     }
 }
 
@@ -116,24 +118,95 @@ void TuileConfigurable::setStat(const std::string & key, float val) {
 //===================================================================
 //                              Board
 //===================================================================
-board::board(WorldFactory & world, const GameConfig& config): _config(config) {
+board::board(int seed, WorldFactory & world, const GameConfig& config): _config(config) {
     _width = config.getPlateauX();
     _height = config.getPlateauY();
 
-    for (int i = 0; i < _height; ++i) {
-        std::vector<std::unique_ptr<hexa>> ligne;
-        for (int j = 0; j < _width; ++j) {
-            if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1)
-            {
-                ligne.push_back(world.createTile('#'));
-            }
-            else
-            {
-                ligne.push_back(world.createRandomTile());
+    // Config de FastNoiseLite
+    FastNoiseLite noise;
+    noise.SetSeed(seed);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+
+    std::string mode = world.getGenerationMode();
+    float scale = world.getPerlinScale();
+    noise.SetFrequency(scale);
+
+    // Activer FBm multi-octaves pour un terrain riche et organique
+    if (mode == "perlin") {
+        noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+        noise.SetFractalOctaves(world.getPerlinOctaves());
+        noise.SetFractalLacunarity(world.getPerlinLacunarity());
+        noise.SetFractalGain(world.getPerlinPersistence());
+    }
+
+    if (mode == "perlin" && !world.getSeuilsPerlin().empty()) {
+        float globalMin = std::numeric_limits<float>::max();
+        float globalMax = std::numeric_limits<float>::lowest();
+        
+        std::vector<std::vector<float>> noiseGrid(_height, std::vector<float>(_width, 0.0f));
+        
+        for (int i = 1; i < _height - 1; ++i) {
+            for (int j = 1; j < _width - 1; ++j) {
+                float val = noise.GetNoise((float)j, (float)i);
+                noiseGrid[i][j] = val;
+                if (val < globalMin) globalMin = val;
+                if (val > globalMax) globalMax = val;
             }
         }
-        _matrix.push_back(std::move(ligne));
+        
+        float range = globalMax - globalMin;
+        if (range < 0.001f) range = 1.0f;
+        
+        float redistribution = world.getPerlinRedistribution();
+        bool inversion = world.getPerlinInversion();
+        
+        for (int i = 0; i < _height; ++i) {
+            std::vector<std::unique_ptr<hexa>> ligne;
+            for (int j = 0; j < _width; ++j) {
+                if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1) {
+                    ligne.push_back(world.createTile('#'));
+                } else {
+                    // Normalisation dynamique
+                    float normalized = (noiseGrid[i][j] - globalMin) / range;
+                    
+                    // Redistribution (power curve) pour enrichir la distribution
+                    normalized = std::pow(normalized, redistribution);
+                    
+                    // Inversion pour thèmes îles (hautes valeurs = terre)
+                    if (inversion) normalized = 1.0f - normalized;
+                    
+                    // Clamp
+                    if (normalized < 0.0f) normalized = 0.0f;
+                    if (normalized > 1.0f) normalized = 1.0f;
+                    
+                    // Application des seuils
+                    char symboleChoisi = '.';
+                    for (const auto& [seuil, symb] : world.getSeuilsPerlin()) {
+                        if (normalized <= seuil) {
+                            symboleChoisi = symb;
+                            break;
+                        }
+                    }
+                    ligne.push_back(world.createTile(symboleChoisi));
+                }
+            }
+            _matrix.push_back(std::move(ligne));
+        }
+    } else {
+        // Mode Random (_customWeights)
+        for (int i = 0; i < _height; ++i) {
+            std::vector<std::unique_ptr<hexa>> ligne;
+            for (int j = 0; j < _width; ++j) {
+                if (i == 0 || i == _height - 1 || j == 0 || j == _width - 1) {
+                    ligne.push_back(world.createTile('#'));
+                } else {
+                    ligne.push_back(world.createRandomTile());
+                }
+            }
+            _matrix.push_back(std::move(ligne));
+        }
     }
+    
     world.postGeneration(_matrix, _width, _height);
 }
 
@@ -147,15 +220,23 @@ void board::affichage() const {
         if (i%2 == 0) {
             std::cout << " ";
         }
-        for (int j = 0; j < _width; ++j) {
-            std::cout << _matrix[i][j]->getSymbole() << " ";
+        for (int j = 0; j < _width; ++j) 
+        {
+            Unite* u = getUnite(i, j);
+            if (u != nullptr) 
+            {
+                std::cout << u->getSymbol() << " ";
+            }
+            else std::cout << _matrix[i][j]->getSymbole() << " ";
         }
         std::cout << std::endl;
     }
 }
 
-void board::placerUnite(int x, int y, std::unique_ptr<Unite> u) {
-    if (x >= 0 && x < _height && y >= 0 && y < _width) {
+
+void board::placerUnite(int x, int y, std::shared_ptr<Unite> u) {
+    if (x >= 0 && x < _height && y >= 0 && y < _width) 
+    {
         _unites[{x, y}] = std::move(u);
     }
 }
@@ -175,15 +256,6 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
     auto it = _unites.find({xSrc, ySrc});
     if (it == _unites.end()) return false;
 
-    //Test cible valide, avec la portée
-    for(auto const& mouv : u.Mobilite())
-    {
-        if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
-        {
-            return true;
-        }
-    }
-
     //Coord dans la carte
     if (xDest < 0 || xDest >= _height || yDest < 0 || yDest >= _width) return false;
 
@@ -196,12 +268,32 @@ bool board::deplacerUnite(Unite& u, int xDest, int yDest) {
         return false;
     }
 
-    _unites[{xDest, yDest}] = std::move(it->second);
-    _unites.erase(it);
-    
-    return true;
+    //Test cible valide, avec la portée
+    for(auto const& mouv : u.Mobilite())
+    {
+        if(mouv->EstCaseValide({xSrc, ySrc}, {xDest, yDest}))
+        {
+            _unites[{xDest, yDest}] = std::move(it->second);
+            _unites.erase(it);
+            return true;
+        }
+    }
+    return false;
 }
 
+void board::retirerUnite(int x, int y) {
+    _unites.erase({x, y});
+}
+
+std::shared_ptr<Unite> board::extraireUnite(int x, int y) {
+    auto it = _unites.find({x, y});
+    if (it != _unites.end()) {
+        auto u = std::move(it->second);
+        _unites.erase(it);
+        return u;
+    }
+    return nullptr;
+}
 
 //===================================================================
 //                          Factory/Config
@@ -288,68 +380,15 @@ bool WorldFactory::estVide() const {
     return _catalogue.empty();
 }
 
-void TxtWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
-    std::ifstream fichier(chemin);
-    std::string mot, ligne;
-
-    while (fichier >> mot) {
-        if (mot == "TILE") {
-            TuileData d;
-            // nom tuile, symbole, cout unite, constructible dessus ou non
-            fichier >> d.nom >> d.symbole >> d.cout >> d.constructible;
-
-            while (fichier >> mot && mot != "END") {
-                if (mot == "GEN") {
-                    // Pourcentage quantité, nombres minimum sur le terrain
-                    fichier >> d.gen.poids >> d.gen.nbMin;
-                } 
-                else if (mot == "MOUV") {
-                    // marche, nage, aerien
-                    fichier >> d.mouv.marche >> d.mouv.nage >> d.mouv.aerien;
-                }
-                else if (mot == "RES") {
-                    // lis les ressources
-                    std::getline(fichier, ligne);
-                    std::stringstream ss(ligne);
-                    std::string nomRes;
-
-                    while (ss >> nomRes) {
-                        if (nomRes == "None" || nomRes.empty()) continue;
-
-                        if (resDispo.count(nomRes)) {
-                            d.ressourceSpeciale.push_back(resDispo.at(nomRes));
-                        }
-                    }
-                }
-                else if (mot == "ENV") {
-                    // température, radiation, gravite
-                    fichier >> d.env.temperature >> d.env.radiation >> d.env.gravite;
-                }
-                else if (mot == "DATA") {
-                    // lecture clé-valeur des data
-                    std::getline(fichier, ligne);
-                    std::stringstream ss(ligne);
-                    std::string cle;
-                    float val;
-                    while (ss >> cle) {
-                        if (cle == "None") break;
-                        if (ss >> val) {
-                            d.properties[cle] = val; 
-                        }
-                    }
-                }
-            }
-            factory.ajouterAuCatalogue(d.symbole, d);
-            std::cout << "Chargé : " << d.nom << " (" << d.symbole << ")" << std::endl;
+void WorldFactory::overrideWeights(const std::map<char, int>& overrides) {
+    for (auto const& [symb, weight] : overrides) {
+        if (_catalogue.count(symb)) {
+            _catalogue[symb].gen.poids = weight;
         }
-    }
-
-    if (!fichier.eof() && fichier.fail()) {
-        throw std::runtime_error("Erreur dans le fichier : " + chemin);
     }
 }
 
-void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::string, Ressource*>& resDispo, WorldFactory& factory) {
+void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::string, const Ressource*>& resDispo, WorldFactory& factory) {
     std::ifstream fichier(chemin);
     if (!fichier.is_open()) {
         throw std::runtime_error("Impossible d'ouvrir le fichier JSON : " + chemin);
@@ -358,6 +397,36 @@ void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::stri
     json data;
     fichier >> data;
 
+    // Generation Map
+    if (data.contains("generation_map")) {
+        auto& gen = data["generation_map"];
+        factory.setGenerationMode(gen.value("mode", "random"));
+        factory.setPerlinScale(gen.value("perlin_scale", 0.15f));
+        factory.setPerlinOctaves(gen.value("octaves", 4));
+        factory.setPerlinLacunarity(gen.value("lacunarity", 2.0f));
+        factory.setPerlinPersistence(gen.value("persistence", 0.5f));
+        factory.setPerlinRedistribution(gen.value("redistribution", 1.0f));
+        factory.setPerlinInversion(gen.value("inversion", false));
+        
+        if (gen.contains("seuils_perlin")) {
+            for (auto& [symbStr, seuil] : gen["seuils_perlin"].items()) {
+                if (!symbStr.empty()) factory.ajouterSeuilPerlin(seuil.get<float>(), symbStr[0]);
+            }
+        }
+    }
+
+    // Presets Worlds
+    if (data.contains("presets_random")) {
+        for (auto& [presetName, weightsObj] : data["presets_random"].items()) {
+            std::map<char, int> w;
+            for (auto& [symbStr, weightVal] : weightsObj.items()) {
+                if (!symbStr.empty() && weightVal.is_number_integer()) w[symbStr[0]] = weightVal.get<int>();
+            }
+            factory.ajouterPreset(presetName, w);
+        }
+    }
+
+    // Lecture tuiles
     for (auto& t : data["tiles"]) {
         TuileData d;
         d.nom = t["nom"];

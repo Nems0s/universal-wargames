@@ -1,31 +1,79 @@
 {
-    "taille_plateau": {
-        "x": 100,
-        "y": 100
-    },
+    "_selected_size_x": 100,
+    "_selected_size_y": 100,
     "factions": [
         {
+            "image": "assets/human.png",
             "nom": "Humains",
             "specifications": {
                 "gravite": 1,
                 "radiation": 0.2,
                 "temperature": 40
-            }
+            },
+            "unites": [
+                "Commandant Allie",
+                "Sniper",
+                "Tank de Garde",
+                "Gros Tank"
+            ]
         },
         {
+            "image": "",
             "nom": "Extraterrestres",
             "specifications": {
                 "gravite": 2,
                 "radiation": 0.8,
                 "temperature": 120
-            }
+            },
+            "unites": [
+                "Infanterie d'Elite",
+                "Medecin",
+                "Pretre de Guerre"
+            ]
         }
     ],
+    "production_capitale": {
+        "Or": 10
+    },
+    "regles_entretien": {
+        "capacite_ville": 5,
+        "capacite_ville_niveau": 3,
+        "cout_defaut": {
+            "Or": 1
+        }
+    },
+    "regles_unites": {
+        "cout_rotation": 1
+    },
     "regles_villes": {
-        "cout_base": 100,
-        "degats_base": 20,
         "distance_min_entre_villes": 3,
-        "multiplicateur": 1.5,
-        "pv_max_base": 200
-    }
+        "multiplicateur": 1.5
+    },
+    "ressources_depart": {
+        "Fer": 150,
+        "Or": 100
+    },
+    "tailles_disponibles": [
+        {
+            "nom": "Tiny",
+            "x": 50,
+            "y": 50
+        },
+        {
+            "nom": "Standard",
+            "x": 100,
+            "y": 100
+        },
+        {
+            "nom": "Huge",
+            "x": 200,
+            "y": 200
+        },
+        {
+            "nom": "HowToCrash",
+            "x": 1000000,
+            "y": 1000000
+        }
+    ],
+    "world_config": "configs/config_espace.json"
 }

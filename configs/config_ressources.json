@@ -6,11 +6,12 @@
         },
         {
             "nom": "Or",
-            "symbole": "Or"
+            "symbole": "Or",
+            "icone": "assets/gold-icon.png"
         },
         {
             "nom": "Fer",
-            "symbole": "FE"
+            "symbole": "Fe"
         }
     ]
 }

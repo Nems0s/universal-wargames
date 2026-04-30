@@ -13,7 +13,7 @@ private:
 
 public:
     // --- MÉTHODES GÉNÉRALES ---
-    bool peutPayer(const std::map<Ressource*, int>& cout, const Joueur& j) const;
+    bool peutPayer(const std::map<const Ressource*, int>& cout, const Joueur& j) const;
 
     bool coordValid(int x, int y, const board & game) const;
 
@@ -37,19 +37,23 @@ public:
 
     bool estDansTerritoire(const Joueur& j, int x, int y, const board & game, const GameConfig & config) const;
     bool peutAcheterCase(const Joueur & j, int x, int y, const board & game, const GameConfig & config) const;
-
+    std::map<const Ressource*, int> getCostAchatCase(const Joueur & j, const GameConfig & config) const;
+    std::map<const Ressource*, int> getCostNouvelleVille(const Joueur & j, const std::map<const Ressource*, int>& coutBase) const;
     bool estCaseHabitable(const TuileConfigurable& t, const Joueur & j) const;
 
     bool peutDetruireBatiment(const Joueur & j, const Batiment & b) const;
 
     // --- ZONE UNITÉS & COMBAT ---
     bool appartientJoueur(const Joueur& j, const Unite& unite)const;
-    bool peutRecruterUnite(const Joueur& j, const std::map<Ressource*, int>& cout, const Unite& invocation)const;
+    bool peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation)const;
     bool peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const;
     bool peutSoigner(const Joueur& j, const Unite& healer, const Unite& cible, CompSoin* const& TypeSoin)const;
     bool peutActiverCamouflage(const Joueur& j, const Unite& unite)const;
     bool peutTransporter(const Joueur& j, const Unite& unite)const;
     bool peutRejoindreCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const;
     bool peutDechargerTransport(const Joueur& j, const Unite& transporteur,const Unite& transporter, int xDest, int yDest) const;
+
+    std::vector<std::pair<int, int>> getCasesDeplacementPossibles(const board& game, const Unite& u) const;
+    std::vector<std::pair<int, int>> getCasesAttaquePossibles(const Joueur& j, const board& game, const Unite& u) const;
 
 };

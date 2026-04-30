@@ -1,8 +1,13 @@
 #pragma once
 #include "unite.hh"
 
-inline int MAX_MORAL = 20;
-inline int MIN_MORAL = -20;
+// Echelle de moral
+const int MAX_MORAL = 20;
+const int MIN_MORAL = -20;
+
+// Pourcentage de modification durant les combats
+const float PETIT_CHANGE = 5;
+const float GROS_CHANGE  = 10;
 
 class Combat
 {

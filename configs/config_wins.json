@@ -4,7 +4,7 @@
       "name": "Victoire économique",
       "mode": "all",
       "conditions": [
-        { "type": "resource_threshold", "target": "Or", "amount": 10000 },
+        { "type": "resource_threshold", "target": "Or", "amount": 100000 },
         { "type": "city_count", "amount": 1 }
       ]
     },
@@ -15,6 +15,14 @@
         { "type": "city_count", "amount": 10 },
         { "type": "unit_count", "amount": 50 }
       ]
+    },
+    {
+      "name": "Victoire par Conquete",
+      "mode": "all",
+      "conditions": [
+        { "type": "capital_conquest" }
+      ]
     }
+
   ]
 }

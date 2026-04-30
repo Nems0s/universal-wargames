@@ -2,104 +2,120 @@
     "unites": [
         {
             "nom": "Commandant Allie",
-            "hp": 150,
-            "action": 2,
-            "poids": "Moyen",
-            "rank": "Commandant",
-            "max_unites": 5,
-            "cout": {
-                "Or": 100,
-                "Fer": 50
-            },
-            "buff_commandant": [
-                { "type": "BonusDegat", "multiplicateur": 15 }
-            ],
+            "hp": 150, "action": 2, "poids": "Moyen", "rank": "Commandant", "max_unites": 5, "symbole": "C",
+            "cout": { "Or": 100, "Fer": 50 },
+            "cout_entretien": { "Or": 5 },
+            "vision": 4, "fov": 120,
+            "buff_commandant": [{ "type": "BonusDegat", "multiplicateur": 15 }],
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 2 }
-            ]
-        },
-        {
-            "nom": "Infanterie d'Elite",
-            "hp": 100,
-            "action": 2,
-            "poids": "Moyen",
-            "rank": "Regulier",
-            "cout": {
-                "Or": 50
-            },
-            "comportements": [
-                { "type": "AttaqueMelee", "degats": 40 },
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 }
-            ]
-        },
-        {
-            "nom": "Tank de Garde",
-            "hp": 200,
-            "action": 1,
-            "poids": "Lourd",
-            "rank": "Regulier",
-            "cout": {
-                "Or": 80,
-                "Fer": 100
-            },
-            "comportements": [
-                { "type": "DefenseArmure", "reduction": 15 },
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 1 }
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 2 },
+                { "type": "AttaqueMelee", "degats": 35 }
             ]
         },
         {
             "nom": "Sniper",
-            "hp": 80,
-            "action": 2,
-            "poids": "Leger",
-            "rank": "Regulier",
-            "cout": {
-                "Or": 70,
-                "Fer": 10
-            },
+            "hp": 80, "action": 2, "poids": "Leger", "rank": "Regulier", "symbole": "S",
+            "cout": { "Or": 70, "Fer": 10 },
+            "cout_entretien": { "Or": 2 },
+            "vision": 8, "fov": 60,
+            "capacite_stockage": { "Munitions": 5 },
             "comportements": [
-                { "type": "SpecialFurtif", "duree": 2, "cooldown": 2 },
-                { "type": "AttaqueDistance", "degats": 30, "portee": 6, "munitions": 5, "portee_mini": 2 }
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
+                { 
+                    "type": "AttaqueDistance", 
+                    "degats": 60, "portee": 7, "portee_mini": 3, 
+                    "cout_par_action": { "Munitions": 1 },
+                    "cooldown": 1 
+                },
+                { "type": "SpecialFurtif", "duree": 2, "cooldown": 4 }
             ]
         },
         {
-            "nom": "Gros Tank",
-            "hp": 250,
-            "action": 1,
-            "poids": "Lourd",
-            "rank": "Regulier",
-            "cout": {
-                "Or": 150,
-                "Fer": 200
-            },
+            "nom": "Tank de Garde",
+            "hp": 250, "action": 1, "poids": "Lourd", "rank": "Regulier", "symbole": "T",
+            "cout": { "Or": 80, "Fer": 120 },
+            "cout_entretien": { "Fer": 5 },
+            "vision": 3, "fov": 90,
+            "capacite_stockage": { "Obus": 8, "Carburant": 20 },
             "comportements": [
-                { "type": "DefenseBouclier", "nombre_bouclier": 3 }
+                { 
+                    "type": "MouvementTerrestre", 
+                    "mouvement_par_tour": 2, 
+                    "cout_par_action": { "Carburant": 2 } 
+                },
+                { 
+                    "type": "AttaqueMelee", 
+                    "degats": 45, 
+                    "cout_par_action": { "Obus": 1 } 
+                },
+                { "type": "DefenseArmure", "reduction": 15 }
+            ]
+        },
+        {
+            "nom": "Infanterie d'Elite",
+            "hp": 120, "action": 2, "poids": "Moyen", "rank": "Regulier", "symbole": "E",
+            "cout": { "Or": 60 },
+            "cout_entretien": { "Or": 1 },
+            "vision": 4, "fov": 100,
+            "capacite_stockage": { "Munitions": 15 },
+            "comportements": [
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
+                { "type": "AttaqueMelee", "degats": 40, "cout_par_action": { "Munitions": 2 } },
+                { "type": "DefenseArmure", "reduction": 5 }
             ]
         },
         {
             "nom": "Medecin",
-            "hp": 100,
-            "action": 3,
-            "poids": "Moyen",
-            "rank": "Regulier",
-            "cout": {
-                "Or": 60
-            },
+            "hp": 90, "action": 3, "poids": "Moyen", "rank": "Regulier", "symbole": "M",
+            "cout": { "Or": 60 },
+            "cout_entretien": { "Or": 1 },
+            "vision": 4, "fov": 120,
+            "capacite_stockage": { "Medicaments": 10 },
             "comportements": [
-                { "type": "SoinDirect", "soin": 25, "portee": 2, "rayon": 1 },
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 }
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
+                { 
+                    "type": "SoinDirect", 
+                    "soin": 35, "portee": 2, "rayon": 1, 
+                    "cout_par_action": { "Medicaments": 2 },
+                    "cooldown": 1 
+                }
             ]
         },
         {
-            "nom": "Soldat Blesse",
-            "hp": 100,
-            "action": 1,
-            "poids": "Moyen",
-            "rank": "Regulier",
-            "cout": {
-                "Or": 10
-            },
-            "comportements": []
+            "nom": "Pretre de Guerre",
+            "hp": 110, "action": 2, "poids": "Moyen", "rank": "Regulier", "symbole": "P",
+            "cout": { "Or": 90 },
+            "cout_entretien": { "Or": 1 },
+            "vision": 5, "fov": 140,
+            "capacite_stockage": { "Mana": 50 },
+            "comportements": [
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 2 },
+                { 
+                    "type": "SoinIndirect", 
+                    "soin": 20, "portee": 3, "tour_regeneration": 3, 
+                    "cout_par_action": { "Mana": 15 },
+                    "cooldown": 2 
+                },
+                { "type": "DefenseBouclier", "nombre_bouclier": 1 }
+            ]
+        },
+        {
+            "nom": "Gros Tank",
+            "hp": 400, "action": 1, "poids": "Lourd", "rank": "Regulier", "symbole": "G",
+            "cout": { "Or": 200, "Fer": 250 },
+            "cout_entretien": { "Fer": 10 },
+            "vision": 4, "fov": 80,
+            "capacite_stockage": { "Obus_Lourds": 5, "Carburant": 15 },
+            "comportements": [
+                { "type": "MouvementTerrestre", "mouvement_par_tour": 1, "cout_par_action": { "Carburant": 5 } },
+                { 
+                    "type": "AttaqueDistance", 
+                    "degats": 80, "portee": 5, "portee_mini": 1, 
+                    "cout_par_action": { "Obus_Lourds": 1 },
+                    "cooldown": 2 
+                },
+                { "type": "DefenseBouclier", "nombre_bouclier": 2 }
+            ]
         }
     ]
 }
