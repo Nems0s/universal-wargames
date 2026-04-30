@@ -3,6 +3,7 @@
 #include <memory>
 #include <list>
 #include "orientation.hh"
+#include "ressource.hh"
 
 enum class NatureMouv {TERRE, MER, AIR};
 
@@ -13,14 +14,12 @@ class IComportement
 public:
     virtual ~IComportement() = default;
     virtual void affiche() const = 0;
-};
-
-/*Donne la fonction update à tout comportement qui change de tour en tour*/
-class IComportementEvolutif
-{
-public:
-    virtual ~IComportementEvolutif() = default;
-    virtual void update() = 0;
+    virtual void update(){}; // On la met vide pour pas avoir à la redefinir dans tout les classes qui hérite 
+    virtual void action(){};
+    virtual bool executerAction() {
+        this->action();
+        return true;
+    }
 };
 
 class ComportementCooldown
@@ -38,6 +37,18 @@ public:
     void setCooldown(int newCooldown);
 
     bool estPret()const;
+};
+
+class ComportementConsommable 
+{
+protected:
+    std::map<const Ressource*, int> _coutAction;
+public:
+    ComportementConsommable(const std::map<const Ressource*, int>& cout);
+    virtual ~ComportementConsommable() = default;
+
+    const std::map<const Ressource*, int>& getCoutAction() const;
+    bool estPayable(const Unite& u) const;
 };
 
 
@@ -61,7 +72,7 @@ public:
 class CompMouvVolant : public CompMouv
 {
 public:
-    CompMouvVolant(int mouvement_par_tour = 2);
+    CompMouvVolant(int mouvement_par_tour);
 
     void affiche() const override;
 
@@ -71,7 +82,7 @@ public:
 class CompMouvMarin : public CompMouv
 {
 public:
-    CompMouvMarin(int mouvement_par_tour = 1);
+    CompMouvMarin(int mouvement_par_tour);
 
     void affiche() const override;
 
@@ -81,7 +92,7 @@ public:
 class CompMouvTerrestre : public CompMouv
 {
 public:
-    CompMouvTerrestre(int mouvement_par_tour = 1);
+    CompMouvTerrestre(int mouvement_par_tour);
 
     void affiche() const override;
 
@@ -121,13 +132,10 @@ public:
 class CompAttDistance : public CompAtt
 {
 private:
-    int _munitions;
     int _portee_mini;
 public:
-    CompAttDistance(int damage_point, int portee = 2, int munitions = 10, int portee_mini = 2);
+     CompAttDistance(int damage_point, int portee, int portee_mini);
 
-    int munitions() const;
-    void setMunitions(int newMunitions);
     int portee_mini() const;
     void setPortee_mini(int newPortee_mini);
 
@@ -136,7 +144,7 @@ public:
     bool PeuxAttaquer(Unite const& attaquante, Unite const& cible) const override;
 };
 
-class CompAttIndirect : public CompAtt, public IComportementEvolutif
+class CompAttIndirect : public CompAtt
 {
 private:
     struct infecter
@@ -153,7 +161,7 @@ private:
     int _nombre_de_tour_infection;
     std::list<infecter> _liste_infecter;
 public:
-    CompAttIndirect(int damage_point, int portee = 1, int nombre_de_tour_infection = 2);
+    CompAttIndirect(int damage_point, int portee, int nombre_de_tour_infection);
 
     void setNombreDeTourInfection(int newNombreDeTourInfection);
     int nombredetourinfection() const;
@@ -192,7 +200,7 @@ public:
     int ReductionDegats(int degat_subit) override;
 };
 
-class CompDefBouclier : public CompDef, public IComportementEvolutif
+class CompDefBouclier : public CompDef
 {
 private:
     int _nombre_bouclier;
@@ -211,13 +219,13 @@ public:
 //===================================================================
 //                   Comportement Soin
 //===================================================================
-class CompSoin: public IComportement,  public IComportementEvolutif, public ComportementCooldown
+class CompSoin: public IComportement
 {
 protected:
     int _healing_point;
     int _portee;
 public:
-    CompSoin(int healing_point, int portee, int cooldown);
+    CompSoin(int healing_point, int portee);
 
     int healing_point() const;
     void setHealing_point(int newHealing_point);
@@ -233,13 +241,12 @@ class CompSoinDirect: public CompSoin
 private:
     int _rayon;
 public:
-    CompSoinDirect(int healing_point = 10, int portee = 2, int rayon = 2, int cooldown=1);
+    CompSoinDirect(int healing_point, int portee, int rayon);
 
     int rayon() const;
     void setRayon(int newRayon);
 
     void affiche() const override;
-    void update() override;
 
     bool PeuxSoigner(Unite const& attaquante, Unite const& cible) const override;
 };
@@ -261,7 +268,7 @@ private:
     int _nombre_de_tour_regeneration;
     std::list<soigner> _liste_soigner;
 public:
-    CompSoinIndirect(int healing_point = 10, int portee = 2, int nombre_de_tour_regeneration = 2, int cooldown=1);
+    CompSoinIndirect(int healing_point, int portee, int nombre_de_tour_regeneration);
 
     void setNombreDeTourRegen(int newNombreDeTourRegen);
     int nombredetourregen() const;
@@ -283,7 +290,7 @@ private:
     std::list<std::shared_ptr<Unite>> _liste_unite_transporter;
     int _max_unite_transporter;
 public:
-    CompTransport(int max_unite_transporter = 3);
+    CompTransport(int max_unite_transporter);
 
     std::list<std::shared_ptr<Unite> > liste_unite_transporter() const;
     void setListe_unite_transporter(const std::list<std::shared_ptr<Unite> > &newListe_unite_transporter);
@@ -298,7 +305,7 @@ public:
     bool DescenteUniteUnite(Unite const& Transport, std::shared_ptr<Unite> const& Voyageur);
 };
 
-class CompFurtif : public IComportement, public IComportementEvolutif, public ComportementCooldown
+class CompFurtif : public IComportement
 {
 private:
     bool _camoufler;
@@ -306,14 +313,91 @@ private:
     int _tours_restants;
 
 public:
-    CompFurtif(int duree = 3, int cooldown = 2);
+    CompFurtif(int duree = 3);
 
     bool camoufler() const;
 
     void affiche() const override;
     void update() override;
+    void action() override;
 
     void ActiveCammouflage();
     void DesactiveCammouflage();
 };
 
+//===================================================================
+//===================================================================
+//===================================================================
+//                   Template pour CoolDown
+//===================================================================
+//===================================================================
+//===================================================================
+template <typename BaseComportement>
+class AvecCooldown : public BaseComportement, public ComportementCooldown 
+{
+public:
+
+    template <typename... Args> // Permet d'avoir X types d'Arg
+    AvecCooldown(int cooldownValue, Args&&... args): // Permet d'avoir X args
+        BaseComportement(std::forward<Args>(args)...), // On lance le constructeur avec le bon nombre d'arg
+        ComportementCooldown(cooldownValue) 
+    {}
+
+    void affiche() const override 
+    {
+        BaseComportement::affiche(); 
+        std::cout<<"Cooldown: "<<_current_cooldown<<"/"<<_cooldown<<std::endl;
+    }
+
+    void update() override 
+    {
+        BaseComportement::update(); 
+
+        if (this->_current_cooldown > 0) 
+        {
+            this->_current_cooldown--;
+        }
+    }
+
+    bool executerAction() 
+    {
+        if (this->estPret()) 
+        {
+            this->action();
+            this->_current_cooldown = this->_cooldown; 
+            return true;
+        }
+        return false;
+    }
+};
+
+
+//===================================================================
+//===================================================================
+//===================================================================
+//                   Template pour Consommable
+//===================================================================
+//===================================================================
+//===================================================================
+template <typename BaseComportement>
+class AvecConsommable : public BaseComportement, public ComportementConsommable 
+{
+public:
+
+    template <typename... Args>
+    AvecConsommable(std::map<const Ressource*, int> coutAction, Args&&... args):
+        BaseComportement(std::forward<Args>(args)...),
+        ComportementConsommable(coutAction) 
+    {}
+
+    void affiche() const override 
+    {
+        BaseComportement::affiche(); 
+        std::cout << "Cout Action: ";
+        for(auto const& [res, val] : _coutAction)
+        {
+            std::cout << res->getName() << ": " << val << " "; 
+        }
+        std::cout << std::endl;
+    }
+};

@@ -465,7 +465,7 @@ void MoteurDeJeu::actualiserVisibiliteJoueur(int pIdx) {
     int h = _plateau->getCols();
 
     for (Unite* u : j.getUnites()) {
-        if (u) j.decouvrirZoneVision(u->location().first, u->location().second, u->visionRange(), u->fov(), w, h, u->regarde(), false);
+        if (u) j.decouvrirZoneVision(u->location().first, u->location().second, u->getVisionRange(), u->getFov(), w, h, u->regarde(), false);
     }
     for (City* c : j.getCities()) {
         if (c) j.decouvrirZoneVision(c->getX(), c->getY(), c->getVisionRange(), 360, w, h, direction::est, true);
@@ -774,10 +774,10 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRecrutement& cmd) {
     if (!unite) return ResultatAction::ECHEC_ARBITRE_REFUS;
     if (_plateau->getUnite(cmd.x, cmd.y) != nullptr) return ResultatAction::ECHEC_COORD_INVALIDE;
 
+    unite->setLocation({cmd.x, cmd.y});
     if (!_arbitre.peutRecruterUnite(j, unite->cout(), *unite)) return ResultatAction::ECHEC_FONDS_INSUFFISANTS;
 
     j.payer(unite->cout());
-    unite->setLocation({cmd.x, cmd.y});
 
     Unite* raw = unite.get();
     raw->setProprietaire(&j);
@@ -795,12 +795,10 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdSoigner& cmd) {
     if (healer->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
     for (CompSoin* soinComp : healer->Soin()) {
-        if (!soinComp->estPret()) continue;
         if (_arbitre.peutSoigner(j, *healer, *cible, soinComp)) {
             
             int soin = soinComp->healing_point(); 
             cible->setHealth_point(std::min(cible->health_point_max(), cible->health_point() + soin));
-            soinComp->setCurrent_cooldown(soinComp->cooldown());
             
             healer->setPoint_action(healer->point_action() - 1);
             return ResultatAction::SUCCES;
@@ -818,7 +816,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdCamoufler& cmd) {
 
     if (_arbitre.peutActiverCamouflage(j, *u)) {
         CompFurtif* furtif = u->Cammouflage();
-        if (furtif && furtif->estPret()) {
+        if (furtif) {
             
             furtif->ActiveCammouflage(); 
             

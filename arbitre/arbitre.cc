@@ -159,10 +159,30 @@ bool Arbitre::moveUnite(const Joueur & j, const board & game, const Unite & u, i
     bool deplacementPossible = false;
     for(auto mov : mobilites)
     {
-        if(mov->EstCaseValide(u.location(),Coord(xDest,yDest)))
+        auto* avecCD = dynamic_cast<ComportementCooldown*>(mov);
+        auto* avecConso = dynamic_cast<ComportementConsommable*>(mov);
+        if((avecCD && avecConso) && (avecCD->estPret() && avecConso->estPayable(u))) // Comme on évalue de gauche à droite si avecCD est nullptr on a pas d'erreur car on s'arrete immediatement
         {
             deplacementPossible = true;
             break;
+        }
+        else if(avecCD && avecCD->estPret() && avecConso == nullptr)
+        {
+            deplacementPossible = true;
+            break;
+        }
+        else if(avecConso && avecConso->estPayable(u) && avecCD == nullptr)
+        {
+            deplacementPossible = true;
+            break;
+        }
+        else
+        {
+            if(mov->EstCaseValide(u.location(),Coord(xDest,yDest)))
+            {
+                deplacementPossible = true;
+                break;
+            }
         }
     }
 
@@ -326,7 +346,6 @@ bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
     else return false;
 }
 
-/*
 bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
 {
     if (!peutPayer(cout, j)) return false;
@@ -338,11 +357,6 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*
     {
         Coord locate_ville = {ville->getX(), ville->getY()};
 
-        if(locate_ville == coordCible) 
-        {
-            return false;
-        }
-
         for(const auto& voisin : voisins) 
         {
             if (locate_ville == voisin) 
@@ -352,18 +366,6 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*
         }
     }
     return false;
-}
-*/
-
-bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
-{
-    if (!peutPayer(cout, j)) {
-        return false;
-    }
-    if (invocation.health_point() <= 0) {
-        return false;
-    }
-    return true;
 }
 
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const
@@ -375,9 +377,20 @@ bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& c
         return false;
     }
 
+    auto* avecCD = dynamic_cast<ComportementCooldown*>(TypeAttaque);
+    if(avecCD && !avecCD->estPret()) 
+    {
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(TypeAttaque);
+    if(avecConso && !avecConso->estPayable(attaque)) 
+    {
+        return false;
+    }
+
     auto styles_attaque = attaque.Offensive();
     auto it = std::find(styles_attaque.begin(), styles_attaque.end(), TypeAttaque);
-
     if (it != styles_attaque.end() && (*it)->PeuxAttaquer(attaque, cible))
     {
         return true;
@@ -396,16 +409,25 @@ bool Arbitre::peutSoigner(const Joueur& j, const Unite& healer, const Unite& cib
     {
         return false;
     }
+
+    auto* avecCD = dynamic_cast<ComportementCooldown*>(TypeSoin);
+    if(avecCD && !avecCD->estPret()) 
+    {
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(TypeSoin);
+    if(avecConso && !avecConso->estPayable(healer)) 
+    {
+        return false;
+    }
+
     auto styles_healer = healer.Soin();
     auto it = std::find(styles_healer.begin(), styles_healer.end(), TypeSoin);
 
     if(it != styles_healer.end() && (*it)->PeuxSoigner(healer, cible))
     {
-        if((*it)->estPret())
-        {
-            return true;
-        }
-        else return false;
+        return false;
     }
     else return false;
 }
@@ -420,10 +442,25 @@ bool Arbitre::peutActiverCamouflage(const Joueur& j, const Unite& unite)const
     {
         return false;
     }
+
     auto cammouflage = unite.Cammouflage();
+
+    auto* avecCD = dynamic_cast<ComportementCooldown*>(cammouflage);
+    if(avecCD && !avecCD->estPret()) 
+    {
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(cammouflage);
+    if(avecConso && !avecConso->estPayable(unite)) 
+    {
+        return false;
+    }
+
+
     if(cammouflage)
     {
-        if(cammouflage->estPret() && cammouflage->camoufler() == false)
+        if(cammouflage->camoufler() == false)
         {
             return true;
         }
@@ -443,6 +480,19 @@ bool Arbitre::peutTransporter(const Joueur& j, const Unite& unite)const
         return false;
     }
     auto transport = unite.Transport();
+
+    auto* avecCD = dynamic_cast<ComportementCooldown*>(transport);
+    if(avecCD && !avecCD->estPret()) 
+    {
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(transport);
+    if(avecConso && !avecConso->estPayable(unite)) 
+    {
+        return false;
+    }
+
     if(transport)
     {
         if(transport->nb_unite_actuelle() < transport->max_unite_transporter())
@@ -489,9 +539,21 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
 bool Arbitre::peutDechargerTransport(const Joueur& j, const Unite& transporteur, const Unite& transporter, int xDest, int yDest) const
 {
     if(!appartientJoueur(j, transporteur)) return false;
-    
+
     auto transport = transporteur.Transport();
     if(!transport || transport->nb_unite_actuelle() <= 0) return false;
+
+    auto* avecCD = dynamic_cast<ComportementCooldown*>(transport);
+    if(avecCD && !avecCD->estPret()) 
+    {
+        return false;
+    }
+
+    auto* avecConso = dynamic_cast<ComportementConsommable*>(transport);
+    if(avecConso && !avecConso->estPayable(transporteur)) 
+    {
+        return false;
+    }
 
     bool estPresent = false;
     auto liste = transport->liste_unite_transporter();

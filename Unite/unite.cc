@@ -26,6 +26,16 @@ Unite::Unite(const std::string &name, int hp, int point_action, int vision, int 
     _defensif(false)
 {}
 
+
+
+void Unite::actualiserVision() 
+{
+    _tuilesVisibles = ConeVision(_location, _regarde, _visionRange, _fov);
+}
+
+/*==============================================================================================*/
+/*                                     Getters et Setters                                       */
+/*==============================================================================================*/
 std::string Unite::name() const
 {
     return _name;
@@ -89,6 +99,7 @@ direction Unite::regarde() const
 void Unite::setRegarde(direction newRegarde)
 {
     _regarde = newRegarde;
+    actualiserVision();
 }
 
 Coord Unite::location() const
@@ -99,6 +110,7 @@ Coord Unite::location() const
 void Unite::setLocation(const Coord &newLocation)
 {
     _location = newLocation;
+    actualiserVision();
 }
 
 std::shared_ptr<IRank> Unite::rank() const
@@ -148,6 +160,52 @@ char Unite::getSymbol() const
 }
 
 
+std::map<const Ressource*, int> Unite::getInventaireInterne()const
+{
+    return _inventaireInterne;
+}
+void Unite::setInventaireInterne(std::map<const Ressource*, int> inventaire)
+{
+    _inventaireInterne = inventaire;
+}
+
+std::map<const Ressource*, int> Unite::getCapaciteMax()const
+{
+    return _capaciteMax;
+}
+
+const std::list<Coord>&  Unite::getTuilesVisibles() const 
+{ 
+    return _tuilesVisibles; 
+}
+void Unite::setTuilesVisibles(const std::list<Coord>& liste) 
+{ 
+    _tuilesVisibles = liste; 
+}
+
+
+int Unite::getVisionRange() const 
+{ 
+    return _visionRange; 
+}
+void Unite::setVisionRange(int r) 
+{ 
+    _visionRange = r; 
+}
+
+int Unite::getFov() const 
+{ 
+    return _fov; 
+}
+void Unite::setFov(int f) 
+{ 
+    _fov = f; 
+}
+
+/*==============================================================================================*/
+/*==============================================================================================*/
+/*==============================================================================================*/
+
 bool Unite::defensif() const
 {
     return _defensif;
@@ -163,13 +221,9 @@ void Unite::ajouterComportement(std::shared_ptr<IComportement> comp)
 
 void Unite::update()
 {
-    for(auto const& elt : _liste_comportements)
+    for(auto const& elt : _liste_comportements) 
     {
-        auto evolutif = dynamic_cast<IComportementEvolutif*>(elt.get()); 
-        if(evolutif)
-        {
-            evolutif->update();
-        }
+        elt->update();
     }
 }
 
@@ -285,6 +339,27 @@ std::shared_ptr<Unite> Unite::clone() const
     return std::make_shared<Unite>(*this);
 }
 
+void Unite::consommerPourAction(const std::map<const Ressource*, int>& cout) 
+{
+    for (auto const& [res, qte] : cout) 
+    {
+        _inventaireInterne[res] -= qte;
+    }
+}
+
+void Unite::ravitaillement(const Ressource* res, int qte)
+{
+    auto it = _inventaireInterne.find(res);
+    auto it_max = _capaciteMax.find(res);
+
+    if(it != _inventaireInterne.end() && it_max != _capaciteMax.end())
+    {
+        if(it->second + qte <= it_max->second)
+        {
+            it->second += qte; // L'itérateur se comporte comme un pointeur dans une map donc si on le modifie on modifie map 
+        }
+    }
+}
 
 
 
@@ -313,70 +388,91 @@ std::shared_ptr<IBonus> createBuff(const json& jBonus)
     else return nullptr;
 }
 
-std::shared_ptr<IComportement> createComp(const json& jComp) 
+
+template <typename T, typename... Args>
+std::shared_ptr<IComportement> buildComportement(bool hasCD, int cd, bool hasCons, const std::map<const Ressource*, int>& cout, Args&&... args) 
+{
+    if (hasCD && hasCons) 
+    {
+        return std::make_shared<AvecCooldown<AvecConsommable<T>>>(cd, cout, std::forward<Args>(args)...);
+    } 
+    else if (hasCD) {
+        return std::make_shared<AvecCooldown<T>>(cd, std::forward<Args>(args)...);
+    } 
+    else if (hasCons) {
+        return std::make_shared<AvecConsommable<T>>(cout, std::forward<Args>(args)...);
+    }
+    return std::make_shared<T>(std::forward<Args>(args)...);
+}
+
+std::shared_ptr<IComportement> createComp(const json& jComp, bool hasCD, int cd, bool hasCons, const std::map<const Ressource*, int>& cout) 
 {
     std::string type = jComp.value("type", "");
 
     //COMPORTEMENTS DE MOUVEMENT
     if (type == "MouvementVolant")
     {
-        return std::make_shared<CompMouvVolant>(jComp.value("mouvement_par_tour", 3));
+        return buildComportement<CompMouvVolant>(hasCD, cd, hasCons, cout, jComp.value("mouvement_par_tour", 0));
     }
     if (type == "MouvementMarin")
     {
-        return std::make_shared<CompMouvMarin>(jComp.value("mouvement_par_tour", 2));
+        return buildComportement<CompMouvMarin>(hasCD, cd, hasCons, cout, jComp.value("mouvement_par_tour", 0));
     }
     if (type == "MouvementTerrestre")
     {
-        return std::make_shared<CompMouvTerrestre>(jComp.value("mouvement_par_tour", 2));
+        return buildComportement<CompMouvTerrestre>(hasCD, cd, hasCons, cout , jComp.value("mouvement_par_tour", 0));
     }
 
     //COMPORTEMENTS D'ATTAQUE
     if (type == "AttaqueMelee")
     {
-        return std::make_shared<CompAttMelee>(jComp.value("degats", 10));
+        return buildComportement<CompAttMelee>(hasCD, cd, hasCons, cout, jComp.value("degats", 0));
     }
     if (type == "AttaqueDistance")
     {
-        return std::make_shared<CompAttDistance>(jComp.value("degats", 10),jComp.value("portee", 3),jComp.value("munitions", 5),jComp.value("portee_mini", 2));
+        return buildComportement<CompAttDistance>(hasCD, cd, hasCons, cout, jComp.value("degats", 0),jComp.value("portee", 0),jComp.value("portee_mini", 0));
     }
     if (type == "AttaqueIndirect")
     {
-        return std::make_shared<CompAttIndirect>(jComp.value("degats", 5), jComp.value("portee", 2), jComp.value("tour_infection", 3));
+        return buildComportement<CompAttIndirect>(hasCD, cd, hasCons, cout, jComp.value("degats", 0), jComp.value("portee", 0), jComp.value("tour_infection", 0));
     }
 
     //COMPORTEMENTS DE DEFENSE
     if (type == "DefenseArmure")
     {
-        return std::make_shared<CompDefArmure>(jComp.value("reduction", 5));
+        return buildComportement<CompDefArmure>(hasCD, cd, hasCons, cout, jComp.value("reduction", 0));
     }
     if (type == "DefenseBouclier")
     {
-        return std::make_shared<CompDefBouclier>(jComp.value("nombre_bouclier", 3));
+        return buildComportement<CompDefBouclier>(hasCD, cd, hasCons, cout, jComp.value("nombre_bouclier", 0));
     }
 
     //COMPORTEMENTS DE SOIN
     if (type == "SoinDirect")
     {
-        return std::make_shared<CompSoinDirect>(jComp.value("soin", 20), jComp.value("portee", 2), jComp.value("rayon", 2));
+        return buildComportement<CompSoinDirect>(hasCD, cd, hasCons, cout, jComp.value("soin", 0), jComp.value("portee", 0), jComp.value("rayon", 0));
     }
     if (type == "SoinIndirect")
     {
-        return std::make_shared<CompSoinIndirect>(jComp.value("soin", 15), jComp.value("portee", 4), jComp.value("tour_regeneration", 2));
+        return buildComportement<CompSoinIndirect>(hasCD, cd, hasCons, cout, jComp.value("soin", 0), jComp.value("portee", 0), jComp.value("tour_regeneration", 0));
     }
 
     //COMPORTEMENTS SPÉCIAUX 
     if (type == "SpecialTransport")
     {
-        return std::make_shared<CompTransport>(jComp.value("capacite", 2));
+        return buildComportement<CompTransport>(hasCD, cd, hasCons, cout, jComp.value("capacite", 0));
     }
     if (type == "SpecialFurtif")
     {
-        return std::make_shared<CompFurtif>(jComp.value("duree", 2), jComp.value("cooldown", 3));
+        return buildComportement<CompFurtif>(hasCD, cd, hasCons, cout, jComp.value("duree", 0));
     }
 
     return nullptr;
 }
+
+
+
+
 
 void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std::shared_ptr<Unite>>& catalogue, const std::map<std::string, const Ressource*>& ressources)
 {
@@ -428,9 +524,14 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         }
 
         std::map<const Ressource*, int> coutEntretienUnite;
-        if (item.contains("cout_entretien")) {
-            for (auto it = item["cout_entretien"].begin(); it != item["cout_entretien"].end(); ++it) {
-                if (ressources.count(it.key())) coutEntretienUnite[ressources.at(it.key())] = it.value();
+        if (item.contains("cout_entretien")) 
+        {
+            for (auto it = item["cout_entretien"].begin(); it != item["cout_entretien"].end(); ++it) 
+            {
+                if (ressources.count(it.key()))
+                {
+                    coutEntretienUnite[ressources.at(it.key())] = it.value();
+                }
             }
         }
 
@@ -457,9 +558,33 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         std::list<std::shared_ptr<IComportement>> listeComp;
         if (item.contains("comportements")) 
         {
+            std::shared_ptr<IComportement> ajout = nullptr;
             for (auto& comp : item["comportements"]) 
             {
-                auto ajout = createComp(comp);
+                bool hasCD = false; //A cooldown
+                int cd;
+
+                bool hasLC = false; //A liste de consommable
+                std::map<const Ressource*, int> coutParActionUnite;
+
+                if(comp.contains("cooldown"))
+                {
+                    hasCD = true;
+                    cd = comp.value("cooldown", 0);
+                }
+                if(comp.contains("cout_par_action"))
+                {
+                    hasLC = true;
+                    for (auto it = comp["cout_par_action"].begin(); it != comp["cout_par_action"].end(); ++it) 
+                    {
+                        if (ressources.count(it.key()))
+                        {
+                            coutParActionUnite[ressources.at(it.key())] = it.value();
+                        }
+                    }
+                }
+
+                ajout = createComp(comp, hasCD, cd, hasLC, coutParActionUnite);
                 if(ajout != nullptr) listeComp.push_back(ajout);
             }
         }
@@ -500,6 +625,5 @@ std::shared_ptr<Unite> UniteFactory::create(std::string type) const
     }
     return nullptr;
 }
-
 
 
