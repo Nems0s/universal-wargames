@@ -346,6 +346,7 @@ bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
     else return false;
 }
 
+/*
 bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
 {
     if (!peutPayer(cout, j)) return false;
@@ -366,6 +367,18 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*
         }
     }
     return false;
+}
+*/
+
+bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
+{
+    if (!peutPayer(cout, j)) {
+        return false;
+    }
+    if (invocation.health_point() <= 0) {
+        return false;
+    }
+    return true;
 }
 
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const

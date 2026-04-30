@@ -135,6 +135,11 @@ cout_entretien {
 - voir pour l'init du MoteurDeJeu
 - capitale générer dans le moteur (pour chaque joueur)
 - ajouter le bruit de perlin (espace avec les planètes et jeu de pirate avec des îles de tailles différentes)
-
 - merge les fonctions ensembles du moteur entre unite
 - décommenter peutRecruterUnite dans l'arbitre et fix le problème
+
+
+A MODIFIER :
+- début defense, arrêt défense, désenrollement dans moteur.cc à faire
+- voir pour peutRecruterUnite dans arbitre.cc
+- gérer le fait qu'il regarde dans une direction quand il découvre
