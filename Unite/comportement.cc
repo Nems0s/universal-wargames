@@ -10,7 +10,7 @@
 //====================================================================================================
 ComportementCooldown::ComportementCooldown(int cooldown):
     _cooldown(cooldown),
-    _current_cooldown(0)
+    _current_cooldown(cooldown)
 {}
 
 int ComportementCooldown::current_cooldown() const
@@ -33,8 +33,34 @@ void ComportementCooldown::setCooldown(int newCooldown)
     _cooldown = newCooldown;
 }
 
-bool ComportementCooldown::estPret() const {
+bool ComportementCooldown::estPret() const 
+{
     return _current_cooldown == 0;
+}
+
+ComportementConsommable::ComportementConsommable(const std::map<const Ressource*, int>& cout) :
+    _coutAction(cout)
+{}
+
+const std::map<const Ressource*, int>& ComportementConsommable::getCoutAction() const 
+{ 
+    return _coutAction; 
+}
+
+
+bool ComportementConsommable::estPayable(const Unite& u) const 
+{
+    const auto& inventaire = u.getInventaireInterne(); 
+     
+    for(auto const& [res, qteRequise] : this->_coutAction) 
+    {
+        auto it = inventaire.find(res);
+        if (it == inventaire.end() || it->second < qteRequise) 
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 
@@ -151,7 +177,7 @@ void CompAttMelee::affiche() const
 
 bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
-    auto cases_possibles = Voisins(attaquante.location());
+    auto cases_possibles = attaquante.getTuilesVisibles();
 
     auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
 
@@ -183,20 +209,11 @@ bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)cons
 //===================================================================
 //                        Attaque Distance
 //===================================================================
-CompAttDistance::CompAttDistance(int damage_point, int portee, int munitions, int portee_mini):
+CompAttDistance::CompAttDistance(int damage_point, int portee, int portee_mini):
     CompAtt(damage_point, portee),
-    _munitions(munitions),
     _portee_mini(portee_mini)
 {}
 
-void CompAttDistance::setMunitions(int newMunitions)
-{
-    _munitions = newMunitions;
-}
-int CompAttDistance::munitions() const
-{
-    return _munitions;
-}
 int CompAttDistance::portee_mini() const
 {
     return _portee_mini;
@@ -209,21 +226,32 @@ void CompAttDistance::setPortee_mini(int newPortee_mini)
 
 void CompAttDistance::affiche()const
 {
-    std::cout << "[Attaque] Distance : Dgt=" << damage_point() << ", Portée max=" << portee() << "|Portée min=" << _portee_mini<< ", Munitions="  << _munitions << std::endl;
+    std::cout << "[Attaque] Distance : Dgt=" << damage_point() << ", Portée max=" << portee() << "|Portée min=" << _portee_mini<< std::endl;
 }
 
 
 bool CompAttDistance::PeuxAttaquer(Unite const& attaquante, Unite const& cible)const
 {
-    if(_munitions<=0) return false;
-    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
-    auto cases_impossibles = case_adjascentes(attaquante.location(), _portee_mini-1);
+    auto cases_possibles = attaquante.getTuilesVisibles();
+    auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
+    
+    if (it == cases_possibles.end()) return false;
 
-    if((cases_possibles.count(cible.location()) > 0) && (cases_impossibles.count(cible.location()) == 0)) //On peut utiliser .contains(cible) en C++
+    if (_portee_mini > 1) 
     {
-        return true; //Chaque unité distance peut toucher n'importe quel unité
+        auto cases_impossibles = case_adjascentes(attaquante.location(), _portee_mini - 1);
+        if (cases_impossibles.count(cible.location()) > 0) 
+        {
+            return false;
+        }
     }
-    else return false;
+
+    auto cases_a_portee = case_adjascentes(attaquante.location(), _portee);
+    if (cases_a_portee.count(cible.location()) == 0)
+    {
+        return false;
+    }
+    return true;
 }
 
 //===================================================================
@@ -270,13 +298,17 @@ void CompAttIndirect::update()
 
 bool CompAttIndirect::PeuxAttaquer(Unite const& attaquante, Unite const& cible) const
 {
-    auto cases_possibles = case_adjascentes(attaquante.location(), _portee);
+    auto cases_possibles = attaquante.getTuilesVisibles();
+    auto it = std::find(cases_possibles.begin(), cases_possibles.end(), cible.location());
+    
+    if (it == cases_possibles.end()) return false;
 
-    if(cases_possibles.count(cible.location()) > 0)
+    auto cases_a_portee = case_adjascentes(attaquante.location(), _portee);
+    if (cases_a_portee.count(cible.location()) == 0)
     {
-        return true;
+        return false;
     }
-    else return false;
+    return true;
 }
 void CompAttIndirect::AjoutCibleAtteinte(std::shared_ptr<Unite> const& cible)
 {
@@ -367,8 +399,7 @@ int CompDefBouclier::ReductionDegats(int degat_subit)
 //====================================================================================================
 //                                              Soin
 //====================================================================================================
-CompSoin::CompSoin(int healing_point, int portee, int cooldown):
-    ComportementCooldown(cooldown),
+CompSoin::CompSoin(int healing_point, int portee):
     _healing_point(healing_point),
     _portee(portee)
 {}
@@ -399,8 +430,8 @@ void CompSoin::setHealing_point(int newHealing_point)
 //===================================================================
 //                        Direct
 //===================================================================
-CompSoinDirect::CompSoinDirect(int healing_point, int portee, int rayon, int cooldown):
-    CompSoin(healing_point, portee, cooldown),
+CompSoinDirect::CompSoinDirect(int healing_point, int portee, int rayon):
+    CompSoin(healing_point, portee),
     _rayon(rayon)
 {}
 
@@ -419,13 +450,6 @@ void CompSoinDirect::affiche() const
     std::cout << "[Soin] Direct : Soin=" << _healing_point << ", Portée=" << _portee << ", Rayon=" << _rayon << std::endl;
 }
 
-void CompSoinDirect::update()
-{
-    if (_current_cooldown > 0) 
-    {
-        _current_cooldown--;
-    }
-}
 
 bool CompSoinDirect::PeuxSoigner(Unite const& attaquante, Unite const& cible) const
 {
@@ -441,8 +465,8 @@ bool CompSoinDirect::PeuxSoigner(Unite const& attaquante, Unite const& cible) co
 //===================================================================
 //                        Indirect
 //===================================================================
-CompSoinIndirect::CompSoinIndirect(int healing_point, int portee, int nombre_de_tour_regeneration, int cooldown):
-    CompSoin(healing_point, portee, cooldown),
+CompSoinIndirect::CompSoinIndirect(int healing_point, int portee, int nombre_de_tour_regeneration):
+    CompSoin(healing_point, portee),
     _nombre_de_tour_regeneration(nombre_de_tour_regeneration)
 {}
 
@@ -461,11 +485,6 @@ void CompSoinIndirect::affiche() const
 }
 void CompSoinIndirect::update()
 {
-    if (_current_cooldown > 0) 
-    {
-        _current_cooldown--;
-    }
-
     std::list<soigner> _liste_final;
 
     for(auto & soin : _liste_soigner)
@@ -603,8 +622,7 @@ bool CompTransport::DescenteUniteUnite(Unite const& Transport, std::shared_ptr<U
 //===================================================================
 //                        Furtivité
 //===================================================================
-CompFurtif::CompFurtif(int duree, int cooldown):
-    ComportementCooldown(cooldown),
+CompFurtif::CompFurtif(int duree):
     _camoufler(false),
     _duree_max_camouflage(duree),
     _tours_restants(0)
@@ -617,7 +635,7 @@ bool CompFurtif::camoufler() const
 
 void CompFurtif::affiche() const
 {
-    std::cout << "[Special] Camouflage : Durée max=" << _duree_max_camouflage<<", Cooldown="<< _cooldown;
+    std::cout << "[Special] Camouflage : Durée max=" << _duree_max_camouflage;
     if(_camoufler) std::cout<<"Cammouflage actif"<<std::endl;
     else std::cout<<"Cammouflage non actif"<<std::endl;
 }
@@ -631,20 +649,19 @@ void CompFurtif::update()
             DesactiveCammouflage();
         }
     }
-    
-    if (_current_cooldown > 0) 
-    {
-        _current_cooldown--;
-    }
+}
+
+void CompFurtif::action() //Utiliser que si cooldown
+{ 
+    this->ActiveCammouflage(); 
 }
 
 void CompFurtif::ActiveCammouflage()
 {
-    if(estPret() && !_camoufler)
+    if (!_camoufler)
     {
         _camoufler = true;
         _tours_restants = _duree_max_camouflage;
-        _current_cooldown = _cooldown; 
     }
 }
 
