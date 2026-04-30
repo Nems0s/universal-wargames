@@ -504,7 +504,7 @@ int main() {
 
     std::cout << "\nChargement des configurations depuis configs/..." << std::endl;
     try {
-        moteur.chargerConfiguration("configs/config_regles.json");
+        moteur.chargerConfiguration("configs/config_rules.json");
         std::cout << "[SYSTEME] Configuration chargée." << std::endl;
         std::cout << "  Coût de rotation : " << moteur.getCoutRotation() << " PA" << std::endl;
     } catch (const std::exception& e) {

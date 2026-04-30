@@ -358,10 +358,12 @@ bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*
     {
         Coord locate_ville = {ville->getX(), ville->getY()};
 
+        /*
         if(locate_ville == coordCible) 
         {
             return false;
         }
+        */
 
         for(const auto& voisin : voisins) 
         {

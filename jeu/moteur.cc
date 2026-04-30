@@ -724,10 +724,11 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRecrutement& cmd) {
     if (!unite) return ResultatAction::ECHEC_ARBITRE_REFUS;
     if (_plateau->getUnite(cmd.x, cmd.y) != nullptr) return ResultatAction::ECHEC_COORD_INVALIDE;
 
+
+    unite->setLocation({cmd.x, cmd.y});
     if (!_arbitre.peutRecruterUnite(j, unite->cout(), *unite)) return ResultatAction::ECHEC_FONDS_INSUFFISANTS;
 
     j.payer(unite->cout());
-    unite->setLocation({cmd.x, cmd.y});
 
     Unite* raw = unite.get();
     raw->setProprietaire(&j);
