@@ -22,23 +22,23 @@ std::list<Coord> Case_visible(Coord const& c, direction dir, int fov)
     bool estPair = (c.second % 2 == 0); //Parité de la ligne, pour connaitre le décalage des cases
 
     std::vector<Coord> tousVoisins(6);
-    if(estPair) 
+    if (estPair) 
     {
-        tousVoisins[0] = {c.first + 1, c.second};
-        tousVoisins[1] = {c.first, c.second - 1};
-        tousVoisins[2] = {c.first - 1, c.second - 1};
-        tousVoisins[3] = {c.first - 1, c.second};
-        tousVoisins[4] = {c.first - 1, c.second + 1};
-        tousVoisins[5] = {c.first, c.second + 1};
+    tousVoisins[0] = {c.first, c.second + 1};     // Est
+    tousVoisins[1] = {c.first + 1, c.second};     // Sud Est
+    tousVoisins[2] = {c.first + 1, c.second - 1}; // Sud Ouest
+    tousVoisins[3] = {c.first, c.second - 1};     // Ouest
+    tousVoisins[4] = {c.first - 1, c.second - 1}; // Nord Ouest
+    tousVoisins[5] = {c.first - 1, c.second};     // Nored Est
     } 
     else 
     {
-        tousVoisins[0] = {c.first + 1, c.second};
-        tousVoisins[1] = {c.first + 1, c.second - 1};
-        tousVoisins[2] = {c.first, c.second - 1};
-        tousVoisins[3] = {c.first - 1, c.second};
-        tousVoisins[4] = {c.first, c.second + 1};
-        tousVoisins[5] = {c.first + 1, c.second + 1};
+    tousVoisins[0] = {c.first, c.second + 1};     // Est
+    tousVoisins[1] = {c.first + 1, c.second + 1}; // Sud Est
+    tousVoisins[2] = {c.first + 1, c.second};     // Sud Ouest
+    tousVoisins[3] = {c.first, c.second - 1};     // Ouest
+    tousVoisins[4] = {c.first - 1, c.second};     // Nord Ouest
+    tousVoisins[5] = {c.first - 1, c.second + 1}; // Nord Est
     }
 
     int dirIdx;
@@ -116,6 +116,64 @@ bool avantage_attaque(Coord const& attaquant, Coord const& defensseur, direction
     return true;
 }
 
+direction directionVers(Coord const &src, Coord const &dst) 
+{
+    bool estPair = (src.first % 2 == 0);
+
+    int dx = dst.first - src.first;
+    int dy = dst.second - src.second;
+
+    if (dx == 0 && dy == +1) return direction::est;
+    if (dx == 0 && dy == -1) return direction::ouest;
+
+    if (estPair) 
+    {
+        if (dx == -1 && dy == 0) return direction::nord_est;
+        if (dx == -1 && dy == -1) return direction::nord_ouest;
+        if (dx == +1 && dy == 0) return direction::sud_est;
+        if (dx == +1 && dy == -1) return direction::sud_ouest;
+    } 
+    else 
+    {
+        if (dx == -1 && dy == +1) return direction::nord_est;
+        if (dx == -1 && dy == 0) return direction::nord_ouest;
+        if (dx == +1 && dy == +1) return direction::sud_est;
+        if (dx == +1 && dy == 0) return direction::sud_ouest;
+    }
+
+    if (dx == 0) 
+    {
+        if (dy > 0) 
+        {
+            return direction::est;
+        } 
+        else 
+        {
+            return direction::ouest;
+        }
+    }
+
+    if (dx < 0) 
+    { 
+        if (dy >= 0)
+        {
+            return direction::nord_est;
+        } 
+        else 
+        {
+            return direction::nord_ouest;
+        }
+    }
+
+    if (dy >= 0) 
+    {
+        return direction::sud_est;
+    } 
+    else 
+    {
+        return direction::sud_ouest;
+    }
+}
 
 std::list<Coord> Voisins(Coord const& c)
 {
@@ -128,19 +186,19 @@ std::list<Coord> Voisins(Coord const& c)
 
     Coord c_nord_est, c_nord_ouest, c_sud_est, c_sud_ouest;
 
-    if (estPair)
+    if (estPair) 
     {
-        c_nord_est   = {c.first, c.second + 1};
-        c_nord_ouest = {c.first - 1, c.second + 1};
-        c_sud_est   = {c.first, c.second - 1};
-        c_sud_ouest = {c.first - 1, c.second - 1};
-    }
-    else
+        c_nord_est = {c.first - 1, c.second};
+        c_nord_ouest = {c.first - 1, c.second - 1};
+        c_sud_est = {c.first + 1, c.second};
+        c_sud_ouest = {c.first + 1, c.second - 1};
+    } 
+    else 
     {
-        c_nord_est   = {c.first + 1, c.second + 1};
-        c_nord_ouest = {c.first, c.second + 1};
-        c_sud_est   = {c.first + 1, c.second - 1};
-        c_sud_ouest = {c.first, c.second - 1};
+        c_nord_est = {c.first - 1, c.second + 1};
+        c_nord_ouest = {c.first - 1, c.second};
+        c_sud_est = {c.first + 1, c.second + 1};
+        c_sud_ouest = {c.first + 1, c.second};
     }
 
     liste_voisins.push_back(c_est);

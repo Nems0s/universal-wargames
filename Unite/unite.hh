@@ -37,6 +37,7 @@ private:
 
     direction _regarde;
     int _fov; //Allant de 1 à 6
+    int _fov_ref; //Stockage de la valeur initial du fov pour la mise en defense
     int _visionRange;
     std::list<Coord> _tuilesVisibles;
 

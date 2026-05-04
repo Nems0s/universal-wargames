@@ -14,6 +14,7 @@ Unite::Unite(const std::string &name, int hp, int point_action, int vision, int 
     _point_action_max(point_action),
     _visionRange(vision),
     _fov(fov),
+    _fov_ref(fov),
     _poids(poids),
     _regarde(dir),
     _location(loc),
@@ -324,8 +325,17 @@ void Unite::affiche() const
 
 void Unite::changerDefense()
 {
-    if(_defensif == false) _defensif = true;
-    else _defensif = false;
+    if(_defensif == false)
+    {
+        _defensif = true;
+        _fov = 6;
+    }
+    else 
+    {
+        _defensif = false;
+        _fov = _fov_ref;
+    }
+    actualiserVision();
 }
 
 void Unite::resetTemporary_stats()
@@ -601,7 +611,7 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
         {
             std::string tex = item.value("texture", "");
             int vision = item.value("vision", 2);
-            int fov = item.value("fov", 80);
+            int fov = item.value("fov", 3);
             catalogue[nom] = std::make_shared<Unite>(nom, hp, nb_action, vision, fov, poids, direction::est, Coord{0,0}, rank, listeComp, coutUnite, coutEntretienUnite, sym, tex);
         }   
     }

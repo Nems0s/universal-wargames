@@ -490,12 +490,13 @@ void CompSoinIndirect::update()
         auto c = soin.cible.lock();
         if(c != nullptr)
         {
-            if(c->health_point() + _healing_point <= c->health_point_max())
+            if(c->health_point() < c->health_point_max())
             {
-                c->setHealth_point(c->health_point() + _healing_point);
-                soin.tour_soin -= 1;
+                c->setHealth_point(std::min(c->health_point_max(), c->health_point() + _healing_point));
             }
-            else if(soin.tour_soin > 0 && c->health_point() > 0)
+            soin.tour_soin -= 1;
+            
+            if(soin.tour_soin > 0 && c->health_point() > 0)
             {
                 _liste_final.push_back(soin);
             }

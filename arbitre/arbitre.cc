@@ -346,40 +346,26 @@ bool Arbitre::appartientJoueur(const Joueur& j, const Unite& unite)const
     else return false;
 }
 
-/*
+
 bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
 {
     if (!peutPayer(cout, j)) return false;
     if (invocation.health_point() <= 0) return false;
 
+    /*
     Coord coordCible = invocation.location();
-    auto voisins = Voisins(coordCible);
+
     for (const auto* ville : j.getCities()) 
     {
-        Coord locate_ville = {ville->getX(), ville->getY()};
-
-        for(const auto& voisin : voisins) 
+        Coord locateVille = {ville->getX(), ville->getY()};
+        if (locateVille == coordCible) 
         {
-            if (locate_ville == voisin) 
-            {
-                return true;
-            }
+            return true;
         }
-    }
-    return false;
-}
-*/
-
-bool Arbitre::peutRecruterUnite(const Joueur& j, const std::map<const Ressource*, int>& cout, const Unite& invocation) const 
-{
-    if (!peutPayer(cout, j)) {
-        return false;
-    }
-    if (invocation.health_point() <= 0) {
-        return false;
-    }
+    }*/
     return true;
 }
+
 
 bool Arbitre::peutAttaquer(const Joueur& j, const Unite& attaque, const Unite& cible, CompAtt* const& TypeAttaque)const
 {
@@ -547,6 +533,44 @@ bool Arbitre::peutRejoindreCommandant(const Joueur& j, const Unite& commandant, 
         else return false;
     }
     else return false;
+}
+
+bool Arbitre::peutQuitterCommandant(const Joueur& j, const Unite& commandant, const Unite& unite)const
+{
+    if(commandant.point_action() <= 0)
+    {
+        return false;
+    }
+
+    if(!appartientJoueur(j, commandant) || !appartientJoueur(j, unite))
+    {
+        return false;
+    }
+
+    Coord cible = unite.location();
+    auto voisins = Voisins(commandant.location());
+    auto itVoisin = std::find(voisins.begin(), voisins.end(), cible);
+    if(itVoisin == voisins.end()) 
+    {
+        return false;
+    }
+
+
+    auto r = commandant.rank();
+    auto com = std::dynamic_pointer_cast<Rank_Commandant>(r);
+    if(com) 
+    {
+        const auto& liste = com->liste_unites();
+        
+        for (const auto& Unite : liste) 
+        {
+            if(Unite.get() == &unite) 
+            {
+                return true; 
+            }
+        }
+    }
+    return false;
 }
 
 bool Arbitre::peutDechargerTransport(const Joueur& j, const Unite& transporteur, const Unite& transporter, int xDest, int yDest) const
