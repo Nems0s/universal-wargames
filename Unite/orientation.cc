@@ -19,7 +19,7 @@ std::list<Coord> Case_visible(Coord const& c, direction dir, int fov)
     if (fov <= 0) return resultat;
     if (fov >= 6) return Voisins(c);
 
-    bool estPair = (c.second % 2 == 0); //Parité de la ligne, pour connaitre le décalage des cases
+    bool estPair = (c.first % 2 == 0);
 
     std::vector<Coord> tousVoisins(6);
     if (estPair) 
@@ -143,46 +143,27 @@ direction directionVers(Coord const &src, Coord const &dst)
 
     if (dx == 0) 
     {
-        if (dy > 0) 
-        {
-            return direction::est;
-        } 
-        else 
-        {
-            return direction::ouest;
-        }
+        if (dy > 0) return direction::est;
+        else return direction::ouest;
     }
 
     if (dx < 0) 
     { 
-        if (dy >= 0)
-        {
-            return direction::nord_est;
-        } 
-        else 
-        {
-            return direction::nord_ouest;
-        }
+        if (dy >= 0) return direction::nord_est;
+        else return direction::nord_ouest;
     }
 
-    if (dy >= 0) 
-    {
-        return direction::sud_est;
-    } 
-    else 
-    {
-        return direction::sud_ouest;
-    }
+    if (dy >= 0) return direction::sud_est;
+    else return direction::sud_ouest;
 }
 
 std::list<Coord> Voisins(Coord const& c)
 {
     std::list<Coord> liste_voisins;
+    bool estPair = (c.first % 2 == 0);
 
-    bool estPair = (c.second % 2 == 0);
-
-    Coord c_est   = {c.first + 1, c.second};
-    Coord c_ouest = {c.first - 1, c.second};
+    Coord c_est   = {c.first, c.second + 1};
+    Coord c_ouest = {c.first, c.second - 1};
 
     Coord c_nord_est, c_nord_ouest, c_sud_est, c_sud_ouest;
 

@@ -2045,8 +2045,8 @@ void InterfaceManager::renderGame() {
         static const sf::Color playerColors[] = {
             sf::Color(80, 180, 255, 255), sf::Color(255, 80, 80, 255), sf::Color(80, 255, 80, 255), sf::Color(255, 200, 0, 255)
         };
-        const int neighEven[6][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 0}, {0, -1}, {-1, -1}};
-        const int neighOdd[6][2]  = {{-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+        const int neighEven[6][2] = {{0, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}};
+        const int neighOdd[6][2]  = {{0, 1}, {1, 1}, {1, 0}, {0, -1}, {-1, 0}, {-1, 1}};
 
         for (int pIdx = 0; pIdx < (int)_territoireCache.vecParJoueur.size(); ++pIdx) {
             const auto& territoireVec = _territoireCache.vecParJoueur[pIdx];
@@ -2259,8 +2259,9 @@ void InterfaceManager::renderGame() {
                         direction d = (_hasPreviewRotation) ? _previewDirection : u->regarde();
                         float angleDeg = getRotationAngle(d); 
                         float angleRad = angleDeg * PI / 180.0f;
-                        
-                        float halfFov = (u->getFov() / 2.0f) * PI / 180.0f; 
+
+                        float fovDeg = u->getFov() * 60.0f; // Convertit les cases en degré : 1 case fov = 60°
+                        float halfFov = (fovDeg / 2.0f) * PI / 180.0f; 
                         float coneLength = u->getVisionRange() * W * 1.5f;
                         
                         sf::VertexArray cone(sf::TriangleFan, 4);

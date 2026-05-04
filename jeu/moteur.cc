@@ -237,6 +237,9 @@ void MoteurDeJeu::actualiserVisibiliteJoueur(int pIdx) {
     for (City* c : j.getCities()) {
         if (c) j.decouvrirZoneVision(c->getX(), c->getY(), c->getVisionRange(), 360, w, h, direction::est, true);
     }
+    for (const auto& tuile : getTerritoireJoueur(pIdx)) {
+        j.decouvrirZoneVision(tuile.first, tuile.second, 1, 360, w, h, direction::est, true);
+    }
 }
 
 void MoteurDeJeu::chargerPartieDepuisJson(const nlohmann::json& j, const std::vector<std::string>& factions) {
