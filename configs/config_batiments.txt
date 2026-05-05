@@ -1,2 +1,0 @@
-ExtracteurEtoile L Or 10 poussiereDEtoile 10
-Muraille M Or 10

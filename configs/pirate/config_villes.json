@@ -1,0 +1,63 @@
+{
+    "villes": [
+        {
+            "nom": "Repaire Pirate",
+            "est_capitale": true,
+            "cout_base": {},
+            "degats_base": 60.0,
+            "max_level": 5,
+            "portee_vue": 6,
+            "pv_max_base": 1200.0,
+            "rayon_base": 4,
+            "texture": "assets/cities/capital.png"
+        },
+        {
+            "nom": "Colonie",
+            "est_capitale": false,
+            "cout_base": { "Or": 300, "Bois": 150, "Nourriture": 100 },
+            "degats_base": 30.0,
+            "max_level": 4,
+            "portee_vue": 4,
+            "production_base": { "Or": 15, "Nourriture": 10 },
+            "pv_max_base": 500.0,
+            "rayon_base": 3,
+            "texture": "assets/cities/colony.png"
+        },
+        {
+            "nom": "Avant-poste",
+            "est_capitale": false,
+            "cout_base": { "Or": 150, "Bois": 50 },
+            "degats_base": 20.0,
+            "max_level": 2,
+            "portee_vue": 6,
+            "production_base": { "Or": 5 },
+            "pv_max_base": 250.0,
+            "rayon_base": 2,
+            "texture": "assets/cities/outpost.png"
+        },
+        {
+            "nom": "Comptoir Commercial",
+            "est_capitale": false,
+            "cout_base": { "Or": 400, "Bois": 100, "Pierre": 50 },
+            "degats_base": 15.0,
+            "max_level": 3,
+            "portee_vue": 3,
+            "production_base": { "Or": 40, "Moral": 5 },
+            "pv_max_base": 300.0,
+            "rayon_base": 2,
+            "texture": "assets/cities/trade_post.png"
+        },
+        {
+            "nom": "Forteresse Navale",
+            "est_capitale": false,
+            "cout_base": { "Or": 600, "Pierre": 400, "Canons": 5 },
+            "degats_base": 100.0,
+            "max_level": 3,
+            "portee_vue": 5,
+            "production_base": { "Or": -10, "Moral": 10 },
+            "pv_max_base": 1500.0,
+            "rayon_base": 3,
+            "texture": "assets/cities/fortress.png"
+        }
+    ]
+}

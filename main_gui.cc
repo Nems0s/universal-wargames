@@ -7,7 +7,20 @@ int main() {
 
         // Le moteur du jeu
         MoteurDeJeu moteur;
-        moteur.chargerConfiguration("configs/config_rules.json");
+
+        // Config
+        GameConfigFiles mesConfigs;
+        std::string jeu = "space";
+
+        mesConfigs.rulesPath = "configs/" + jeu + "/config_rules.json";
+        mesConfigs.ressourcesPath = "configs/" + jeu + "/config_ressources.json";
+        mesConfigs.batimentsPath = "configs/" + jeu + "/config_batiments.json";
+        mesConfigs.villesPath = "configs/" + jeu + "/config_villes.json";
+        mesConfigs.unitesPath = "configs/" + jeu + "/config_unites.json";
+        mesConfigs.tuilesPath = "configs/" + jeu + "/config_tuiles.json";
+        mesConfigs.winsPath = "configs/" + jeu + "/config_wins.json";
+
+        moteur.chargerConfiguration(mesConfigs);
 
         // La fenetre
         std::cout << "[MAIN] Creation de la fenetre SFML..." << std::endl;

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "arbitre.hh"
-#include "jeu.hh"
+#include "board.hh"
+#include "tuile.hh"
 #include "config.hh"
 #include "batiment.hh"
 #include "ressource.hh"
@@ -67,7 +68,7 @@ public:
     MoteurDeJeu() = default;
 
     // Init
-    void chargerConfiguration(const std::string & configPath);
+    void chargerConfiguration(const GameConfigFiles& files);
     void initGame(int seed, const std::vector<std::string>& noms, const std::vector<std::string>& factions);
     void chargerPartieDepuisJson(const nlohmann::json& j, const std::vector<std::string>& factions);
 

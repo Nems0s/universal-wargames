@@ -45,4 +45,5 @@ public:
     void chargerConfiguration(const std::string & chemin, RessourceConfigReader & lecteur);
     const Ressource* getRessource(const std::string& id) const;
     const std::map<std::string, std::unique_ptr<Ressource>>& getCatalogue() const { return _catalogue; }
+    std::map<std::string, const Ressource*> getCataloguePointeurs() const;
 };

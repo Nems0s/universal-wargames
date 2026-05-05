@@ -1,0 +1,44 @@
+{
+  "victory_set": [
+    {
+      "name": "Le Roi des Pirates (Victoire Économique)",
+      "mode": "all",
+      "conditions": [
+        { "type": "resource_threshold", "target": "Or", "amount": 150000 },
+        { "type": "resource_threshold", "target": "Rhum", "amount": 10000 },
+        { "type": "city_count", "amount": 3 }
+      ]
+    },
+    {
+      "name": "L'Empereur des Mers (Victoire Militaire)",
+      "mode": "any",
+      "conditions": [
+        { "type": "city_count", "amount": 15 },
+        { "type": "unit_count", "amount": 80 }
+      ]
+    },
+    {
+      "name": "Règne Absolu (Victoire par Conquête)",
+      "mode": "all",
+      "conditions": [
+        { "type": "capital_conquest" }
+      ]
+    },
+    {
+      "name": "Légende Vivante (Victoire de Renommée)",
+      "mode": "all",
+      "conditions": [
+        { "type": "resource_threshold", "target": "Moral", "amount": 50000 },
+        { "type": "resource_threshold", "target": "Artefact", "amount": 10 }
+      ]
+    },
+    {
+      "name": "Le Pacte de Davy Jones (Victoire Mystique)",
+      "mode": "all",
+      "conditions": [
+        { "type": "resource_threshold", "target": "Mana", "amount": 25000 },
+        { "type": "unit_count", "specific_unit": "Navire Fantôme", "amount": 5 }
+      ]
+    }
+  ]
+}

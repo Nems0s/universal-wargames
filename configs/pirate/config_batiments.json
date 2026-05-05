@@ -1,0 +1,34 @@
+{
+    "batiments": [
+        { "nom": "Cabane de Pêcheur", "symbole": "P", "cout": {"Or": 20}, "production": [{"ressource": "Nourriture", "quantite": 10}], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Camp de Bûcheron", "symbole": "B", "cout": {"Or": 30}, "production": [{"ressource": "Bois", "quantite": 15}], "ressources_sol_requises": ["Bois"], "texture": "" },
+        { "nom": "Carrière de Pierre", "symbole": "C", "cout": {"Or": 50}, "production": [{"ressource": "Pierre", "quantite": 10}], "ressources_sol_requises": ["Pierre"], "texture": "" },
+        { "nom": "Mine de Fer", "symbole": "F", "cout": {"Or": 80, "Bois": 20}, "production": [{"ressource": "Fer", "quantite": 12}], "ressources_sol_requises": ["Fer"], "texture": "" },        
+        { "nom": "Mine d'Or", "symbole": "O", "cout": {"Or": 150, "Bois": 50}, "production": [{"ressource": "Or", "quantite": 25}], "ressources_sol_requises": ["Or"], "texture": "" },
+        { "nom": "Plantation de Sucre", "symbole": "S", "cout": {"Or": 60}, "production": [{"ressource": "Sucre", "quantite": 20}], "ressources_sol_requises": ["Sucre"], "texture": "" },
+        { "nom": "Récolteur de Soufre", "symbole": "V", "cout": {"Or": 100}, "production": [{"ressource": "Soufre", "quantite": 5}], "ressources_sol_requises": ["Soufre"], "texture": "" },
+        
+        { "nom": "Scierie", "symbole": "L", "cout": {"Or": 100, "Pierre": 50}, "production": [{"ressource": "Planches", "quantite": 10}], "ressources_sol_requises": [], "consommation": {"Bois": 15} },
+        { "nom": "Distillerie de Rhum", "symbole": "D", "cout": {"Or": 150, "Pierre": 50}, "production": [{"ressource": "Rhum", "quantite": 15}], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Tisserand", "symbole": "T", "cout": {"Or": 80, "Bois": 30}, "production": [{"ressource": "Toile", "quantite": 10}], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Haut-Fourneau", "symbole": "H", "cout": {"Or": 200, "Pierre": 100}, "production": [{"ressource": "Acier", "quantite": 5}], "ressources_sol_requises": [], "consommation": {"Fer": 10, "Bois": 5} },
+        { "nom": "Fabrique de Poudre", "symbole": "X", "cout": {"Or": 200, "Pierre": 100}, "production": [{"ressource": "Poudre", "quantite": 10}], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Fonderie de Canons", "symbole": "K", "cout": {"Or": 300, "Pierre": 150}, "production": [{"ressource": "Canons", "quantite": 5}], "ressources_sol_requises": [], "consommation": {"Acier": 5, "Fer": 10}, "texture": "" },
+
+        { "nom": "Arsenal", "symbole": "R", "cout": {"Or": 200, "Pierre": 100}, "production": [{"ressource": "Munitions", "quantite": 15}, {"ressource": "Boulets", "quantite": 20}], "ressources_sol_requises": [], "consommation": {"Poudre": 5, "Fer": 10}, "texture": "" },
+        { "nom": "Camp d'Ébéniste", "symbole": "E", "cout": {"Or": 150}, "production": [{"ressource": "Bois_Exotique", "quantite": 10}], "ressources_sol_requises": ["Bois_Exotique"], "texture": "" },
+        { "nom": "Port Baleinier", "symbole": "P", "cout": {"Or": 250, "Bois": 150}, "production": [{"ressource": "Baleine", "quantite": 5}], "ressources_sol_requises": ["Baleine"], "texture": "" },
+
+        { "nom": "Taverne", "symbole": "Y", "cout": {"Or": 200, "Bois": 100}, "production": [{"ressource": "Moral", "quantite": 20}], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Marché Noir", "symbole": "M", "cout": {"Or": 400}, "production": [{"ressource": "Or", "quantite": 50}], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Autel Vaudou", "symbole": "A", "cout": {"Or": 250, "Bois": 100}, "production": [{"ressource": "Mana", "quantite": 25}], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Cale Sèche", "symbole": "W", "cout": {"Or": 300, "Bois": 200}, "production": [], "ressources_sol_requises": [], "comportements": [{"type": "ReparationNavale", "soin": 50, "rayon": 1}] },
+
+        { "nom": "Chantier Naval Léger", "symbole": "L", "cout": {"Or": 200, "Bois": 150}, "production": [], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Chantier Naval Lourd", "symbole": "H", "cout": {"Or": 600, "Bois": 400, "Pierre": 200}, "production": [], "ressources_sol_requises": [], "texture": "" },
+        { "nom": "Tour de Guet", "symbole": "G", "cout": {"Or": 100, "Bois": 50}, "production": [], "ressources_sol_requises": [], "comportements": [{"type": "ExtensionVision", "portee": 4}] },
+        { "nom": "Batterie Côtière", "symbole": "B", "cout": {"Or": 350, "Pierre": 200, "Canons": 2}, "production": [], "ressources_sol_requises": [], "comportements": [{"type": "AttaqueDistance", "degats": 80, "portee": 4, "cooldown": 1}] },
+        { "nom": "Citadelle Pirate", "symbole": "C", "cout": {"Or": 1000, "Pierre": 800, "Canons": 10}, "production": [], "ressources_sol_requises": [], "comportements": [{"type": "DefenseArmure", "reduction": 40}, {"type": "AttaqueDistance", "degats": 150, "portee": 5}] }
+    
+    ]
+}

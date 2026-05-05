@@ -1,6 +1,4 @@
 {
-    "_selected_size_x": 100,
-    "_selected_size_y": 100,
     "factions": [
         {
             "image": "assets/human.png",
@@ -56,8 +54,8 @@
     "tailles_disponibles": [
         {
             "nom": "Tiny",
-            "x": 50,
-            "y": 50
+            "x": 15,
+            "y": 15
         },
         {
             "nom": "Standard",
@@ -73,7 +71,12 @@
             "nom": "HowToCrash",
             "x": 1000000,
             "y": 1000000
+        },
+        {
+            "nom": "IA",
+            "x": 15,
+            "y": 15
         }
     ],
-    "world_config": "configs/config_espace.json"
+    "taille_defaut": "IA"
 }

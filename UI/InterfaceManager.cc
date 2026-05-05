@@ -210,7 +210,11 @@ void InterfaceManager::saveConfig() {
     }
     
     if (!_gameConfigLocked) {
-        _moteur.chargerConfiguration(_rulesPath);
+        GameConfigFiles files;
+        files.rulesPath = _rulesPath;
+        files.villesPath = _villesPath;
+        files.tuilesPath = _espacePath;
+        _moteur.chargerConfiguration(files);
     }
 }
 
@@ -237,12 +241,6 @@ void InterfaceManager::initGame() {
         std::vector<std::string> noms;
         for(int i = 0; i < _numPlayers; ++i) {
             noms.push_back(_connectedPlayers[i].name);
-        }
-
-        int selX = _rulesJson.value("_selected_size_x", 0);
-        int selY = _rulesJson.value("_selected_size_y", 0);
-        if (selX > 0 && selY > 0) {
-            _moteur.setPlateauSize(selX, selY);
         }
 
         _moteur.initGame(_mapSeed, noms, _playerFactions);
@@ -730,23 +728,30 @@ void InterfaceManager::renderOptions() {
             ImGui::TableSetColumnIndex(0); ImGui::Text("Difficulty:");
             ImGui::TableSetColumnIndex(1); DrawArrowSelector("##diff", &diffIndex, difficulties);
 
-            static int mapSizeIndex = 0;
             std::vector<std::string> mapSizes;
-            if (_rulesJson.contains("tailles_disponibles")) {
-                for (auto& t : _rulesJson["tailles_disponibles"]) {
-                    mapSizes.push_back(t["nom"].get<std::string>() + " (" + std::to_string(t["x"].get<int>()) + "x" + std::to_string(t["y"].get<int>()) + ")");
+            const auto& tailles = _moteur.getLogicConfig().getTaillesDisponibles();
+            
+            int currentX = _moteur.getLogicConfig().getPlateauX();
+            int currentY = _moteur.getLogicConfig().getPlateauY();
+            int mapSizeIndex = 0;
+
+            for (size_t i = 0; i < tailles.size(); ++i) {
+                mapSizes.push_back(tailles[i].nom + " (" + std::to_string(tailles[i].x) + "x" + std::to_string(tailles[i].y) + ")");
+                if (tailles[i].x == currentX && tailles[i].y == currentY) {
+                    mapSizeIndex = i;
                 }
             }
-            if (mapSizes.empty()) mapSizes = {"Standard (100x100)"};
+            if (mapSizes.empty()) mapSizes.push_back("Standard (100x100)");
+
             ImGui::TableNextRow(0); ImGui::TableSetColumnIndex(0); ImGui::Dummy(ImVec2(0.0f, 5.0f));
             ImGui::TableNextRow(0);
             ImGui::TableSetColumnIndex(0); ImGui::Text("Map Size:");
             ImGui::TableSetColumnIndex(1); 
+            
             if (DrawArrowSelector("##mapsize", &mapSizeIndex, mapSizes)) {
-                if (_rulesJson.contains("tailles_disponibles") && mapSizeIndex < (int)_rulesJson["tailles_disponibles"].size()) {
-                    auto& t = _rulesJson["tailles_disponibles"][mapSizeIndex];
-                    _rulesJson["_selected_size_x"] = t["x"].get<int>();
-                    _rulesJson["_selected_size_y"] = t["y"].get<int>();
+                if (mapSizeIndex >= 0 && mapSizeIndex < (int)tailles.size()) {
+                    _moteur.setPlateauSize(tailles[mapSizeIndex].x, tailles[mapSizeIndex].y);
+                    _rulesJson["taille_defaut"] = tailles[mapSizeIndex].nom;
                 }
             }
 
@@ -1054,36 +1059,26 @@ void InterfaceManager::renderMapConfig() {
 
         // Taille de la carte
         std::vector<std::string> sizesNames;
-        std::vector<std::pair<int, int>> sizesValues;
+        const auto& tailles = _moteur.getLogicConfig().getTaillesDisponibles();
 
-        if (_rulesJson.contains("tailles_disponibles")) {
-            for (auto& taille : _rulesJson["tailles_disponibles"]) {
-                std::string label = taille["nom"].get<std::string>() + " (" + 
-                                    std::to_string(taille["x"].get<int>()) + "x" + 
-                                    std::to_string(taille["y"].get<int>()) + ")";
-                sizesNames.push_back(label);
-                sizesValues.push_back({taille["x"].get<int>(), taille["y"].get<int>()});
-            }
-        } else {
-            sizesNames = {"Standard (100x100)"};
-            sizesValues = {{100, 100}};
-        }
-
-        int currentX = _rulesJson.value("_selected_size_x", sizesValues.empty() ? 100 : sizesValues[0].first);
+        int currentX = _moteur.getLogicConfig().getPlateauX();
+        int currentY = _moteur.getLogicConfig().getPlateauY();
         int sizeIdx = 0;
-        for (size_t i = 0; i < sizesValues.size(); ++i) {
-            if (sizesValues[i].first == currentX) {
+
+        for (size_t i = 0; i < tailles.size(); ++i) {
+            sizesNames.push_back(tailles[i].nom + " (" + std::to_string(tailles[i].x) + "x" + std::to_string(tailles[i].y) + ")");
+            if (tailles[i].x == currentX && tailles[i].y == currentY) {
                 sizeIdx = i;
-                break;
             }
         }
+        if (sizesNames.empty()) sizesNames.push_back("Taille : " + std::to_string(currentX) + "x" + std::to_string(currentY));
 
         ImGui::Text("Map Size:"); ImGui::SameLine(150);
         if (DrawArrowSelector("##msize", &sizeIdx, sizesNames)) {
-            _rulesJson["_selected_size_x"] = sizesValues[sizeIdx].first;
-            _rulesJson["_selected_size_y"] = sizesValues[sizeIdx].second;
-            _moteur.setPlateauSize(sizesValues[sizeIdx].first, sizesValues[sizeIdx].second);
-            sendLobbySync();
+            if (sizeIdx >= 0 && sizeIdx < (int)tailles.size()) {
+                _moteur.setPlateauSize(tailles[sizeIdx].x, tailles[sizeIdx].y);
+                sendLobbySync();
+            }
         }
 
         ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1185,8 +1180,14 @@ void InterfaceManager::renderMapConfig() {
         
         if (_network.getState() == NetworkState::CONNECTED && _network.isHost()) {
             sf::Packet startPacket;
-            startPacket << static_cast<sf::Int32>(PacketType::GAME_START) << static_cast<sf::Int32>(_mapSeed) << static_cast<sf::Int32>(_numPlayers) << static_cast<sf::Int32>(_selectedVictoryIndex); 
-            startPacket << static_cast<sf::Int32>(_rulesJson.value("_selected_size_x", 100)) << static_cast<sf::Int32>(_rulesJson.value("_selected_size_y", 100));
+            startPacket << static_cast<sf::Int32>(PacketType::GAME_START)
+                        << static_cast<sf::Int32>(_mapSeed)
+                        << static_cast<sf::Int32>(_numPlayers)
+                        << static_cast<sf::Int32>(_selectedVictoryIndex);
+
+            startPacket << static_cast<sf::Int32>(_moteur.getLogicConfig().getPlateauX()) 
+                        << static_cast<sf::Int32>(_moteur.getLogicConfig().getPlateauY());
+
             startPacket << _activePresetName;
             startPacket << static_cast<sf::Int32>(_customWeights.size());
             for (auto const& [symb, weight] : _customWeights) {
@@ -1541,8 +1542,7 @@ void InterfaceManager::updateNetworkLoop() {
                         sf::Int32 sizeX, sizeY;
                         packet >> sizeX >> sizeY;
                         packet >> _activePresetName;
-                        _rulesJson["_selected_size_x"] = sizeX;
-                        _rulesJson["_selected_size_y"] = sizeY;
+                        _moteur.setPlateauSize(sizeX, sizeY);
 
                         sf::Int32 wCount; 
                         packet >> wCount;
@@ -1585,9 +1585,7 @@ void InterfaceManager::updateNetworkLoop() {
                         packet >> _activePresetName;
                         packet >> weightsCount;
                         
-                        _rulesJson["_selected_size_x"] = sizeX;
-                        _rulesJson["_selected_size_y"] = sizeY;
-                        saveConfig();
+                        _moteur.setPlateauSize(sizeX, sizeY);
 
                         _customWeights.clear();
                         for (int i = 0; i < weightsCount; ++i) {
@@ -4083,8 +4081,8 @@ void InterfaceManager::sendLobbySync() {
 
         // 3. Les paramètres de la carte
         p << static_cast<sf::Int32>(_mapSeed) << static_cast<sf::Int32>(_numPlayers) << static_cast<sf::Int32>(_selectedVictoryIndex);
-        p << static_cast<sf::Int32>(_rulesJson.value("_selected_size_x", 100));
-        p << static_cast<sf::Int32>(_rulesJson.value("_selected_size_y", 100));
+        p << static_cast<sf::Int32>(_moteur.getLogicConfig().getPlateauX());
+        p << static_cast<sf::Int32>(_moteur.getLogicConfig().getPlateauY());
         p << _activePresetName;
         
         // 4. Les poids du générateur (Custom Weights)

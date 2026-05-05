@@ -4,7 +4,7 @@
 #include <list>
 
 #include "joueur.hh"
-#include "jeu.hh"
+#include "board.hh"
 #include "unite.hh"
 #include "comportement.hh"
 

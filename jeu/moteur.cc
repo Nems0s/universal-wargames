@@ -58,32 +58,33 @@ ResultatAction GameManager::actionDesenrolement(Joueur& j, const Action& action)
 // ---------- Init et configuration ---------- //
 // ------------------------------------------- //
 
-void MoteurDeJeu::chargerConfiguration(const std::string& configPath) {
-
+void MoteurDeJeu::chargerConfiguration(const GameConfigFiles& files) {
     try {
+        // 1. Ressources
         JsonRessourceReader resReader;
-        _ressourceFactory.chargerConfiguration("configs/config_ressources.json", resReader);
-        
-        _ressourcesDispo.clear();
-        for (const auto& [nom, resPtr] : _ressourceFactory.getCatalogue()) {
-            _ressourcesDispo[nom] = resPtr.get();
-        }
+        _ressourceFactory.chargerConfiguration(files.ressourcesPath, resReader);
+        _ressourcesDispo = _ressourceFactory.getCataloguePointeurs();
 
+        // 2. Bâtiments
         JsonBatimentReader batReader;
-        _batimentFactory.chargerConfiguration("configs/config_batiments.json", batReader, _ressourcesDispo);
+        _batimentFactory.chargerConfiguration(files.batimentsPath, batReader, _ressourcesDispo);
         
+        // 3. Villes
         JsonCityReader cityReader;
-        _cityFactory.chargerConfiguration("configs/config_villes.json", cityReader, _ressourcesDispo);
+        _cityFactory.chargerConfiguration(files.villesPath, cityReader, _ressourcesDispo);
 
-        _logicConfig.loadRules(configPath);
-        _logicConfig.loadWins("configs/config_wins.json");
+        // 4. Règles globales et Wins
+        _logicConfig.loadRules(files.rulesPath);
+        _logicConfig.loadWins(files.winsPath);
         
+        // 5. Unités
         JsonUniteReader uniteReader;
-        _uniteFactory.chargerConfiguration("configs/config_unite.json", uniteReader, _ressourcesDispo);
+        _uniteFactory.chargerConfiguration(files.unitesPath, uniteReader, _ressourcesDispo);
         
+        // 6. Tuiles (Monde)
         JsonWorldReader worldReader;
         _worldFactory.initialiserBords();
-        worldReader.chargerConfig(_logicConfig.getWorldConfigPath(), _ressourcesDispo, _worldFactory);
+        worldReader.chargerConfig(files.tuilesPath, _ressourcesDispo, _worldFactory);
     
     } catch (const std::exception& e) {
         std::cerr << "Erreur de chargement du moteur : " << e.what() << std::endl;

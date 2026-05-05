@@ -100,24 +100,24 @@ void JsonBatimentReader::load(const std::string& chemin,
         std::string nom = item["nom"];
         
         std::map<const Ressource*, int> coutMap;
-        for (auto& it : item["cout"].items()) {
-            if (ressourcesDispo.count(it.key())) {
-                coutMap[ressourcesDispo.at(it.key())] = it.value();
+        for (const auto& [resName, qty] : item.value("cout", json::object()).items()) {
+            if (auto it = ressourcesDispo.find(resName); it != ressourcesDispo.end()) {
+                coutMap[it->second] = qty.get<int>();
             }
         }
 
         std::map<const Ressource*, int> prodMap;
-        for (auto& prodItem : item["production"]) {
+        for (const auto& prodItem : item.value("production", json::array())) {
             std::string rNom = prodItem["ressource"];
-            if (ressourcesDispo.count(rNom)) {
-                prodMap[ressourcesDispo.at(rNom)] = prodItem["quantite"];
+            if (auto it = ressourcesDispo.find(rNom); it != ressourcesDispo.end()) {
+                prodMap[it->second] = prodItem["quantite"].get<int>();
             }
         }
 
         std::vector<const Ressource*> solsRequis;
-        for (std::string sNom : item["ressources_sol_requises"]) {
-            if (ressourcesDispo.count(sNom)) {
-                solsRequis.push_back(ressourcesDispo.at(sNom));
+        for (const std::string& sNom : item.value("ressources_sol_requises", json::array())) {
+            if (auto it = ressourcesDispo.find(sNom); it != ressourcesDispo.end()) {
+                solsRequis.push_back(it->second);
             }
         }
 

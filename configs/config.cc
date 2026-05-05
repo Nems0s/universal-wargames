@@ -12,6 +12,7 @@ void GameConfig::loadRules(const std::string& chemin) {
     fichier >> data;
 
     if (data.contains("tailles_disponibles")) {
+        _taillesDisponibles.clear();
         for (auto& t : data["tailles_disponibles"]) {
             TailleOption opt;
             opt.nom = t.value("nom", "???");
@@ -19,9 +20,14 @@ void GameConfig::loadRules(const std::string& chemin) {
             opt.y = t.value("y", 100);
             _taillesDisponibles.push_back(opt);
         }
-        if (!_taillesDisponibles.empty()) {
-            _plateauX = _taillesDisponibles[0].x;
-            _plateauY = _taillesDisponibles[0].y;
+
+        std::string defaultName = data.value("taille_defaut", "Standard");
+        for (const auto& opt : _taillesDisponibles) {
+            if (opt.nom == defaultName) {
+                _plateauX = opt.x;
+                _plateauY = opt.y;
+                break;
+            }
         }
     }
 
@@ -91,9 +97,6 @@ void GameConfig::loadRules(const std::string& chemin) {
         _capaciteVilleNiveau = data["regles_entretien"].value("capacite_ville_niveau", 3);
     }
 
-    if (data.contains("world_config")) {
-        _worldConfigPath = data["world_config"].get<std::string>();
-    }
 }
 
 void GameConfig::loadWins(const std::string & chemin) {

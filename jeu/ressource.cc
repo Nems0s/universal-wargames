@@ -42,3 +42,11 @@ const Ressource* RessourceFactory::getRessource(const std::string& id) const {
 void RessourceFactory::chargerConfiguration(const std::string& chemin, RessourceConfigReader& lecteur) {
     lecteur.load(chemin, _catalogue);
 }
+
+std::map<std::string, const Ressource*> RessourceFactory::getCataloguePointeurs() const {
+    std::map<std::string, const Ressource*> mapPointeurs;
+    for (const auto& [nom, resPtr] : _catalogue) {
+        mapPointeurs[nom] = resPtr.get();
+    }
+    return mapPointeurs;
+}

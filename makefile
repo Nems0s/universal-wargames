@@ -1,9 +1,13 @@
 CXX = g++
+
+PYTHON_INCLUDES := $(shell python3 -m pybind11 --includes)
+PYTHON_LIBS := $(shell python3-config --embed --ldflags || python3-config --ldflags)
+
 # Ajout de -I./UI pour tes headers de rendu et ImGui
-CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./UI -I./UI/imgui -I./UI/imgui-sfml -I./configs -I./arbitre -I./gameloop
+CXXFLAGS = -Wall -Wextra -std=c++17 -g -I./jeu -I./joueur -I./unite -I./combat -I./lib -I./UI -I./UI/imgui -I./UI/imgui-sfml -I./configs -I./arbitre -I./gameloop $(PYTHON_INCLUDES)
 
 # Bibliothèques à lier (SFML et OpenGL)
-LIBS = -lsfml-graphics -lsfml-window -lsfml-system -lsfml-network -lGL
+LIBS = -lsfml-graphics -lsfml-window -lsfml-system -lsfml-network -lGL $(PYTHON_LIBS)
 
 BUILD_DIR = build
 BIN_DIR = bin
@@ -69,3 +73,6 @@ clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
 .PHONY: all clean cli gui
+
+# Ajouter j suivi d'un nombre pour du multithreading
+# make gui -j4

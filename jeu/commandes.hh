@@ -1,5 +1,5 @@
 #pragma once
-#include "jeu.hh"
+#include "board.hh"
 #include <variant>
 #include <string>
 

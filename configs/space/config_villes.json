@@ -23,7 +23,7 @@
             "portee_vue": 3,
             "production_base": {
                 "Fer": 0,
-                "Or": 10
+                "Or": 50
             },
             "pv_max_base": 200.0,
             "rayon_base": 2,
