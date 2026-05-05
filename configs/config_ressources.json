@@ -1,17 +1,29 @@
 {
     "ressources": [
         {
-            "nom": "poussiereDEtoile",
-            "symbole": "PE"
+            "nom": "Neolithe",
+            "symbole": "Ne",
+            "icone": "assets/Space/Ressource/Neolithe.png"
         },
         {
-            "nom": "Or",
-            "symbole": "Or",
-            "icone": "assets/gold-icon.png"
+            "nom": "Integrium",
+            "symbole": "In",
+            "icone": "assets/Space/Ressource/Integrium.png"
         },
         {
-            "nom": "Fer",
-            "symbole": "Fe"
+            "nom": "Ilektraerium",
+            "symbole": "Ik",
+            "icone": "assets/Space/Ressource/Ilektraerium.png"
+        },
+        {
+            "nom": "Vitriolite",
+            "symbole": "Vi",
+            "icone": "assets/Space/Ressource/Vitriolite.png"
+        },
+        {
+            "nom": "Heliosium",
+            "symbole": "He",
+            "icone": "assets/Space/Ressource/Heliosium.png"
         }
     ]
 }

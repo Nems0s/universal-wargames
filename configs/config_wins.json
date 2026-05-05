@@ -4,7 +4,7 @@
       "name": "Victoire économique",
       "mode": "all",
       "conditions": [
-        { "type": "resource_threshold", "target": "Or", "amount": 100000 },
+        { "type": "resource_threshold", "target": "Neolithe", "amount": 100000 },
         { "type": "city_count", "amount": 1 }
       ]
     },
@@ -23,6 +23,5 @@
         { "type": "capital_conquest" }
       ]
     }
-
   ]
 }

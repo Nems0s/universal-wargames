@@ -1,28 +1,489 @@
 {
     "batiments": [
         {
-            "nom": "ExtracteurEtoile",
-            "symbole": "L",
+            "nom": "Mine",
+            "ressources_sol_requises": [
+                "Neolithe"
+            ],
+            "texture": "",
+            "niveaux": [
+                {
+                    "niveau": 1,
+                    "production": [
+                        {
+                            "ressource": "Neolithe",
+                            "quantite": 100
+                        }
+                    ],
+                    "cout": {
+                        "Integrium": 100
+                    },
+                    "niveau_ville_requis": 1
+                },
+                {
+                    "niveau": 2,
+                    "production": [
+                        {
+                            "ressource": "Neolithe",
+                            "quantite": 200
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 100,
+                        "Integrium": 450
+                    },
+                    "niveau_ville_requis": 2
+                },
+                {
+                    "niveau": 3,
+                    "production": [
+                        {
+                            "ressource": "Neolithe",
+                            "quantite": 300
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 400,
+                        "Integrium": 600,
+                        "Vitriolite": 100
+                    },
+                    "niveau_ville_requis": 3
+                },
+                {
+                    "niveau": 4,
+                    "production": [
+                        {
+                            "ressource": "Neolithe",
+                            "quantite": 400
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 800,
+                        "Integrium": 800,
+                        "Ilektraerium": 100,
+                        "Vitriolite": 200
+                    },
+                    "niveau_ville_requis": 4
+                },
+                {
+                    "niveau": 5,
+                    "production": [
+                        {
+                            "ressource": "Neolithe",
+                            "quantite": 500
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 1000,
+                        "Integrium": 1000,
+                        "Ilektraerium": 300,
+                        "Vitriolite": 500
+                    },
+                    "niveau_ville_requis": 5
+                }
+            ],
             "cout": {
-                "Or": 10,
-                "Fer": 5
+                "Integrium": 100
             },
             "production": [
-                { "ressource": "poussiereDEtoile", "quantite": 10 },
-                { "ressource": "Energie", "quantite": 2 }
-            ],
-            "ressources_sol_requises": ["poussiereDEtoile"],
-            "texture": "assets/extractor.png"
+                {
+                    "ressource": "Neolithe",
+                    "quantite": 100
+                }
+            ]
         },
         {
-            "nom": "Muraille",
-            "symbole": "M",
-            "cout": { 
-                "Or": 15 
-            },
-            "production": [],
+            "nom": "Fabrique Alpha",
             "ressources_sol_requises": [],
-            "texture": ""
+            "texture": "",
+            "niveaux": [
+                {
+                    "niveau": 1,
+                    "production": [
+                        {
+                            "ressource": "Integrium",
+                            "quantite": 100
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 100
+                    },
+                    "niveau_ville_requis": 1
+                },
+                {
+                    "niveau": 2,
+                    "production": [
+                        {
+                            "ressource": "Integrium",
+                            "quantite": 150
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 600,
+                        "Integrium": 100
+                    },
+                    "niveau_ville_requis": 2
+                },
+                {
+                    "niveau": 3,
+                    "production": [
+                        {
+                            "ressource": "Integrium",
+                            "quantite": 250
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 800,
+                        "Integrium": 500,
+                        "Ilektraerium": 100
+                    },
+                    "niveau_ville_requis": 3
+                },
+                {
+                    "niveau": 4,
+                    "production": [
+                        {
+                            "ressource": "Integrium",
+                            "quantite": 500
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 900,
+                        "Integrium": 750,
+                        "Ilektraerium": 200,
+                        "Vitriolite": 100
+                    },
+                    "niveau_ville_requis": 4
+                },
+                {
+                    "niveau": 5,
+                    "production": [
+                        {
+                            "ressource": "Integrium",
+                            "quantite": 1000
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 1000,
+                        "Integrium": 1000,
+                        "Ilektraerium": 500,
+                        "Vitriolite": 300
+                    },
+                    "niveau_ville_requis": 5
+                }
+            ],
+            "cout": {
+                "Neolithe": 100
+            },
+            "production": [
+                {
+                    "ressource": "Integrium",
+                    "quantite": 100
+                }
+            ]
+        },
+        {
+            "nom": "Collecteur Ionique",
+            "ressources_sol_requises": [
+                "Ilektraerium"
+            ],
+            "texture": "",
+            "niveaux": [
+                {
+                    "niveau": 1,
+                    "production": [
+                        {
+                            "ressource": "Ilektraerium",
+                            "quantite": 50
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 200,
+                        "Integrium": 200
+                    },
+                    "niveau_ville_requis": 2
+                },
+                {
+                    "niveau": 2,
+                    "production": [
+                        {
+                            "ressource": "Ilektraerium",
+                            "quantite": 100
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 400,
+                        "Integrium": 400,
+                        "Ilektraerium": 100,
+                        "Vitriolite": 100
+                    },
+                    "niveau_ville_requis": 2
+                },
+                {
+                    "niveau": 3,
+                    "production": [
+                        {
+                            "ressource": "Ilektraerium",
+                            "quantite": 200
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 800,
+                        "Integrium": 800,
+                        "Ilektraerium": 200,
+                        "Vitriolite": 200
+                    },
+                    "niveau_ville_requis": 3
+                },
+                {
+                    "niveau": 4,
+                    "production": [
+                        {
+                            "ressource": "Ilektraerium",
+                            "quantite": 400
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 1600,
+                        "Integrium": 1600,
+                        "Ilektraerium": 400,
+                        "Vitriolite": 400,
+                        "Heliosium": 10
+                    },
+                    "niveau_ville_requis": 4
+                },
+                {
+                    "niveau": 5,
+                    "production": [
+                        {
+                            "ressource": "Ilektraerium",
+                            "quantite": 800
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 3200,
+                        "Integrium": 3200,
+                        "Ilektraerium": 800,
+                        "Vitriolite": 800,
+                        "Heliosium": 20
+                    },
+                    "niveau_ville_requis": 5
+                }
+            ],
+            "cout": {
+                "Neolithe": 200,
+                "Integrium": 200
+            },
+            "production": [
+                {
+                    "ressource": "Ilektraerium",
+                    "quantite": 50
+                }
+            ]
+        },
+        {
+            "nom": "Cryo Sublimateur",
+            "ressources_sol_requises": [
+                "Vitriolite"
+            ],
+            "texture": "",
+            "niveaux": [
+                {
+                    "niveau": 1,
+                    "production": [
+                        {
+                            "ressource": "Vitriolite",
+                            "quantite": 50
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 200,
+                        "Integrium": 200
+                    },
+                    "niveau_ville_requis": 2
+                },
+                {
+                    "niveau": 2,
+                    "production": [
+                        {
+                            "ressource": "Vitriolite",
+                            "quantite": 100
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 400,
+                        "Integrium": 400,
+                        "Ilektraerium": 100,
+                        "Vitriolite": 100
+                    },
+                    "niveau_ville_requis": 2
+                },
+                {
+                    "niveau": 3,
+                    "production": [
+                        {
+                            "ressource": "Vitriolite",
+                            "quantite": 200
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 800,
+                        "Integrium": 800,
+                        "Ilektraerium": 200,
+                        "Vitriolite": 200
+                    },
+                    "niveau_ville_requis": 3
+                },
+                {
+                    "niveau": 4,
+                    "production": [
+                        {
+                            "ressource": "Vitriolite",
+                            "quantite": 400
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 1600,
+                        "Integrium": 1600,
+                        "Ilektraerium": 400,
+                        "Vitriolite": 400,
+                        "Heliosium": 10
+                    },
+                    "niveau_ville_requis": 4
+                },
+                {
+                    "niveau": 5,
+                    "production": [
+                        {
+                            "ressource": "Vitriolite",
+                            "quantite": 800
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 3200,
+                        "Integrium": 3200,
+                        "Ilektraerium": 800,
+                        "Vitriolite": 800,
+                        "Heliosium": 20
+                    },
+                    "niveau_ville_requis": 5
+                }
+            ],
+            "cout": {
+                "Neolithe": 200,
+                "Integrium": 200
+            },
+            "production": [
+                {
+                    "ressource": "Vitriolite",
+                    "quantite": 50
+                }
+            ]
+        },
+        {
+            "nom": "Nexus de Transmutation Solaire",
+            "ressources_sol_requises": [
+                "Heliosium"
+            ],
+            "texture": "",
+            "niveaux": [
+                {
+                    "niveau": 1,
+                    "production": [
+                        {
+                            "ressource": "Heliosium",
+                            "quantite": 5
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 800,
+                        "Integrium": 1000,
+                        "Ilektraerium": 800,
+                        "Vitriolite": 800
+                    },
+                    "niveau_ville_requis": 3
+                },
+                {
+                    "niveau": 2,
+                    "production": [
+                        {
+                            "ressource": "Heliosium",
+                            "quantite": 25
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 1200,
+                        "Integrium": 1500,
+                        "Ilektraerium": 1200,
+                        "Vitriolite": 1200,
+                        "Heliosium": 20
+                    },
+                    "niveau_ville_requis": 4
+                },
+                {
+                    "niveau": 3,
+                    "production": [
+                        {
+                            "ressource": "Heliosium",
+                            "quantite": 50
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 1800,
+                        "Integrium": 2500,
+                        "Ilektraerium": 1800,
+                        "Vitriolite": 1800,
+                        "Heliosium": 60
+                    },
+                    "niveau_ville_requis": 4
+                },
+                {
+                    "niveau": 4,
+                    "production": [
+                        {
+                            "ressource": "Heliosium",
+                            "quantite": 75
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 2500,
+                        "Integrium": 4000,
+                        "Ilektraerium": 2500,
+                        "Vitriolite": 2500,
+                        "Heliosium": 120
+                    },
+                    "niveau_ville_requis": 5
+                },
+                {
+                    "niveau": 5,
+                    "production": [
+                        {
+                            "ressource": "Heliosium",
+                            "quantite": 100
+                        }
+                    ],
+                    "cout": {
+                        "Neolithe": 4000,
+                        "Integrium": 7000,
+                        "Ilektraerium": 4000,
+                        "Vitriolite": 4000,
+                        "Heliosium": 250
+                    },
+                    "niveau_ville_requis": 5
+                }
+            ],
+            "cout": {
+                "Neolithe": 800,
+                "Integrium": 1000,
+                "Ilektraerium": 800,
+                "Vitriolite": 800
+            },
+            "production": [
+                {
+                    "ressource": "Heliosium",
+                    "quantite": 5
+                }
+            ]
         }
     ]
 }

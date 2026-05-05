@@ -77,7 +77,7 @@
             },
             "ressources": [],
             "properties": {},
-            "texture": "assets/deep_sea.png"
+            "texture": "assets/Pirate/deep_sea.png"
         },
         {
             "nom": "Mer",
@@ -104,7 +104,7 @@
             "properties": {
                 "courant_marin": 0.2
             },
-            "texture": "assets/sea.png"
+            "texture": "assets/Pirate/sea.png"
         },
         {
             "nom": "Terre",
@@ -133,7 +133,7 @@
                 "fertilite": 0.8,
                 "spawn_capitale": 1.0
             },
-            "texture": "assets/island.png"
+            "texture": "assets/Pirate/island.png"
         },
         {
             "nom": "Volcan",
@@ -159,7 +159,7 @@
                 "eruption_proba": 0.15,
                 "rayon_activate": 2.0
             },
-            "texture": "assets/volcano.png"
+            "texture": "assets/Pirate/volcano.png"
         }
     ]
 }

@@ -5,6 +5,58 @@
             "degats_base": 40.0,
             "est_capitale": true,
             "max_level": 5,
+            "niveaux": [
+                {
+                    "cout": {
+                        "Integrium": 300,
+                        "Neolithe": 300
+                    },
+                    "niveau": 1,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 150,
+                        "Integrium": 900,
+                        "Neolithe": 600,
+                        "Vitriolite": 150
+                    },
+                    "niveau": 2,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 300,
+                        "Integrium": 1500,
+                        "Neolithe": 900,
+                        "Vitriolite": 300
+                    },
+                    "niveau": 3,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 25,
+                        "Ilektraerium": 600,
+                        "Integrium": 2000,
+                        "Neolithe": 1500,
+                        "Vitriolite": 600
+                    },
+                    "niveau": 4,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 100,
+                        "Ilektraerium": 1200,
+                        "Integrium": 3000,
+                        "Neolithe": 3000,
+                        "Vitriolite": 1200
+                    },
+                    "niveau": 5,
+                    "nombre_batiments": 4
+                }
+            ],
             "nom": "Capitale",
             "portee_vue": 5,
             "pv_max_base": 500.0,
@@ -13,18 +65,66 @@
         },
         {
             "cout_base": {
-                "Fer": 0,
-                "Or": 0
+                "Integrium": 300,
+                "Neolithe": 300
             },
             "degats_base": 20.0,
             "est_capitale": false,
-            "max_level": 3,
+            "max_level": 5,
+            "niveaux": [
+                {
+                    "cout": {
+                        "Integrium": 300,
+                        "Neolithe": 300
+                    },
+                    "niveau": 1,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 150,
+                        "Integrium": 900,
+                        "Neolithe": 600,
+                        "Vitriolite": 150
+                    },
+                    "niveau": 2,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 300,
+                        "Integrium": 1500,
+                        "Neolithe": 900,
+                        "Vitriolite": 300
+                    },
+                    "niveau": 3,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 25,
+                        "Ilektraerium": 600,
+                        "Integrium": 2000,
+                        "Neolithe": 1500,
+                        "Vitriolite": 600
+                    },
+                    "niveau": 4,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 100,
+                        "Ilektraerium": 1200,
+                        "Integrium": 3000,
+                        "Neolithe": 3000,
+                        "Vitriolite": 1200
+                    },
+                    "niveau": 5,
+                    "nombre_batiments": 4
+                }
+            ],
             "nom": "Colonie",
             "portee_vue": 3,
-            "production_base": {
-                "Fer": 0,
-                "Or": 10
-            },
             "pv_max_base": 200.0,
             "rayon_base": 2,
             "texture": ""
