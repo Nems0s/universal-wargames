@@ -60,6 +60,8 @@ ResultatAction GameManager::actionDesenrolement(Joueur& j, const Action& action)
 
 void MoteurDeJeu::chargerConfiguration(const GameConfigFiles& files) {
     try {
+        _logicConfig.setPaths(files);
+        
         // 1. Ressources
         JsonRessourceReader resReader;
         _ressourceFactory.chargerConfiguration(files.ressourcesPath, resReader);

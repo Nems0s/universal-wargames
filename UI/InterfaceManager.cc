@@ -149,72 +149,67 @@ void InterfaceManager::recalculerCachesSiNecessaire(int viewIndex) {
 }
 
 void InterfaceManager::loadUIConfig() {
-    std::ifstream fRules(_rulesPath);
-    if (fRules.is_open()) { fRules >> _rulesJson; fRules.close(); }
+    _paths = _moteur.getLogicConfig().getPaths();
 
-    if (_rulesJson.contains("world_config")) {
-        _espacePath = _rulesJson["world_config"].get<std::string>();
-    }
-    std::ifstream fEspace(_espacePath);
-    if (fEspace.is_open()) { fEspace >> _espaceJson; fEspace.close(); }
-    
-    std::ifstream fVilles(_villesPath);
-    if (fVilles.is_open()) { fVilles >> _villesJson; fVilles.close(); }
+    auto loadJ = [](const std::string& path, nlohmann::json& target) {
+        std::ifstream f(path);
+        if (f.is_open()) {
+            f >> target;
+            f.close();
+        } else {
+            std::cerr << "Erreur: Impossible de lire " << path << std::endl;
+        }
+    };
+
+    loadJ(_paths.rulesPath, _rulesJson);
+    loadJ(_paths.villesPath, _villesJson);
+    loadJ(_paths.tuilesPath, _tuilesJson);
 
     std::ifstream fSettings("saves/settings.json");
     if (fSettings.is_open()) {
-        nlohmann::json sJson;
-        fSettings >> sJson;
+        nlohmann::json settingsJson;
+        fSettings >> settingsJson;
         fSettings.close();
 
-        if (sJson.contains("player_name")) {
-            strncpy(_playerNameBuffer, sJson["player_name"].get<std::string>().c_str(), sizeof(_playerNameBuffer) - 1);
+        if (settingsJson.contains("player_name")) {
+            strncpy(_playerNameBuffer, settingsJson["player_name"].get<std::string>().c_str(), sizeof(_playerNameBuffer) - 1);
             _playerNameBuffer[sizeof(_playerNameBuffer) - 1] = '\0';
         }
-        if (sJson.contains("last_ip")) {
-            strncpy(_ipBuffer, sJson["last_ip"].get<std::string>().c_str(), sizeof(_ipBuffer) - 1);
+        if (settingsJson.contains("last_ip")) {
+            strncpy(_ipBuffer, settingsJson["last_ip"].get<std::string>().c_str(), sizeof(_ipBuffer) - 1);
             _ipBuffer[sizeof(_ipBuffer) - 1] = '\0';
         }
-        if (sJson.contains("port")) _portBuffer = sJson["port"];
-        if (sJson.contains("vsync")) _vsync = sJson["vsync"];
-        if (sJson.contains("fullscreen")) _fullscreen = sJson["fullscreen"];
+        if (settingsJson.contains("port")) _portBuffer = settingsJson["port"];
+        if (settingsJson.contains("vsync")) _vsync = settingsJson["vsync"];
+        if (settingsJson.contains("fullscreen")) _fullscreen = settingsJson["fullscreen"];
         
         _window.setVerticalSyncEnabled(_vsync);
     }
 }
 
 void InterfaceManager::saveConfig() {
-    std::ofstream fileRules(_rulesPath);
-    if (fileRules.is_open()) {
-        fileRules << _rulesJson.dump(4);
-        fileRules.close();
-    }
+    auto saveJ = [](const std::string& path, const nlohmann::json& target) {
+        std::ofstream f(path);
+        if (f.is_open()) {
+            f << target.dump(4);
+            f.close();
+        }
+    };
 
-    std::ofstream fileVilles(_villesPath);
-    if (fileVilles.is_open()) {
-        fileVilles << _villesJson.dump(4);
-        fileVilles.close();
-    }
+    saveJ(_paths.rulesPath, _rulesJson);
+    saveJ(_paths.villesPath, _villesJson);
+    saveJ(_paths.tuilesPath, _tuilesJson);
 
-    nlohmann::json sJson;
-    sJson["player_name"] = std::string(_playerNameBuffer);
-    sJson["last_ip"] = std::string(_ipBuffer);
-    sJson["port"] = _portBuffer;
-    sJson["vsync"] = _vsync;
-    sJson["fullscreen"] = _fullscreen;
-
-    std::ofstream fSettings("saves/settings.json");
-    if (fSettings.is_open()) {
-        fSettings << sJson.dump(4);
-        fSettings.close();
-    }
+    nlohmann::json settingsJson;
+    settingsJson["player_name"] = std::string(_playerNameBuffer);
+    settingsJson["last_ip"] = std::string(_ipBuffer);
+    settingsJson["port"] = _portBuffer;
+    settingsJson["vsync"] = _vsync;
+    settingsJson["fullscreen"] = _fullscreen;
+    saveJ("saves/settings.json", settingsJson);
     
     if (!_gameConfigLocked) {
-        GameConfigFiles files;
-        files.rulesPath = _rulesPath;
-        files.villesPath = _villesPath;
-        files.tuilesPath = _espacePath;
-        _moteur.chargerConfiguration(files);
+        _moteur.chargerConfiguration(_paths); 
     }
 }
 
@@ -224,8 +219,8 @@ void InterfaceManager::initGame() {
     try {
         _moteur.overrideWorldWeights(_customWeights);
         
-        if (!_activePresetName.empty() && _espaceJson.contains("presets_perlin") && _espaceJson["presets_perlin"].contains(_activePresetName)) {
-            auto& presetData = _espaceJson["presets_perlin"][_activePresetName];
+        if (!_activePresetName.empty() && _tuilesJson.contains("presets_perlin") && _tuilesJson["presets_perlin"].contains(_activePresetName)) {
+            auto& presetData = _tuilesJson["presets_perlin"][_activePresetName];
             if (presetData.contains("perlin_scale")) {
                 _moteur.overridePerlinParams(
                     presetData.value("perlin_scale", 0.12f),
@@ -1106,15 +1101,15 @@ void InterfaceManager::renderMapConfig() {
 
         ImGui::Dummy(ImVec2(0, 20));
         std::string genMode = "random";
-        if (_espaceJson.contains("generation_map") && _espaceJson["generation_map"].contains("mode")) {
-            genMode = _espaceJson["generation_map"]["mode"];
+        if (_tuilesJson.contains("generation_map") && _tuilesJson["generation_map"].contains("mode")) {
+            genMode = _tuilesJson["generation_map"]["mode"];
         }
         std::string presetKey = (genMode == "perlin") ? "presets_perlin" : "presets_random";
 
         ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "WORLD PRESETS (%s)", genMode.c_str());
 
-        if (_espaceJson.contains(presetKey)) {
-            for (auto& [presetName, weightsObj] : _espaceJson[presetKey].items()) {
+        if (_tuilesJson.contains(presetKey)) {
+            for (auto& [presetName, weightsObj] : _tuilesJson[presetKey].items()) {
                 if (ImGui::Button(presetName.c_str(), ImVec2(400, 30))) {
                     if (genMode == "random") {
                         for (auto& [symbStr, weightVal] : weightsObj.items()) {
@@ -1140,8 +1135,8 @@ void InterfaceManager::renderMapConfig() {
         ImGui::Dummy(ImVec2(0, 10));
 
         if (genMode == "random") {
-            if (_espaceJson.contains("tiles")) {
-                for (auto& t : _espaceJson["tiles"]) {
+            if (_tuilesJson.contains("tiles")) {
+                for (auto& t : _tuilesJson["tiles"]) {
                     std::string nom = t["nom"];
                     char symb = std::string(t["symbole"])[0];
                     if (symb == '#') continue; 
@@ -3788,8 +3783,8 @@ void InterfaceManager::renderGame() {
 
 void InterfaceManager::loadTextures() {
     // 1. Textures des tuiles de terrain
-    if (_espaceJson.contains("tiles")) {
-        for (auto& t : _espaceJson["tiles"]) {
+    if (_tuilesJson.contains("tiles")) {
+        for (auto& t : _tuilesJson["tiles"]) {
             std::string texturePath = t.value("texture", "");
             std::string symboleStr = t.value("symbole", "");
             if (!texturePath.empty() && !symboleStr.empty()) {

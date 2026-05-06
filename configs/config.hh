@@ -90,6 +90,9 @@ class GameConfig {
         int getActiveVictorySet() const { return _activeVictorySet; }
         void setActiveVictorySet(int index) { _activeVictorySet = index; }
 
+        const GameConfigFiles& getPaths() const { return _paths; }
+        void setPaths(const GameConfigFiles& p) { _paths = p; }
+
         int getPlateauX() const { return _plateauX; }
         int getPlateauY() const { return _plateauY; }
 

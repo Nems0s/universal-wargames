@@ -32,12 +32,11 @@ private:
     bool _gameConfigLocked = false;
 
     // configuration JSON
+    GameConfigFiles _paths;
+    
     json _rulesJson;
-    json _espaceJson;
+    json _tuilesJson;
     json _villesJson;
-    std::string _rulesPath = "configs/config_rules.json";
-    std::string _espacePath = "configs/config_espace.json";
-    std::string _villesPath = "configs/config_villes.json";
 
     // graphismes
     std::map<char, sf::Texture> _textures; // Terrain
