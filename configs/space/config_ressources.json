@@ -1,17 +1,14 @@
 {
     "ressources": [
-        {
-            "nom": "poussiereDEtoile",
-            "symbole": "PE"
-        },
-        {
-            "nom": "Or",
-            "symbole": "Or",
-            "icone": "assets/gold-icon.png"
-        },
-        {
-            "nom": "Fer",
-            "symbole": "Fe"
-        }
+        { "nom": "Credits", "symbole": "Cr", "icone": "assets/icons/credits.png" },
+        { "nom": "Biomasse", "symbole": "Bio", "icone": "assets/icons/biomass.png" },
+        { "nom": "Metaux_Lourds", "symbole": "Met", "icone": "assets/icons/heavy_metals.png" },
+        { "nom": "Titane", "symbole": "Ti", "icone": "assets/icons/titanium.png" },
+        { "nom": "Uranium", "symbole": "U", "icone": "assets/icons/uranium.png" },
+        { "nom": "Tritium", "symbole": "H3", "icone": "assets/icons/tritium.png" },
+        { "nom": "Helium3", "symbole": "He", "icone": "assets/icons/helium3.png" },
+        { "nom": "Poussiere_Stellaire", "symbole": "Ps", "icone": "assets/icons/stardust.png" },
+        { "nom": "Matiere_Noire", "symbole": "Mn", "icone": "assets/icons/dark_matter.png" },
+        { "nom": "Influence", "symbole": "Inf", "icone": "assets/icons/influence.png" }
     ]
 }

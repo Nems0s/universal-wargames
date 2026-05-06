@@ -1,28 +1,36 @@
 {
   "victory_set": [
     {
-      "name": "Victoire économique",
+      "name": "Monopole Galactique (Victoire Économique)",
       "mode": "all",
       "conditions": [
-        { "type": "resource_threshold", "target": "Or", "amount": 100000 },
-        { "type": "city_count", "amount": 1 }
+        { "type": "resource_threshold", "target": "Credits", "amount": 200000 },
+        { "type": "resource_threshold", "target": "Titane", "amount": 15000 },
+        { "type": "city_count", "amount": 5 }
       ]
     },
     {
-      "name": "Victoire militaire",
+      "name": "Suprématie Stellaire (Victoire Militaire)",
       "mode": "any",
       "conditions": [
-        { "type": "city_count", "amount": 10 },
-        { "type": "unit_count", "amount": 50 }
+        { "type": "city_count", "amount": 20 },
+        { "type": "unit_count", "amount": 100 }
       ]
     },
     {
-      "name": "Victoire par Conquete",
+      "name": "Éradication (Victoire par Conquête)",
       "mode": "all",
       "conditions": [
         { "type": "capital_conquest" }
       ]
+    },
+    {
+      "name": "Ascension Quantique (Victoire Technologique)",
+      "mode": "all",
+      "conditions": [
+        { "type": "resource_threshold", "target": "Matiere_Noire", "amount": 1000 },
+        { "type": "resource_threshold", "target": "Influence", "amount": 50000 }
+      ]
     }
-
   ]
 }

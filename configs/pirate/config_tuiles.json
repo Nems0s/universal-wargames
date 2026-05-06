@@ -1,21 +1,58 @@
 {
-    "generation_map": {
-        "mode": "perlin", "seed_offset": 0, "perlin_scale": 0.08, "octaves": 5, "lacunarity": 2.0, "persistence": 0.5, "redistribution": 1.5, "inversion": false,
-        "seuils_perlin": { "O": 0.20, "~": 0.35, "C": 0.45, "R": 0.50, "B": 0.53, "m": 0.56, "s": 0.60, "p": 0.65, "f": 0.75, "J": 0.85, "c": 0.92, "M": 0.98, "V": 1.0 }
+    "default_setup": {
+        "mode": "perlin",
+        "preset": "ARCHIPEL (Équilibré)"
     },
+
+    "presets_perlin": {
+        "ARCHIPEL (Équilibré)": {
+            "inversion": false,
+            "lacunarity": 2.0,
+            "octaves": 5,
+            "perlin_scale": 0.08,
+            "persistence": 0.5,
+            "redistribution": 1.5,
+            "seuils": { "O": 0.15, "~": 0.35, "C": 0.45, "R": 0.50, "B": 0.55, "m": 0.58, "s": 0.63, "p": 0.70, "f": 0.80, "J": 0.88, "V": 1.0 }
+        },
+        "ATOLLS (Éparpillés)": {
+            "inversion": false,
+            "lacunarity": 2.2,
+            "octaves": 3,
+            "perlin_scale": 0.18,
+            "persistence": 0.35,
+            "redistribution": 3.0,
+            "seuils": { "O": 0.05, "~": 0.45, "C": 0.55, "R": 0.65, "B": 0.75, "s": 0.80, "p": 0.85, "m": 0.90, "f": 0.95, "V": 1.0 }
+        },
+        "GRANDS CONTINENTS (Massif)": {
+            "inversion": false,
+            "lacunarity": 1.8,
+            "octaves": 6,
+            "perlin_scale": 0.04,
+            "persistence": 0.55,
+            "redistribution": 1.1,
+            "seuils": { "O": 0.05, "~": 0.15, "C": 0.20, "s": 0.25, "p": 0.45, "f": 0.60, "J": 0.75, "c": 0.85, "M": 0.95, "V": 1.0 }
+        }
+    },
+
+    "presets_random": {
+        "ARCHIPEL (Équilibré)": { "O": 10, "~": 30, "C": 10, "R": 15, "B": 10, "m": 10, "s": 15, "p": 20, "f": 25, "J": 20, "c": 15, "M": 10, "V": 2 },
+        "ATOLLS (Éparpillés)":  { "O": 15, "~": 45, "C": 15, "R": 30, "B": 25, "m": 5, "s": 25, "p": 10, "f": 5, "J": 2, "c": 1, "M": 0, "V": 0 },
+        "GRANDS CONTINENTS (Massif)": { "O": 5, "~": 15, "C": 5, "R": 5, "B": 5, "m": 15, "s": 10, "p": 25, "f": 35, "J": 30, "c": 20, "M": 15, "V": 4 }
+    },
+    
     "tiles": [
-        { "nom": "Fosse Océanique", "symbole": "O", "cout": 1, "constructible": false, "mouv": {"marche": false, "nage": true, "aerien": true}, "gen": {"poids": 10, "nbMin": 0}, "env": {"temperature": 0.1, "radiation": 0, "gravite": 1}, "ressources": [], "properties": {"danger_kraken": 0.05} },
-        { "nom": "Mer Profonde", "symbole": "~", "cout": 1, "constructible": false, "mouv": {"marche": false, "nage": true, "aerien": true}, "gen": {"poids": 30, "nbMin": 0}, "env": {"temperature": 0.2, "radiation": 0, "gravite": 1}, "ressources": ["Baleine"], "properties": {} },
-        { "nom": "Courants Forts", "symbole": "C", "cout": 0, "constructible": false, "mouv": {"marche": false, "nage": true, "aerien": true}, "gen": {"poids": 10, "nbMin": 0}, "env": {"temperature": 0.3, "radiation": 0, "gravite": 1}, "ressources": [], "properties": {"bonus_vitesse": 2.0} },
-        { "nom": "Récifs Coralliens", "symbole": "R", "cout": 3, "constructible": false, "mouv": {"marche": false, "nage": true, "aerien": true}, "gen": {"poids": 15, "nbMin": 0}, "env": {"temperature": 0.4, "radiation": 0, "gravite": 1}, "ressources": ["Poisson"], "properties": {"degats_echouement": 15} },
-        { "nom": "Bancs de Sable", "symbole": "B", "cout": 2, "constructible": false, "mouv": {"marche": false, "nage": true, "aerien": true}, "gen": {"poids": 10, "nbMin": 0}, "env": {"temperature": 0.5, "radiation": 0, "gravite": 1}, "ressources": [], "properties": {"bloque_navires_lourds": true} },
-        { "nom": "Mangrove", "symbole": "m", "cout": 3, "constructible": false, "mouv": {"marche": true, "nage": true, "aerien": true}, "gen": {"poids": 10, "nbMin": 0}, "env": {"temperature": 0.6, "radiation": 0, "gravite": 1}, "ressources": ["Bois_Exotique"], "properties": {"furtivite": true} },
-        { "nom": "Plage", "symbole": "s", "cout": 1, "constructible": true, "mouv": {"marche": true, "nage": true, "aerien": true}, "gen": {"poids": 15, "nbMin": 1}, "env": {"temperature": 0.6, "radiation": 0, "gravite": 1}, "ressources": ["Sable"], "properties": {"spawn_capitale": 1.0} },
-        { "nom": "Plaine Côtière", "symbole": "p", "cout": 1, "constructible": true, "mouv": {"marche": true, "nage": false, "aerien": true}, "gen": {"poids": 20, "nbMin": 3}, "env": {"temperature": 0.7, "radiation": 0, "gravite": 1}, "ressources": ["Sucre"], "properties": {"fertilite": 1.5} },
-        { "nom": "Forêt Tropicale", "symbole": "f", "cout": 2, "constructible": true, "mouv": {"marche": true, "nage": false, "aerien": true}, "gen": {"poids": 25, "nbMin": 2}, "env": {"temperature": 0.7, "radiation": 0, "gravite": 1}, "ressources": ["Bois"], "properties": {"fertilite": 1.0, "defense_bonus": 0.2} },
-        { "nom": "Jungle Dense", "symbole": "J", "cout": 3, "constructible": true, "mouv": {"marche": true, "nage": false, "aerien": true}, "gen": {"poids": 20, "nbMin": 1}, "env": {"temperature": 0.8, "radiation": 0, "gravite": 1}, "ressources": ["Herbes_Medicinales", "Bois"], "properties": {"fertilite": 0.8, "defense_bonus": 0.4} },
-        { "nom": "Collines", "symbole": "c", "cout": 2, "constructible": true, "mouv": {"marche": true, "nage": false, "aerien": true}, "gen": {"poids": 15, "nbMin": 0}, "env": {"temperature": 0.6, "radiation": 0, "gravite": 1}, "ressources": ["Fer", "Pierre"], "properties": {"bonus_vision": 2} },
-        { "nom": "Montagne", "symbole": "M", "cout": 4, "constructible": false, "mouv": {"marche": true, "nage": false, "aerien": true}, "gen": {"poids": 10, "nbMin": 0}, "env": {"temperature": 0.4, "radiation": 0, "gravite": 1}, "ressources": ["Or", "Pierre"], "properties": {"bonus_vision": 4, "infranchissable_unites_lourdes": true} },
-        { "nom": "Volcan", "symbole": "V", "cout": 99, "constructible": false, "mouv": {"marche": false, "nage": false, "aerien": false}, "gen": {"poids": 2, "nbMin": 0}, "env": {"temperature": 1.0, "radiation": 0, "gravite": 1}, "ressources": ["Soufre"], "properties": {"eruption_proba": 0.1, "rayon_activate": 3.0} }
+        { "symbole": "O", "nom": "Fosse Océanique", "constructible": false, "cout": 1, "mouv": {"aerien": true, "marche": false, "nage": true}, "gen": {"nbMin": 0, "poids": 10}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.1}, "properties": {"danger_kraken": 0.05}, "ressources": [], "couleur_minimap": [0,0,100] },
+        { "symbole": "~", "nom": "Mer Profonde", "constructible": false, "cout": 1, "mouv": {"aerien": true, "marche": false, "nage": true}, "gen": {"nbMin": 0, "poids": 30}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.2}, "properties": {}, "ressources": ["Baleine"], "couleur_minimap": [20,80,180] },
+        { "symbole": "C", "nom": "Courants Forts", "constructible": false, "cout": 0, "mouv": {"aerien": true, "marche": false, "nage": true}, "gen": {"nbMin": 0, "poids": 10}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.3}, "properties": {"bonus_vitesse": 2.0}, "ressources": [], "couleur_minimap": [0,180,220] },
+        { "symbole": "R", "nom": "Récifs Coralliens", "constructible": false, "cout": 3, "mouv": {"aerien": true, "marche": false, "nage": true}, "gen": {"nbMin": 0, "poids": 15}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.4}, "properties": {"degats_echouement": 15}, "ressources": ["Poisson"], "couleur_minimap": [64,224,208] },
+        { "symbole": "B", "nom": "Bancs de Sable", "constructible": false, "cout": 2, "mouv": {"aerien": true, "marche": false, "nage": true}, "gen": {"nbMin": 0, "poids": 10}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.5}, "properties": {"bloque_navires_lourds": true}, "ressources": [], "couleur_minimap": [210,180,140] },
+        { "symbole": "m", "nom": "Mangrove", "constructible": false, "cout": 3, "mouv": {"aerien": true, "marche": true, "nage": true}, "gen": {"nbMin": 0, "poids": 10}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.6}, "properties": {"furtivite": true}, "ressources": ["Bois_Exotique"], "couleur_minimap": [85,107,47] },
+        { "symbole": "s", "nom": "Plage", "constructible": true, "cout": 1, "mouv": {"aerien": true, "marche": true, "nage": true}, "gen": {"nbMin": 1, "poids": 15}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.6}, "properties": {"spawn_capitale": 1.0}, "ressources": ["Sable"], "couleur_minimap": [244,220,150] },
+        { "symbole": "p", "nom": "Plaine Côtière", "constructible": true, "cout": 1, "mouv": {"aerien": true, "marche": true, "nage": false}, "gen": {"nbMin": 3, "poids": 20}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.7}, "properties": {"fertilite": 1.5}, "ressources": ["Sucre"], "couleur_minimap": [144,238,144] },
+        { "symbole": "f", "nom": "Forêt Tropicale", "constructible": true, "cout": 2, "mouv": {"aerien": true, "marche": true, "nage": false}, "gen": {"nbMin": 2, "poids": 25}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.7}, "properties": {"defense_bonus": 0.2, "fertilite": 1.0}, "ressources": ["Bois"], "couleur_minimap": [34,139,34] },
+        { "symbole": "J", "nom": "Jungle Dense", "constructible": true, "cout": 3, "mouv": {"aerien": true, "marche": true, "nage": false}, "gen": {"nbMin": 1, "poids": 20}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.8}, "properties": {"defense_bonus": 0.4, "fertilite": 0.8}, "ressources": ["Herbes_Medicinales", "Bois"], "couleur_minimap": [0,80,0] },
+        { "symbole": "c", "nom": "Collines", "constructible": true, "cout": 2, "mouv": {"aerien": true, "marche": true, "nage": false}, "gen": {"nbMin": 0, "poids": 15}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.6}, "properties": {"bonus_vision": 2}, "ressources": ["Fer", "Pierre"], "couleur_minimap": [180,160,100] },
+        { "symbole": "M", "nom": "Montagne", "constructible": false, "cout": 4, "mouv": {"aerien": true, "marche": true, "nage": false}, "gen": {"nbMin": 0, "poids": 10}, "env": {"gravite": 1, "radiation": 0, "temperature": 0.4}, "properties": {"bonus_vision": 4, "infranchissable_unites_lourdes": true}, "ressources": ["Or", "Pierre"], "couleur_minimap": [120,120,120] },
+        { "symbole": "V", "nom": "Volcan", "constructible": false, "cout": 99, "mouv": {"aerien": false, "marche": false, "nage": false}, "gen": {"nbMin": 0, "poids": 2}, "env": {"gravite": 1, "radiation": 0, "temperature": 1.0}, "properties": {"eruption_proba": 0.1, "rayon_activate": 3.0}, "ressources": ["Soufre"], "couleur_minimap": [200,40,20] }
     ]
 }

@@ -1,28 +1,14 @@
 {
     "batiments": [
-        {
-            "nom": "ExtracteurEtoile",
-            "symbole": "L",
-            "cout": {
-                "Or": 10,
-                "Fer": 5
-            },
-            "production": [
-                { "ressource": "poussiereDEtoile", "quantite": 10 },
-                { "ressource": "Energie", "quantite": 2 }
-            ],
-            "ressources_sol_requises": ["poussiereDEtoile"],
-            "texture": "assets/extractor.png"
-        },
-        {
-            "nom": "Muraille",
-            "symbole": "M",
-            "cout": { 
-                "Or": 15 
-            },
-            "production": [],
-            "ressources_sol_requises": [],
-            "texture": ""
-        }
+        { "nom": "Ferme Hydroponique", "symbole": "F", "cout": {"Credits": 50, "Metaux_Lourds": 20}, "production": [{"ressource": "Biomasse", "quantite": 15}], "ressources_sol_requises": [] },
+        { "nom": "Raffinerie de Métaux", "symbole": "R", "cout": {"Credits": 80}, "production": [{"ressource": "Metaux_Lourds", "quantite": 20}], "ressources_sol_requises": ["Metaux_Lourds"] },
+        { "nom": "Extracteur de Titane", "symbole": "T", "cout": {"Credits": 150, "Metaux_Lourds": 50}, "production": [{"ressource": "Titane", "quantite": 10}], "ressources_sol_requises": ["Titane"] },
+        { "nom": "Mine d'Astéroïdes", "symbole": "A", "cout": {"Credits": 200, "Titane": 50}, "production": [{"ressource": "Metaux_Lourds", "quantite": 15}, {"ressource": "Titane", "quantite": 5}], "ressources_sol_requises": ["Metaux_Lourds"] },
+        { "nom": "Collecteur Atmosphérique", "symbole": "C", "cout": {"Credits": 250, "Titane": 100}, "production": [{"ressource": "Tritium", "quantite": 10}], "ressources_sol_requises": ["Tritium"] },
+        { "nom": "Centrale à Fission", "symbole": "U", "cout": {"Credits": 300, "Titane": 100}, "production": [{"ressource": "Credits", "quantite": 50}], "ressources_sol_requises": ["Uranium"] },
+        { "nom": "Laboratoire Quantique", "symbole": "Q", "cout": {"Credits": 500, "Titane": 200, "Tritium": 50}, "production": [{"ressource": "Influence", "quantite": 10}], "ressources_sol_requises": [] },
+        { "nom": "Siphon d'Étoile", "symbole": "S", "cout": {"Credits": 1000, "Titane": 500}, "production": [{"ressource": "Poussiere_Stellaire", "quantite": 25}, {"ressource": "Matiere_Noire", "quantite": 5}], "ressources_sol_requises": ["Matiere_Noire"] },
+        { "nom": "Chantier Naval Orbital", "symbole": "O", "cout": {"Credits": 400, "Metaux_Lourds": 300, "Titane": 100}, "production": [], "ressources_sol_requises": [], "comportements": [{"type": "ReparationNavale", "soin": 50, "rayon": 1}] },
+        { "nom": "Batterie de Défense Planétaire", "symbole": "D", "cout": {"Credits": 350, "Titane": 150, "Uranium": 20}, "production": [], "ressources_sol_requises": [], "comportements": [{"type": "AttaqueDistance", "degats": 120, "portee": 4, "cooldown": 1}] }
     ]
 }

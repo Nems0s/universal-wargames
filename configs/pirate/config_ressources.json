@@ -1,14 +1,14 @@
 {
     "ressources": [
         { "nom": "Or", "symbole": "Or", "icone": "assets/icons/gold.png" },
-        { "nom": "Pieces_Antiques", "symbole": "Pa", "type": "assets/icons/antique_coin.png" },
+        { "nom": "Pieces_Antiques", "symbole": "Pa", "icone": "assets/icons/antique_coin.png" },
         { "nom": "Nourriture", "symbole": "No", "icone": "assets/icons/food.png" },
         { "nom": "Bois", "symbole": "Bo", "icone": "assets/icons/wood.png" },
         { "nom": "Bois_Exotique", "symbole": "Bx", "icone": "assets/icons/wood_exotic.png" },
         { "nom": "Planches", "symbole": "Pl", "icone": "assets/icons/plank.png" },
         { "nom": "Pierre", "symbole": "Pi", "icone": "assets/icons/stone.png" },
         { "nom": "Fer", "symbole": "Fe", "icone": "assets/icons/iron.png" },
-        { "nom": "Acier", "symbole": "Ac", "type": "assets/icons/steel.png" },
+        { "nom": "Acier", "symbole": "Ac", "icone": "assets/icons/steel.png" },
         { "nom": "Toile", "symbole": "To", "icone": "assets/icons/canvas.png" },
         { "nom": "Soufre", "symbole": "So", "icone": "assets/icons/sulfur.png" },
         { "nom": "Poudre", "symbole": "Po", "icone": "assets/icons/gunpowder.png" },
@@ -22,7 +22,7 @@
         { "nom": "Kits_Medicaux", "symbole": "Km", "icone": "assets/icons/medkit.png" },
         { "nom": "Baleine", "symbole": "Ba", "icone": "assets/icons/whale.png" },
         { "nom": "Artefact", "symbole": "Ar", "icone": "assets/icons/artefact.png" },
-        { "nom": "Mana", "symbole": "Ma" },
-        { "nom": "Moral", "symbole": "Mo" }
+        { "nom": "Mana", "symbole": "Ma", "icone": "assets/icons/mana.png" },
+        { "nom": "Moral", "symbole": "Mo", "icone": "assets/icons/moral.png" }
     ]
 }

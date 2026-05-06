@@ -1,121 +1,12 @@
 {
     "unites": [
-        {
-            "nom": "Commandant Allie",
-            "hp": 150, "action": 2, "poids": "Moyen", "rank": "Commandant", "max_unites": 5, "symbole": "C",
-            "cout": { "Or": 100, "Fer": 50 },
-            "cout_entretien": { "Or": 5 },
-            "vision": 4, "fov": 120,
-            "buff_commandant": [{ "type": "BonusDegat", "multiplicateur": 15 }],
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 2 },
-                { "type": "AttaqueMelee", "degats": 35 }
-            ]
-        },
-        {
-            "nom": "Sniper",
-            "hp": 80, "action": 2, "poids": "Leger", "rank": "Regulier", "symbole": "S",
-            "cout": { "Or": 70, "Fer": 10 },
-            "cout_entretien": { "Or": 2 },
-            "vision": 8, "fov": 60,
-            "capacite_stockage": { "Munitions": 5 },
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
-                { 
-                    "type": "AttaqueDistance", 
-                    "degats": 60, "portee": 7, "portee_mini": 3, 
-                    "cout_par_action": { "Munitions": 1 },
-                    "cooldown": 1 
-                },
-                { "type": "SpecialFurtif", "duree": 2, "cooldown": 4 }
-            ]
-        },
-        {
-            "nom": "Tank de Garde",
-            "hp": 250, "action": 1, "poids": "Lourd", "rank": "Regulier", "symbole": "T",
-            "cout": { "Or": 80, "Fer": 120 },
-            "cout_entretien": { "Fer": 5 },
-            "vision": 3, "fov": 90,
-            "capacite_stockage": { "Obus": 8, "Carburant": 20 },
-            "comportements": [
-                { 
-                    "type": "MouvementTerrestre", 
-                    "mouvement_par_tour": 2, 
-                    "cout_par_action": { "Carburant": 2 } 
-                },
-                { 
-                    "type": "AttaqueMelee", 
-                    "degats": 45, 
-                    "cout_par_action": { "Obus": 1 } 
-                },
-                { "type": "DefenseArmure", "reduction": 15 }
-            ]
-        },
-        {
-            "nom": "Infanterie d'Elite",
-            "hp": 120, "action": 2, "poids": "Moyen", "rank": "Regulier", "symbole": "E",
-            "cout": { "Or": 60 },
-            "cout_entretien": { "Or": 1 },
-            "vision": 4, "fov": 100,
-            "capacite_stockage": { "Munitions": 15 },
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
-                { "type": "AttaqueMelee", "degats": 40, "cout_par_action": { "Munitions": 2 } },
-                { "type": "DefenseArmure", "reduction": 5 }
-            ]
-        },
-        {
-            "nom": "Medecin",
-            "hp": 90, "action": 3, "poids": "Moyen", "rank": "Regulier", "symbole": "M",
-            "cout": { "Or": 60 },
-            "cout_entretien": { "Or": 1 },
-            "vision": 4, "fov": 120,
-            "capacite_stockage": { "Medicaments": 10 },
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { 
-                    "type": "SoinDirect", 
-                    "soin": 35, "portee": 2, "rayon": 1, 
-                    "cout_par_action": { "Medicaments": 2 },
-                    "cooldown": 1 
-                }
-            ]
-        },
-        {
-            "nom": "Pretre de Guerre",
-            "hp": 110, "action": 2, "poids": "Moyen", "rank": "Regulier", "symbole": "P",
-            "cout": { "Or": 90 },
-            "cout_entretien": { "Or": 1 },
-            "vision": 5, "fov": 140,
-            "capacite_stockage": { "Mana": 50 },
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 2 },
-                { 
-                    "type": "SoinIndirect", 
-                    "soin": 20, "portee": 3, "tour_regeneration": 3, 
-                    "cout_par_action": { "Mana": 15 },
-                    "cooldown": 2 
-                },
-                { "type": "DefenseBouclier", "nombre_bouclier": 1 }
-            ]
-        },
-        {
-            "nom": "Gros Tank",
-            "hp": 400, "action": 1, "poids": "Lourd", "rank": "Regulier", "symbole": "G",
-            "cout": { "Or": 200, "Fer": 250 },
-            "cout_entretien": { "Fer": 10 },
-            "vision": 4, "fov": 80,
-            "capacite_stockage": { "Obus_Lourds": 5, "Carburant": 15 },
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 1, "cout_par_action": { "Carburant": 5 } },
-                { 
-                    "type": "AttaqueDistance", 
-                    "degats": 80, "portee": 5, "portee_mini": 1, 
-                    "cout_par_action": { "Obus_Lourds": 1 },
-                    "cooldown": 2 
-                },
-                { "type": "DefenseBouclier", "nombre_bouclier": 2 }
-            ]
-        }
+        { "nom": "Sonde Autonome", "hp": 50, "action": 3, "poids": "Leger", "rank": "Scout", "cout": {"Credits": 50, "Metaux_Lourds": 20}, "cout_entretien": {"Credits": 1}, "vision": 8, "fov": 360, "comportements": [{"type": "MouvementNaval", "mouvement_par_tour": 6}, {"type": "AttaqueDistance", "degats": 10, "portee": 2}] },
+        { "nom": "Chasseur Léger", "hp": 120, "action": 2, "poids": "Leger", "rank": "Regulier", "cout": {"Credits": 150, "Titane": 20}, "cout_entretien": {"Credits": 3}, "vision": 5, "fov": 180, "capacite_stockage": {"Tritium": 10}, "comportements": [{"type": "MouvementNaval", "mouvement_par_tour": 5}, {"type": "AttaqueDistance", "degats": 45, "portee": 3}] },
+        { "nom": "Frégate d'Escorte", "hp": 400, "action": 2, "poids": "Moyen", "rank": "Regulier", "cout": {"Credits": 400, "Titane": 100, "Uranium": 10}, "cout_entretien": {"Credits": 8, "Tritium": 2}, "vision": 6, "fov": 180, "capacite_stockage": {"Tritium": 30}, "comportements": [{"type": "MouvementNaval", "mouvement_par_tour": 4}, {"type": "AttaqueDistance", "degats": 80, "portee": 4}, {"type": "DefenseBouclier", "nombre_bouclier": 1}] },
+        { "nom": "Croiseur Lourd", "hp": 900, "action": 2, "poids": "Lourd", "rank": "Elite", "cout": {"Credits": 900, "Titane": 300, "Uranium": 40}, "cout_entretien": {"Credits": 15, "Tritium": 5}, "vision": 7, "fov": 120, "capacite_stockage": {"Tritium": 60}, "comportements": [{"type": "MouvementNaval", "mouvement_par_tour": 3}, {"type": "AttaqueDistance", "degats": 150, "portee": 5}, {"type": "DefenseArmure", "reduction": 20}] },
+        { "nom": "Cuirassé Stellaire", "hp": 2500, "action": 1, "poids": "TresLourd", "rank": "Elite", "cout": {"Credits": 2500, "Titane": 800, "Uranium": 150, "Matiere_Noire": 10}, "cout_entretien": {"Credits": 30, "Tritium": 10}, "vision": 6, "fov": 90, "comportements": [{"type": "MouvementNaval", "mouvement_par_tour": 2}, {"type": "AttaqueSiege", "degats": 350, "portee": 6, "degats_batiments_multiplicateur": 2.0}, {"type": "DefenseBouclier", "nombre_bouclier": 3}] },
+        { "nom": "Vaisseau de Colonisation", "hp": 300, "action": 2, "poids": "Moyen", "rank": "Soutien", "cout": {"Credits": 800, "Biomasse": 500}, "cout_entretien": {"Credits": 5}, "vision": 5, "fov": 360, "comportements": [{"type": "MouvementNaval", "mouvement_par_tour": 3}, {"type": "TransportTroupe", "capacite": 1}] },
+        
+        { "nom": "Amiral Terrien", "hp": 500, "action": 2, "poids": "Moyen", "rank": "Heros", "max_unites": 1, "cout": {"Credits": 3000, "Influence": 50}, "cout_entretien": {"Credits": 25}, "vision": 8, "fov": 360, "buff_commandant": [{"type": "BonusDegat", "multiplicateur": 20}, {"type": "BonusPorteeNavale", "points": 1}], "comportements": [{"type": "MouvementNaval", "mouvement_par_tour": 4}, {"type": "AttaqueDistance", "degats": 100, "portee": 5}] }
     ]
 }
