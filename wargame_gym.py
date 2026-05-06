@@ -26,125 +26,6 @@ class SpaceWargamesEnv(gym.Env):
         configs.unitesPath = "configs/pirate/config_unites.json"
         configs.tuilesPath = "configs/pirate/config_tuiles.json"
         self.moteur.chargerConfiguration(configs)
-
-        # --- ARCHITECTURE DES DIMENSIONS ---
-        self.CHANNELS = 8          # Nombre de couches renvoyées par le C++
-        self.MAX_MAP_SIZE = 100    # Limite technique absolue gérée
-        self.WINDOW_SIZE = 30      # La "Caméra" de l'IA (Vision Haute Définition)
-        self.MINIMAP_SIZE = 20     # La "Minimap" (Vision Globale dézoomée)
-
-        # Coordonnées de la caméra
-        self.cam_x = 0
-        self.cam_y = 0
-        
-        # --- ACTION SPACE ---
-        # 0-14: Commandes Jeu | 15: Caméra Nord | 16: Sud | 17: Est | 18: Ouest
-        self.action_space = spaces.MultiDiscrete([
-            19,                 # Action ou Déplacement Caméra
-            self.WINDOW_SIZE,   # Coord X source (relative à la caméra)
-            self.WINDOW_SIZE,   # Coord Y source
-            self.WINDOW_SIZE,   # Coord X cible
-            self.WINDOW_SIZE    # Coord Y cible
-        ])
-
-        # --- OBSERVATION SPACE (MULTI-INPUT) ---
-        # L'IA reçoit un dictionnaire avec 3 entrées distinctes. PPO utilisera un MultiInputPolicy.
-        self.observation_space = spaces.Dict({
-            "camera": spaces.Box(low=-2.0, high=2.0, shape=(self.CHANNELS, self.WINDOW_SIZE, self.WINDOW_SIZE), dtype=np.float32),
-            "minimap": spaces.Box(low=-2.0, high=2.0, shape=(self.CHANNELS, self.MINIMAP_SIZE, self.MINIMAP_SIZE), dtype=np.float32),
-            "cam_pos": spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32) # Position X, Y normalisée
-        })
-
-        self.nb_tours_joues = 0
-        self.noms_joueurs = ["IA_Agent", "Adversaire_Bot"]
-        self.compteur_erreurs = 0
-        self.tuiles_explorees = 0
-
-    def set_model(self, model):
-        """Permet de brancher le cerveau pour que l'ennemi s'en serve"""
-        self.model = model
-
-    def _get_obs_dict(self, pIdx, cam_x, cam_y):
-        """Fonction centrale : Extrait la caméra et la minimap depuis le C++"""
-        # 1. Récupération de la matrice globale aplatie depuis C++
-        flat_obs = self.moteur.get_state_ai(pIdx)
-        map_w = self.moteur.getLogicConfig().getPlateauX()
-        map_h = self.moteur.getLogicConfig().getPlateauY()
-        
-        # 2. Reshape en vraie carte 3D (Channels, X, Y)
-        full_obs = np.array(flat_obs, dtype=np.float32).reshape(self.CHANNELS, map_w, map_h)
-        
-        # 3. Création de la Caméra (Local View) avec du padding (remplissage) si bord de carte
-        camera_obs = np.full((self.CHANNELS, self.WINDOW_SIZE, self.WINDOW_SIZE), -1.0, dtype=np.float32)
-        slice_w = min(self.WINDOW_SIZE, map_w - cam_x)
-        slice_h = min(self.WINDOW_SIZE, map_h - cam_y)
-        
-        if slice_w > 0 and slice_h > 0:
-            camera_obs[:, :slice_w, :slice_h] = full_obs[:, cam_x:cam_x+slice_w, cam_y:cam_y+slice_h]
-            
-        # 4. Création de la Minimap (Global View) par sous-échantillonnage (Stride)
-        # On projette la carte réelle dans un carré fixe de MINIMAP_SIZE x MINIMAP_SIZE
-        global_padded = np.full((self.CHANNELS, self.MAX_MAP_SIZE, self.MAX_MAP_SIZE), -1.0, dtype=np.float32)
-        global_padded[:, :map_w, :map_h] = full_obs
-        
-        stride = self.MAX_MAP_SIZE // self.MINIMAP_SIZE # Ex: 100 // 20 = 5. On prend 1 pixel sur 5.
-        minimap_obs = global_padded[:, ::stride, ::stride]
-        
-        # 5. Position de la caméra (pour situer le regard sur la minimap)
-        pos_obs = np.array([cam_x / self.MAX_MAP_SIZE, cam_y / self.MAX_MAP_SIZE], dtype=np.float32)
-        
-        return {
-            "camera": camera_obs,
-            "minimap": minimap_obs,
-            "cam_pos": pos_obs
-        }
-
-    def reset(self, seed=None, options=None):
-        super().reset(seed=seed)
-        game_seed = seed if seed is not None else np.random.randint(0, 10000)
-        
-        # Init C++
-        self.moteur.initGame(game_seed, self.noms_joueurs, ["Pirates", "Pirates"])
-        self.moteur.setActiveVictorySet(2) 
-        
-        # Reset variables Python
-        self.nb_tours_joues = 0
-        self.compteur_erreurs = 0
-        self.cam_x, self.cam_y = 0, 0
-        
-        # On calcule le nombre initial de tuiles explorées
-        obs_dict = self._get_obs_dict(0, self.cam_x, self.cam_y)
-        self.tuiles_explorees = np.sum(obs_dict["minimap"][0] == 1.0)
-        
-        return obs_dict, {"tour": 0}
-
-    import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), 'build'))
-import wargame_env
-
-class SpaceWargamesEnv(gym.Env):
-    metadata = {"render_modes": ["console"]}
-
-    def __init__(self, render_mode=None):
-        super().__init__()
-        self.render_mode = render_mode
-        self.moteur = wargame_env.MoteurDeJeu()
-        
-        # --- CHARGEMENT CONFIGURATION ---
-        configs = wargame_env.GameConfigFiles()
-        configs.rulesPath = "configs/pirate/config_rules.json"
-        configs.ressourcesPath = "configs/pirate/config_ressources.json"
-        configs.batimentsPath = "configs/pirate/config_batiments.json"
-        configs.villesPath = "configs/pirate/config_villes.json"
-        configs.winsPath = "configs/pirate/config_wins.json"
-        configs.unitesPath = "configs/pirate/config_unites.json"
-        configs.tuilesPath = "configs/pirate/config_tuiles.json"
-        self.moteur.chargerConfiguration(configs)
         
         # --- ARCHITECTURE DES DIMENSIONS ---
         self.CHANNELS = 8          # Nombre de couches renvoyées par le C++
@@ -183,14 +64,23 @@ class SpaceWargamesEnv(gym.Env):
         """Permet d'activer le Self-Play"""
         self.model = model
 
+    def load_adversary(self, model_path):
+        """Les processus clones chargent l'ennemi sur leur propre CPU"""
+        from stable_baselines3 import PPO
+        import os
+        
+        # On vérifie si l'ancien cerveau existe
+        if os.path.exists(model_path + ".zip"):
+            # CRUCIAL : L'adversaire est forcé sur le CPU pour laisser le GPU libre !
+            self.model = PPO.load(model_path, device="cpu")
+        else:
+            self.model = None # S'il n'y a pas de sauvegarde, l'ennemi passera son tour
+
     def _get_obs_dict(self, pIdx, cam_x, cam_y):
-        """Fonction centrale : Extrait la caméra et la minimap depuis le C++"""
-        # Récupération de la matrice globale aplatie depuis C++
         flat_obs = self.moteur.get_state_ai(pIdx)
         map_w = self.moteur.getLogicConfig().getPlateauX()
         map_h = self.moteur.getLogicConfig().getPlateauY()
         
-        # Reshape en vraie carte 3D (Channels, X, Y)
         full_obs = np.array(flat_obs, dtype=np.float32).reshape(self.CHANNELS, map_w, map_h)
         
         # 1. CAMERA (Taille fixe WINDOW_SIZE x WINDOW_SIZE avec padding)
@@ -213,7 +103,11 @@ class SpaceWargamesEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        game_seed = seed if seed is not None else np.random.randint(0, 10000)
+        
+        if seed is not None:
+            game_seed = int(seed) % 100000 
+        else:
+            game_seed = int(np.random.randint(0, 10000))
         
         # Init C++
         self.moteur.initGame(game_seed, self.noms_joueurs, ["Pirates", "Pirates"])
