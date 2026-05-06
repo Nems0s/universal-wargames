@@ -73,3 +73,36 @@ clean:
 
 # Ajouter j suivi d'un nombre pour du multithreading
 # make gui -j4
+
+
+# --- Pour Debug --- #
+# which gdb
+# sudo apt install gdb
+# lancé via mode debug de vs code
+
+# fichier launch.json dans .vscode :
+# {
+#   "version": "0.2.0",
+#   "configurations": [
+#     {
+#       "name": "Debug Space Wargames",
+#       "type": "cppdbg",
+#       "request": "launch",
+#       "program": "${workspaceFolder}/bin/wargame_gui",
+#       "args": [],
+#       "stopAtEntry": false,
+#       "cwd": "${workspaceFolder}",
+#       "environment": [],
+#       "externalConsole": false,
+#       "MIMode": "gdb",
+#       "miDebuggerPath": "/usr/bin/gdb",
+#       "setupCommands": [
+#           {
+#               "description": "Arrêter sur les exceptions C++",
+#               "text": "catch throw",
+#               "ignoreFailures": false
+#           }
+#       ]
+#     }
+#   ]
+# }

@@ -148,6 +148,7 @@ private:
         bool dirty = true;
     };
     TerritoireCache _territoireCache;
+    std::vector<SegmentFrontiere> _frontieresCache;
     std::set<std::pair<int,int>> _casesAchetablesCache;
     bool _casesAchetablesDirty = true;
     
@@ -190,5 +191,7 @@ private:
     // Saves
     void refreshSaveList();
     void renderLoadMenu();
+
+    sf::Color getPlayerColor(int playerIndex) const;
 
 };

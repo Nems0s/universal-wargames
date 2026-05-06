@@ -117,6 +117,9 @@ void InterfaceManager::recalculerCachesSiNecessaire(int viewIndex) {
                 _territoireCache.vecParJoueur[p].end()
             };
         }
+
+        // Cache avec le calcul des frontières qu'une seule fois
+        _frontieresCache = _moteur.calculerFrontieres();
         
         // Le cache est maintenant à jour, on baisse le flag
         _territoireCache.dirty = false;
@@ -196,43 +199,21 @@ void InterfaceManager::saveConfig() {
         }
     };
 
-    saveJ(_paths.rulesPath, _rulesJson);
-    saveJ(_paths.villesPath, _villesJson);
-    saveJ(_paths.tuilesPath, _tuilesJson);
-
     nlohmann::json settingsJson;
     settingsJson["player_name"] = std::string(_playerNameBuffer);
     settingsJson["last_ip"] = std::string(_ipBuffer);
     settingsJson["port"] = _portBuffer;
     settingsJson["vsync"] = _vsync;
     settingsJson["fullscreen"] = _fullscreen;
+
+    std::filesystem::create_directories("saves");
     saveJ("saves/settings.json", settingsJson);
-    
-    if (!_gameConfigLocked) {
-        _moteur.chargerConfiguration(_paths); 
-    }
 }
 
 void InterfaceManager::initGame() {
     _gameConfigLocked = true;
     std::srand(_mapSeed);
     try {
-        _moteur.overrideWorldWeights(_customWeights);
-        
-        if (!_activePresetName.empty() && _tuilesJson.contains("presets_perlin") && _tuilesJson["presets_perlin"].contains(_activePresetName)) {
-            auto& presetData = _tuilesJson["presets_perlin"][_activePresetName];
-            if (presetData.contains("perlin_scale")) {
-                _moteur.overridePerlinParams(
-                    presetData.value("perlin_scale", 0.12f),
-                    presetData.value("octaves", 3),
-                    presetData.value("lacunarity", 2.0f),
-                    presetData.value("persistence", 0.3f),
-                    presetData.value("redistribution", 2.8f)
-                );
-            }
-        }
-
-
         std::vector<std::string> noms;
         for(int i = 0; i < _numPlayers; ++i) {
             noms.push_back(_connectedPlayers[i].name);
@@ -254,6 +235,23 @@ void InterfaceManager::initGame() {
         std::cerr << "ERREUR MOTEUR : " << e.what() << std::endl;
         _currentState = GameState::MENU;
     }
+}
+
+sf::Color InterfaceManager::getPlayerColor(int playerIndex) const {
+    static const std::vector<sf::Color> colors = {
+        sf::Color(80, 180, 255), // 0 : Bleu
+        sf::Color(255, 80, 80), // 1 : Rouge
+        sf::Color(80, 255, 80), // 2 : Vert
+        sf::Color(255, 200, 0), // 3 : Jaune
+        sf::Color(200, 100, 255), // 4 : Violet
+        sf::Color(255, 150, 50), // 5 : Orange
+        sf::Color(50, 255, 200), // 6 : Cyan
+        sf::Color(255, 100, 150) // 7 : Rose
+    };
+    
+    if (playerIndex < 0) return sf::Color(150, 150, 150);
+    
+    return colors[playerIndex % colors.size()]; 
 }
 
 void InterfaceManager::run() {
@@ -771,9 +769,12 @@ void InterfaceManager::renderOptions() {
                             std::string label = "##" + nomVille + it.key();
                             ImGui::SetNextItemWidth(80.0f);
                             
-                            if (ImGui::InputInt(label.c_str(), &qte, 1, 10)) {
-                                ville["cout_base"][it.key()] = qte;
-                            }
+                            // Pour modifier le fichier
+                            // if (ImGui::InputInt(label.c_str(), &qte, 1, 10)) {
+                            //     ville["cout_base"][it.key()] = qte;
+                            // }
+                            ImGui::Text("%d", qte);
+
                             ImGui::SameLine();
                             ImGui::Text("%s", it.key().c_str());
                             ImGui::SameLine(0.0f, 10.0f);
@@ -1040,34 +1041,51 @@ void InterfaceManager::renderMapConfig() {
     ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "SECTOR CONFIGURATION");
     ImGui::Separator();
 
+    // Sécurité Réseau : Désactivation si client
     bool isClient = (_network.getState() == NetworkState::CONNECTED && !_network.isHost());
     if (isClient) ImGui::BeginDisabled();
+
+    // Récupération de la factory (référence modifiable pour la customisation)[cite: 17]
+    WorldFactory& factory = _moteur.getWorldFactory();
+    std::string genMode = factory.getGenerationMode();
+    _activePresetName = factory.getActivePresetName();
 
     if (ImGui::BeginTable("MapSplit", 2)) {
         ImGui::TableSetupColumn("General", ImGuiTableColumnFlags_WidthFixed, 450.0f);
         ImGui::TableSetupColumn("Weights", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableNextRow(0);
+        ImGui::TableNextRow();
 
-        // Colonne gauche (paramètres généraux)
+        // =================================================================
+        // COLONNE GAUCHE : PARAMÈTRES GÉNÉRAUX ET PRESETS
+        // =================================================================
         ImGui::TableSetColumnIndex(0);
         ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "GENERAL SETTINGS");
 
-        // Taille de la carte
+        // --- Mode de Génération ---
+        if (ImGui::RadioButton("Perlin (Iles/Relief)", genMode == "perlin")) {
+            factory.setGenerationMode("perlin");
+            sendLobbySync();
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Random (Chaos)", genMode == "random")) {
+            factory.setGenerationMode("random");
+            sendLobbySync();
+        }
+
+        ImGui::Dummy(ImVec2(0, 5));
+
+        // --- Taille de la carte ---
         std::vector<std::string> sizesNames;
         const auto& tailles = _moteur.getLogicConfig().getTaillesDisponibles();
-
         int currentX = _moteur.getLogicConfig().getPlateauX();
         int currentY = _moteur.getLogicConfig().getPlateauY();
         int sizeIdx = 0;
 
         for (size_t i = 0; i < tailles.size(); ++i) {
             sizesNames.push_back(tailles[i].nom + " (" + std::to_string(tailles[i].x) + "x" + std::to_string(tailles[i].y) + ")");
-            if (tailles[i].x == currentX && tailles[i].y == currentY) {
-                sizeIdx = i;
-            }
+            if (tailles[i].x == currentX && tailles[i].y == currentY) sizeIdx = i;
         }
-        if (sizesNames.empty()) sizesNames.push_back("Taille : " + std::to_string(currentX) + "x" + std::to_string(currentY));
-
+        
         ImGui::Text("Map Size:"); ImGui::SameLine(150);
         if (DrawArrowSelector("##msize", &sizeIdx, sizesNames)) {
             if (sizeIdx >= 0 && sizeIdx < (int)tailles.size()) {
@@ -1076,88 +1094,104 @@ void InterfaceManager::renderMapConfig() {
             }
         }
 
-        ImGui::Dummy(ImVec2(0.0f, 5.0f));
-        ImGui::Text("Condition de Victoire:"); ImGui::SameLine(150);
-        
+        // --- Seed et Victoire ---
+        ImGui::Text("Victory:"); ImGui::SameLine(150);
         std::vector<std::string> vicNames;
-        for (const auto& vs : _moteur.getLogicConfig().getVictorySets()) {
-            vicNames.push_back(vs.name);
-        }
-        
-        if (DrawArrowSelector("##vicSelect", &_selectedVictoryIndex, vicNames)) {
-            sendLobbySync(); 
-        }
+        for (const auto& vs : _moteur.getLogicConfig().getVictorySets()) vicNames.push_back(vs.name);
+        if (DrawArrowSelector("##vicSelect", &_selectedVictoryIndex, vicNames)) sendLobbySync(); 
 
-        ImGui::Text("Random Seed:"); ImGui::SameLine(150);
+        ImGui::Text("Seed:"); ImGui::SameLine(150);
         ImGui::SetNextItemWidth(120.0f);
-        if (ImGui::InputInt("##seed", &_mapSeed)) {
-            sendLobbySync();
-        }
+        if (ImGui::InputInt("##seed", &_mapSeed)) sendLobbySync();
         ImGui::SameLine();
-        if (ImGui::Button("Aleatoire")) {
-            _mapSeed = std::rand() % 1000000;
-            sendLobbySync();
-        }
+        if (ImGui::Button("Aleatoire")) { _mapSeed = std::rand() % 1000000; sendLobbySync(); }
 
         ImGui::Dummy(ImVec2(0, 20));
-        std::string genMode = "random";
-        if (_tuilesJson.contains("generation_map") && _tuilesJson["generation_map"].contains("mode")) {
-            genMode = _tuilesJson["generation_map"]["mode"];
-        }
+
+        // --- Liste des Presets disponibles dans le JSON ---
+        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "AVAILABLE PRESETS");
         std::string presetKey = (genMode == "perlin") ? "presets_perlin" : "presets_random";
 
-        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "WORLD PRESETS (%s)", genMode.c_str());
-
         if (_tuilesJson.contains(presetKey)) {
-            for (auto& [presetName, weightsObj] : _tuilesJson[presetKey].items()) {
+            for (auto& [presetName, data] : _tuilesJson[presetKey].items()) {
+                bool isSelected = (presetName == _activePresetName);
+                if (isSelected) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+
                 if (ImGui::Button(presetName.c_str(), ImVec2(400, 30))) {
-                    if (genMode == "random") {
-                        for (auto& [symbStr, weightVal] : weightsObj.items()) {
-                            if (!symbStr.empty() && weightVal.is_number_integer()) {
-                                _customWeights[symbStr[0]] = weightVal.get<int>();
-                            }
-                        }
-                    }
-                    _activePresetName = presetName;
+                    factory.appliquerPreset(genMode, presetName);
                     sendLobbySync();
                 }
+                if (isSelected) ImGui::PopStyleColor();
             }
-        } else {
-            ImGui::TextDisabled("Aucun preset '%s' trouve dans la configuration.", presetKey.c_str());
         }
 
-        // Colonne droite (poids ou infos)
+        // =================================================================
+        // COLONNE DROITE : CUSTOMISATION DÉTAILLÉE
+        // =================================================================
         ImGui::TableSetColumnIndex(1);
-        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "PRESET INFO");
-        ImGui::Dummy(ImVec2(0, 10));
-
-        ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Preset selectionne : %s", _activePresetName.empty() ? "Custom" : _activePresetName.c_str());
+        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "CUSTOM SETTINGS");
+        ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Status : %s", _activePresetName.c_str());
         ImGui::Dummy(ImVec2(0, 10));
 
         if (genMode == "random") {
-            if (_tuilesJson.contains("tiles")) {
-                for (auto& t : _tuilesJson["tiles"]) {
-                    std::string nom = t["nom"];
-                    char symb = std::string(t["symbole"])[0];
-                    if (symb == '#') continue; 
-                    if (_customWeights.find(symb) == _customWeights.end()) _customWeights[symb] = t["gen"]["poids"];
+            auto& weights = factory.getCustomWeightsActuels();
+            for (auto& t : _tuilesJson["tiles"]) {
+                char symb = t["symbole"].get<std::string>()[0];
+                if (symb == '#') continue;
 
-                    ImGui::Text("%s:", nom.c_str());
-                    if (ImGui::SliderInt((std::string("##w_") + symb).c_str(), &_customWeights[symb], 0, 100)) {
-                        _activePresetName = "Custom";
-                        sendLobbySync();
-                    }
+                ImGui::Text("%s:", t["nom"].get<std::string>().c_str());
+                if (ImGui::SliderInt((std::string("##w_") + symb).c_str(), &weights[symb], 0, 100)) {
+                    factory.setPresetName("Custom"); 
+                    _moteur.overrideWorldWeights(weights);
+                    sendLobbySync();
                 }
             }
-        } else {
-            ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Mode Perlin Actif.");
-            ImGui::TextWrapped("Les pourcentages de tuiles sont ignores. Le relief et la repartition sont geres algorithmiquement via les parametres du preset selectionne.");
+        } 
+        else if (genMode == "perlin") {
+            PerlinParams p = factory.getActivePerlinParams(); 
+            bool changed = false;
+
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 1.0f, 1.0f), "PARAMETRES DU BRUIT");
+            if (ImGui::SliderFloat("Scale (Zoom)", &p.scale, 0.01f, 0.5f)) changed = true;
+            if (ImGui::SliderInt("Octaves", &p.octaves, 1, 8)) changed = true;
+            if (ImGui::SliderFloat("Persistence", &p.persistence, 0.1f, 1.0f)) changed = true;
+            if (ImGui::SliderFloat("Lacunarity", &p.lacunarity, 1.0f, 4.0f)) changed = true;
+            if (ImGui::SliderFloat("Redistribution", &p.redistribution, 0.1f, 4.0f)) changed = true;
+            if (ImGui::Checkbox("Inversion Relief", &p.inversion)) changed = true;
+
+            ImGui::Separator();
+            ImGui::TextColored(ImVec4(0.7f, 1.0f, 0.7f, 1.0f), "DISTRIBUTION DES BIOMES");
+
+            std::map<float, char> nouveauxSeuils;
+            bool sChanged = false;
+
+            for (auto const& [seuil, symb] : p.seuils) {
+                float val = seuil;
+                // On récupère le nom depuis le catalogue pour que l'utilisateur sache quoi il modifie
+                std::string nom = factory.getCatalogue().count(symb) ? factory.getCatalogue().at(symb).nom : "Inconnu";
+
+                // Slider de 0.0 à 1.0
+                if (ImGui::SliderFloat((nom + " ##" + symb).c_str(), &val, 0.0f, 1.0f)) {
+                    sChanged = true;
+                }
+                nouveauxSeuils[val] = symb;
+            }
+
+            if (sChanged) {
+                p.seuils = nouveauxSeuils;
+                changed = true;
+            }
+
+            if (changed) {
+                factory.setActivePerlinParams(p);
+                sendLobbySync();
+            }
         }
 
         ImGui::EndTable();
     }
 
-    // Pied de page
+    // Pied de page et Lancement
     ImGui::SetCursorPosY(menuSize.y - 60);
     ImGui::Separator();
     if (ImGui::Button("BACK", ImVec2(150, 40))) {
@@ -1166,13 +1200,11 @@ void InterfaceManager::renderMapConfig() {
     }
 
     ImGui::SameLine(menuSize.x - 165);
-    
     if (ImGui::Button("LAUNCH SECTOR", ImVec2(150, 40))) {
-        // Lancement classique
         saveConfig();
         _moteur.setActiveVictorySet(_selectedVictoryIndex);
         initGame();
-        
+
         if (_network.getState() == NetworkState::CONNECTED && _network.isHost()) {
             sf::Packet startPacket;
             startPacket << static_cast<sf::Int32>(PacketType::GAME_START)
@@ -1195,11 +1227,11 @@ void InterfaceManager::renderMapConfig() {
             }
             _network.sendData(startPacket);
         }
-    _currentState = GameState::IN_GAME;
+        
+        _currentState = GameState::IN_GAME;
     }
 
     if (isClient) ImGui::EndDisabled();
-
     ImGui::End();
 }
 
@@ -1898,7 +1930,7 @@ void InterfaceManager::renderGame() {
     sf::VertexArray moveBatch(sf::Triangles);
     sf::VertexArray attackBatch(sf::Triangles);
     sf::VertexArray territoryBatch(sf::Quads);
-    sf::VertexArray buyBatch(sf::Triangles);
+    sf::VertexArray buyBatch(sf::Lines);
     sf::VertexArray fogBlackBatch(sf::Triangles);  // Inexploré (opaque)
     sf::VertexArray shroudBatch(sf::Triangles);    // Exploré mais hors de vue (semi-transparent)
     sf::VertexArray selectBatch(sf::Triangles);
@@ -2019,77 +2051,60 @@ void InterfaceManager::renderGame() {
 
             // --- CASES ACHETABLES (utilise le cache pré-calculé) ---
             if (joueurValide && _casesAchetablesCache.count({i, j})) {
-                sf::Color buyColor(0, 255, 100, 30);
+                sf::Color buyColor(0, 255, 100, 255);
                 for (int tri = 0; tri < 6; ++tri) {
-                    sf::Vertex v0, v1, v2;
-                    v0.position = {posX, posY}; v0.color = buyColor;
+                    sf::Vertex v1, v2;
                     v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = buyColor;
                     v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = buyColor;
-                    buyBatch.append(v0); buyBatch.append(v1); buyBatch.append(v2);
+                    buyBatch.append(v1); buyBatch.append(v2);
                 }
             }
         }
     }
 
     // ==========================================================
-    // TRACÉ DES TERRITOIRES (hors boucle de tuiles, utilise le cache)
+    // TRACÉ DES TERRITOIRES
     // ==========================================================
-    {
-        static const sf::Color playerColors[] = {
-            sf::Color(80, 180, 255, 255), sf::Color(255, 80, 80, 255), sf::Color(80, 255, 80, 255), sf::Color(255, 200, 0, 255)
-        };
-        const int neighEven[6][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 0}, {0, -1}, {-1, -1}};
-        const int neighOdd[6][2]  = {{-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+    const std::vector<SegmentFrontiere>& frontieres = _frontieresCache;
 
-        for (int pIdx = 0; pIdx < (int)_territoireCache.vecParJoueur.size(); ++pIdx) {
-            const auto& territoireVec = _territoireCache.vecParJoueur[pIdx];
-            const auto& territoireMap = _territoireCache.setParJoueur[pIdx];
-            if (territoireVec.empty()) continue;
+    for (const auto& segment : frontieres) {
+        int ti = segment.i;
+        int tj = segment.j;
+        int side = segment.side;
+        
+        // Vérification du brouillard de guerre pour l'affichage
+        if (joueurValide && !_moteur.getJoueurs()[viewIndex].estDecouvert(ti, tj)) continue;
 
-            for (const auto& tuile : territoireVec) {
-                int ti = tuile.first;
-                int tj = tuile.second;
-                
-                if (ti < startRow - 2 || ti > endRow + 2 || tj < startCol - 2 || tj > endCol + 2) continue;
-                if (joueurValide && !_moteur.getJoueurs()[viewIndex].estDecouvert(ti, tj)) continue;
+        float tposX = W * tj + W * 0.5f * (std::abs(ti) % 2);
+        float tposY = 1.5f * R * ti;
+        
+        sf::Color borderCol = getPlayerColor(segment.joueurIdx);
 
-                float tposX = W * tj + W * 0.5f * (std::abs(ti) % 2);
-                float tposY = 1.5f * R * ti;
+        // Calcul géométrique pur (SFML/dessin)
+        sf::Vector2f p1(tposX + R * std::cos(PI/180.0f * (60.0f * side - 30.0f)), 
+                        tposY + R * std::sin(PI/180.0f * (60.0f * side - 30.0f)));
+        sf::Vector2f p2(tposX + R * std::cos(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)), 
+                        tposY + R * std::sin(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)));
 
-                const auto& neigh = (std::abs(ti) % 2 == 0) ? neighEven : neighOdd;
+        // Création du rectangle (épaisseur) pour SFML
+        sf::Vector2f dir = p2 - p1;
+        float len = std::sqrt(dir.x*dir.x + dir.y*dir.y);
+        dir.x /= len; dir.y /= len;
+        sf::Vector2f normal(-dir.y, dir.x);
+        
+        float thickness = 3.0f;
+        float extension = thickness / 1.732f;
+        p1 -= dir * extension;
+        p2 += dir * extension;
 
-                for (int side = 0; side < 6; ++side) {
-                    int ni = ti + neigh[side][0];
-                    int nj = tj + neigh[side][1];
+        sf::Vertex q1, q2, q3, q4;
+        q1.position = p1 - normal * (thickness / 2.0f); q1.color = borderCol;
+        q2.position = p2 - normal * (thickness / 2.0f); q2.color = borderCol;
+        q3.position = p2 + normal * (thickness / 2.0f); q3.color = borderCol;
+        q4.position = p1 + normal * (thickness / 2.0f); q4.color = borderCol;
 
-                    if (territoireMap.find({ni, nj}) == territoireMap.end()) {
-                        sf::Color borderCol = playerColors[pIdx % 4];
-
-                        sf::Vector2f p1(tposX + R * std::cos(PI/180.0f * (60.0f * side - 30.0f)), tposY + R * std::sin(PI/180.0f * (60.0f * side - 30.0f)));
-                        sf::Vector2f p2(tposX + R * std::cos(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)), tposY + R * std::sin(PI/180.0f * (60.0f * ((side+1)%6) - 30.0f)));
-
-                        sf::Vector2f dir = p2 - p1;
-                        float len = std::sqrt(dir.x*dir.x + dir.y*dir.y);
-                        dir.x /= len; dir.y /= len;
-                        sf::Vector2f normal(-dir.y, dir.x);
-                        
-                        float thickness = 3.0f;
-                        float extension = thickness / 1.732f;
-                        p1 -= dir * extension;
-                        p2 += dir * extension;
-
-                        sf::Vertex q1, q2, q3, q4;
-                        q1.position = p1 - normal * (thickness / 2.0f); q1.color = borderCol;
-                        q2.position = p2 - normal * (thickness / 2.0f); q2.color = borderCol;
-                        q3.position = p2 + normal * (thickness / 2.0f); q3.color = borderCol;
-                        q4.position = p1 + normal * (thickness / 2.0f); q4.color = borderCol;
-
-                        territoryBatch.append(q1); territoryBatch.append(q2);
-                        territoryBatch.append(q3); territoryBatch.append(q4);
-                    }
-                }
-            }
-        }
+        territoryBatch.append(q1); territoryBatch.append(q2);
+        territoryBatch.append(q3); territoryBatch.append(q4);
     }
 
     // ==========================================================
@@ -2133,7 +2148,7 @@ void InterfaceManager::renderGame() {
                             sf::Sprite citySpr;
                             citySpr.setTexture(_cityTextures[cNom]);
                             citySpr.setOrigin(citySpr.getLocalBounds().width / 2.0f, citySpr.getLocalBounds().height / 2.0f);
-                            citySpr.setPosition(posX, posY - 10.0f);
+                            citySpr.setPosition(posX, posY);
                             citySpr.setColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(200, 230, 255));
                             _window.draw(citySpr);
                         }
@@ -2145,10 +2160,7 @@ void InterfaceManager::renderGame() {
                                 if (&_moteur.getJoueurs()[p] == prop) { pIdx = p; break; }
                             }
                             if (pIdx != -1) {
-                                static const sf::Color playerColors[] = {
-                                    sf::Color(80, 180, 255), sf::Color(255, 80, 80), sf::Color(80, 255, 80), sf::Color(255, 200, 0)
-                                };
-                                sf::Color pCol = playerColors[pIdx % 4];
+                                sf::Color pCol = getPlayerColor(pIdx);
                                 
                                 if (tc->getCity()->estCapitale()) {
                                     sf::CircleShape capitalSymbol(R * 0.4f, 5); // etoile/pentagone
@@ -2156,7 +2168,7 @@ void InterfaceManager::renderGame() {
                                     capitalSymbol.setOutlineThickness(2.0f);
                                     capitalSymbol.setOutlineColor(sf::Color::White);
                                     capitalSymbol.setOrigin(R * 0.4f, R * 0.4f);
-                                    capitalSymbol.setPosition(posX, posY - 25.0f);
+                                    capitalSymbol.setPosition(posX, posY);
                                     _window.draw(capitalSymbol);
                                 } else {
                                     sf::CircleShape citySymbol(R * 0.3f, 4); // carre/losange
@@ -2164,7 +2176,7 @@ void InterfaceManager::renderGame() {
                                     citySymbol.setOutlineThickness(1.5f);
                                     citySymbol.setOutlineColor(sf::Color::White);
                                     citySymbol.setOrigin(R * 0.3f, R * 0.3f);
-                                    citySymbol.setPosition(posX, posY - 20.0f);
+                                    citySymbol.setPosition(posX, posY);
                                     _window.draw(citySymbol);
                                 }
                             }
@@ -2215,10 +2227,7 @@ void InterfaceManager::renderGame() {
                 // Couleur selon le propriétaire
                 sf::Color unitColor(180, 180, 180);
                 if (propIdx != -1) {
-                    static const sf::Color playerColors[] = {
-                        sf::Color(80, 180, 255), sf::Color(255, 80, 80), sf::Color(80, 255, 80), sf::Color(255, 200, 0)
-                    };
-                    unitColor = playerColors[propIdx % 4];
+                    unitColor = getPlayerColor(propIdx);
                 }
                 
                 // Dessin de fond de faction (halo)
@@ -2932,26 +2941,75 @@ void InterfaceManager::renderGame() {
                 ImU32 color = IM_COL32(50, 50, 50, 255);
 
 
-                // ---------------------------------------------------------------//
-                // ---------------- A MODIFIER POUR ETRE GENERAL ---------------- //
-                // ---------------------------------------------------------------//
                 if (tile) {
                     char symb = tile->getSymbole();
-                    if (symb == '.') color = IM_COL32(20, 20, 35, 255); // Espace (Très sombre)
-                    else if (symb == 'P') color = IM_COL32(50, 200, 50, 255); // Planète (Vert)
-                    else if (symb == 'E') color = IM_COL32(255, 255, 100, 255); // Étoile (Jaune)
-                    else if (symb == 'X') color = IM_COL32(150, 0, 200, 255); // Trou Noir (Violet)
-                    else if (symb == '#') color = IM_COL32(100, 20, 20, 255); // Limite (Rouge)
 
-                    // Vérification s'il y a une ville dessus
+                    // 1. GÉNÉRALISATION ET LECTURE JSON DES COULEURS DES TUILES
+                    static std::map<char, ImU32> symbolColors;
+                    
+                    if (symbolColors.find(symb) == symbolColors.end()) {
+                        bool couleurTrouvee = false;
+
+                        // A. On cherche si le JSON définit une couleur précise pour ce symbole
+                        if (_tuilesJson.contains("tiles")) {
+                            for (const auto& t : _tuilesJson["tiles"]) {
+                                std::string s = t.value("symbole", "");
+                                if (!s.empty() && s[0] == symb) {
+                                    // Si on trouve le champ "couleur_minimap" [R, G, B]
+                                    if (t.contains("couleur_minimap") && t["couleur_minimap"].is_array() && t["couleur_minimap"].size() == 3) {
+                                        sf::Uint8 r = t["couleur_minimap"][0];
+                                        sf::Uint8 g = t["couleur_minimap"][1];
+                                        sf::Uint8 b = t["couleur_minimap"][2];
+                                        symbolColors[symb] = IM_COL32(r, g, b, 255);
+                                        couleurTrouvee = true;
+                                    }
+                                    break; // On a trouvé le bon symbole, on arrête la recherche
+                                }
+                            }
+                        }
+
+                        // B. FALLBACK GÉNÉRIQUE : Si le JSON n'a pas de couleur, on la génère mathématiquement
+                        if (!couleurTrouvee) {
+                            std::srand(symb); 
+                            sf::Uint8 r = std::rand() % 150 + 50;
+                            sf::Uint8 g = std::rand() % 150 + 50;
+                            sf::Uint8 b = std::rand() % 150 + 50;
+                            symbolColors[symb] = IM_COL32(r, g, b, 255);
+                        }
+                    }
+                    color = symbolColors[symb];
+
+                    // 2. VILLES ET CAPITALES (Général car basé sur les classes, pas sur des noms spécifiques)
                     const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(tile);
-                    if (tc && tc->getCity()) {
-                        color = tc->getCity()->estCapitale() ? IM_COL32(255, 215, 0, 255) : IM_COL32(0, 200, 255, 255);
+                    if (tc && tc->getCity() && tc->getProprietaire()) {
+                        
+                        int pIdx = -1;
+                        for (int p = 0; p < (int)_moteur.getJoueurs().size(); ++p) {
+                            if (&_moteur.getJoueurs()[p] == tc->getProprietaire()) { pIdx = p; break; }
+                        }
+                        
+                        if (pIdx != -1) {
+                            // On récupère la couleur universelle de l'empire
+                            sf::Color pCol = getPlayerColor(pIdx);
+                            
+                            // La capitale est plus lumineuse, les villes normales utilisent la couleur de base
+                            if (tc->getCity()->estCapitale()) {
+                                color = IM_COL32(std::min(255, pCol.r + 50), std::min(255, pCol.g + 50), std::min(255, pCol.b + 50), 255);
+                            } else {
+                                color = IM_COL32(pCol.r, pCol.g, pCol.b, 255);
+                            }
+                        }
                     }
                 }
-                
-                // Dessin du pixel/carré représentant la case
-                minimapDrawList->AddRectFilled(ImVec2(cx - R_mini*0.8f, cy - R_mini*0.8f), ImVec2(cx + R_mini*0.8f, cy + R_mini*0.8f), color);
+
+                // 3. DESSIN DE L'HEXAGONE UNIVERSEL
+                ImVec2 hexPoints[6];
+                for(int p = 0; p < 6; ++p) {
+                    float angle = (3.14159265f / 180.0f) * (60.0f * p - 30.0f);
+                    // 0.95f permet de laisser un léger espace entre les hexagones pour voir la grille
+                    hexPoints[p] = ImVec2(cx + R_mini * 0.95f * std::cos(angle), cy + R_mini * 0.95f * std::sin(angle));
+                }
+                minimapDrawList->AddConvexPolyFilled(hexPoints, 6, color);
             
                 Unite* u = _moteur.getPlateau()->getUnite(i, j);
                 if (u && localJ.estVisible(i, j)) {
@@ -3175,6 +3233,7 @@ void InterfaceManager::renderGame() {
                             p << static_cast<sf::Int32>(PacketType::ACTION_BUY_TILE) << static_cast<sf::Int32>(localJIdx) << _selectedCellX << _selectedCellY;
                             _network.sendData(p);
                         }
+                        invaliderCaches();
                     } else {
                         _popupMsg = "Erreur lors de l'achat.";
                     }
