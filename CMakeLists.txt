@@ -8,30 +8,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # On demande à CMake de trouver pybind11 (installé via apt)
 find_package(pybind11 REQUIRED)
 
-# Liste ici tous tes fichiers sources C++ (sauf main_console.cc !)
-# Le main_console.cc[cite: 1] est remplacé par Python.
-set(SOURCES
-    arbitre/arbitre.cc
-    combat/combat.cc
-    configs/config.cc
-    jeu/batiment.cc
-    jeu/city.cc
-    jeu/jeu.cc
-    jeu/moteur.cc
-    jeu/ressource.cc
-    joueur/joueur.cc
-    Unite/comportement.cc
-    Unite/orientation.cc
-    Unite/rank.cc
-    Unite/unite.cc
-    bindings.cc
-    # Ajoute les autres fichiers nécessaires : combat.cc, arbitre.cc, etc.
+# On demande à CMake de chercher automatiquement tous les .cc dans tes dossiers
+file(GLOB SOURCES
+    "arbitre/*.cc"
+    "combat/*.cc"
+    "configs/*.cc"
+    "jeu/*.cc"
+    "joueur/*.cc"
+    "lib/*.cc"
+    "Unite/*.cc"
+    "bindings.cc"
+)
+
+# Sécurité vitale : On retire les fichiers "main" de la liste
+# car un module Python (.so) ne doit pas avoir de fonction int main() !
+list(REMOVE_ITEM SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/main.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/main_console.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/main_gui.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/NetworkManager.cc"
 )
 
 # On crée le module Python
 pybind11_add_module(wargame_env ${SOURCES})
 
-# Ajoute tes répertoires d'en-têtes si besoin (là où sont tes .hh)
+# Ajoute tes répertoires d'en-têtes (là où sont tes .hh)
 target_include_directories(wargame_env PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/arbitre

@@ -9,6 +9,12 @@ imgui.ini
 sfml-win/
 saves/
 
+# IA
+__pycache__
+ppo_universel_master.zip
+wargame_tensorboard/
+sauvegardes_ia
+
 # Prerequisites
 *.d
 
