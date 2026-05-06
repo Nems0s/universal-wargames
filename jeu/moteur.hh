@@ -15,6 +15,12 @@
 
 class SaveManager;
 
+struct SegmentFrontiere {
+    int i, j;
+    int side;
+    int joueurIdx;
+};
+
 class MoteurDeJeu {
 
     friend class SaveManager;
@@ -80,15 +86,10 @@ public:
     void setTourActuel(int t) { _tourActuel = t; }
     void setCurrentPlayerTurn(int c) { _currentPlayerTurn = c; }
     void overrideWorldWeights(const std::map<char, int>& overrides) { _worldFactory.overrideWeights(overrides); }
-    void overridePerlinParams(float scale, int octaves, float lacunarity, float persistence, float redistribution) {
-        _worldFactory.setPerlinScale(scale);
-        _worldFactory.setPerlinOctaves(octaves);
-        _worldFactory.setPerlinLacunarity(lacunarity);
-        _worldFactory.setPerlinPersistence(persistence);
-        _worldFactory.setPerlinRedistribution(redistribution);
-    }
+    void overridePerlinParams(const PerlinParams& params) { _worldFactory.setActivePerlinParams(params); }
     void setActiveVictorySet(int index) { _logicConfig.setActiveVictorySet(index); }
     void revealMap(int pIdx);
+    std::vector<SegmentFrontiere> calculerFrontieres() const;
 
     // Pour modifier le jeu
     ResultatAction soumettreCommande(int pIdx, const CommandeJeu& commande);
@@ -122,6 +123,8 @@ public:
     const UniteFactory& getUniteFactory() const { return _uniteFactory; }
     const RessourceFactory& getRessourceFactory() const { return _ressourceFactory; }
     const GameConfig& getLogicConfig() const { return _logicConfig; }
+    const WorldFactory& getWorldFactory() const { return _worldFactory; }
+    WorldFactory& getWorldFactory() { return _worldFactory; }
     void setPlateauSize(int x, int y) { _logicConfig.setPlateauSize(x, y); }
     int getTourActuel() const { return _tourActuel; }
     int getCurrentPlayerTurn() const { return _currentPlayerTurn; }

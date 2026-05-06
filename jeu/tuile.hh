@@ -43,6 +43,16 @@ struct TuileData {
     std::map<std::string, float> properties;
 };
 
+struct PerlinParams {
+    float scale;
+    int octaves;
+    float lacunarity;
+    float persistence;
+    float redistribution;
+    bool inversion;
+    std::map<float, char> seuils;
+};
+
 //===================================================================
 //                              Tuiles
 //===================================================================
@@ -101,55 +111,48 @@ private:
 class WorldFactory {
     private:
         std::map<char, TuileData> _catalogue;
-        std::map<char, int> _customWeights;
 
         std::string _generationMode = "random";
-        float _perlinScale = 0.15f;
-        int _perlinOctaves = 4;
-        float _perlinLacunarity = 2.0f;
-        float _perlinPersistence = 0.5f;
-        float _perlinRedistribution = 1.0f;
-        bool _perlinInversion = false;
-        std::map<float, char> _seuilsPerlin;
-        std::map<std::string, std::map<char, int>> _presetsWorld;
+        std::string _activePresetName = "";
+        PerlinParams _activePerlinParams;
+        std::map<char, int> _customWeights;
+
+        std::map<std::string, PerlinParams> _presetsPerlin;
+        std::map<std::string, std::map<char, int>> _presetsRandom;
 
     public:
         void ajouterAuCatalogue(char symbole, const TuileData& data);
-
         void initialiserBords();
-
         std::unique_ptr<hexa> createTile(char symbole);
         std::unique_ptr<hexa> createRandomTile();
-
         void postGeneration(std::vector<std::vector<std::unique_ptr<hexa>>>& matrix, int width, int height);
         void overrideWeights(const std::map<char, int>& overrides);
-
         bool estVide() const;
 
-        const std::map<char, TuileData>& getCatalogue() const { return _catalogue; }
+        // Gestion des presets
+        void ajouterPresetPerlin(const std::string& nom, const PerlinParams& p) { _presetsPerlin[nom] = p; }
+        void ajouterPresetRandom(const std::string& nom, const std::map<char, int>& w) { _presetsRandom[nom] = w; }
+        bool appliquerPreset(const std::string& mode, const std::string& nomPreset);
 
-        // Setters pour la génération
+        // Getters & Setters
         void setGenerationMode(const std::string& mode) { _generationMode = mode; }
-        void setPerlinScale(float scale) { _perlinScale = scale; }
-        void setPerlinOctaves(int o) { _perlinOctaves = o; }
-        void setPerlinLacunarity(float l) { _perlinLacunarity = l; }
-        void setPerlinPersistence(float p) { _perlinPersistence = p; }
-        void setPerlinRedistribution(float r) { _perlinRedistribution = r; }
-        void setPerlinInversion(bool inv) { _perlinInversion = inv; }
-        void ajouterSeuilPerlin(float seuil, char symb) { _seuilsPerlin[seuil] = symb; }
-        void ajouterPreset(const std::string& nom, const std::map<char, int>& poids) { _presetsWorld[nom] = poids; }
-        void setCustomWeights(const std::map<char, int>& w) { _customWeights = w; }
-
-        // Getters
         std::string getGenerationMode() const { return _generationMode; }
-        float getPerlinScale() const { return _perlinScale; }
-        int getPerlinOctaves() const { return _perlinOctaves; }
-        float getPerlinLacunarity() const { return _perlinLacunarity; }
-        float getPerlinPersistence() const { return _perlinPersistence; }
-        float getPerlinRedistribution() const { return _perlinRedistribution; }
-        bool getPerlinInversion() const { return _perlinInversion; }
-        const std::map<float, char>& getSeuilsPerlin() const { return _seuilsPerlin; }
-        const std::map<std::string, std::map<char, int>>& getPresetsWorld() const { return _presetsWorld; }
+        
+        void setActivePerlinParams(const PerlinParams& p) { _activePerlinParams = p; _activePresetName = "Custom"; }
+        const PerlinParams& getActivePerlinParams() const { return _activePerlinParams; }
+
+        std::string getActivePresetName() const { return _activePresetName.empty() ? "Custom" : _activePresetName; }
+
+        const std::map<float, char>& getSeuilsPerlin() const { return _activePerlinParams.seuils; }
+        void setCustomWeights(const std::map<char, int>& w) { _customWeights = w; }
+        const std::map<char, TuileData>& getCatalogue() const { return _catalogue; }
+        
+        // Liste Preset pour UI
+        const std::map<std::string, PerlinParams>& getPresetsPerlinDispos() const { return _presetsPerlin; }
+        const std::map<std::string, std::map<char, int>>& getPresetsRandomDispos() const { return _presetsRandom; }
+
+        std::map<char, int>& getCustomWeightsActuels() { return _customWeights; }
+        void setPresetName(const std::string& nom) { _activePresetName = nom; }
 };
 
 class WorldConfigReader {

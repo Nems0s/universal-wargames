@@ -219,32 +219,36 @@ void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::stri
     json data;
     fichier >> data;
 
-    // Generation Map
-    if (data.contains("generation_map")) {
-        auto& gen = data["generation_map"];
-        factory.setGenerationMode(gen.value("mode", "random"));
-        factory.setPerlinScale(gen.value("perlin_scale", 0.15f));
-        factory.setPerlinOctaves(gen.value("octaves", 4));
-        factory.setPerlinLacunarity(gen.value("lacunarity", 2.0f));
-        factory.setPerlinPersistence(gen.value("persistence", 0.5f));
-        factory.setPerlinRedistribution(gen.value("redistribution", 1.0f));
-        factory.setPerlinInversion(gen.value("inversion", false));
-        
-        if (gen.contains("seuils_perlin")) {
-            for (auto& [symbStr, seuil] : gen["seuils_perlin"].items()) {
-                if (!symbStr.empty()) factory.ajouterSeuilPerlin(seuil.get<float>(), symbStr[0]);
+    // Presets Perlin
+    if (data.contains("presets_perlin")) {
+        for (auto& [nom, p] : data["presets_perlin"].items()) {
+            PerlinParams pParams;
+            pParams.scale = p.value("perlin_scale", 0.1f);
+            pParams.octaves = p.value("octaves", 3);
+            pParams.lacunarity = p.value("lacunarity", 2.0f);
+            pParams.persistence = p.value("persistence", 0.5f);
+            pParams.redistribution = p.value("redistribution", 1.0f);
+            pParams.inversion = p.value("inversion", false);
+
+            if (p.contains("seuils")) {
+                for (auto& [symbStr, seuilVal] : p["seuils"].items()) {
+                    if (!symbStr.empty()) pParams.seuils[seuilVal.get<float>()] = symbStr[0];
+                }
             }
+            factory.ajouterPresetPerlin(nom, pParams);
         }
     }
 
-    // Presets Worlds
+    // Presets random
     if (data.contains("presets_random")) {
         for (auto& [presetName, weightsObj] : data["presets_random"].items()) {
             std::map<char, int> w;
             for (auto& [symbStr, weightVal] : weightsObj.items()) {
-                if (!symbStr.empty() && weightVal.is_number_integer()) w[symbStr[0]] = weightVal.get<int>();
+                if (!symbStr.empty() && weightVal.is_number_integer()) {
+                    w[symbStr[0]] = weightVal.get<int>();
+                }
             }
-            factory.ajouterPreset(presetName, w);
+            factory.ajouterPresetRandom(presetName, w); 
         }
     }
 
@@ -280,10 +284,52 @@ void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::stri
         }
 
         // Bloc DATA (Properties)
-        for (const auto& [key, val] : t.value("properties", json::object()).items()) {
+        auto props = t.value("properties", json::object());
+        for (const auto& [key, val] : props.items()) {
             d.properties[key] = val.get<float>();
         }
 
         factory.ajouterAuCatalogue(d.symbole, d);
     }
+
+    if (data.contains("default_setup")) {
+        auto& setup = data["default_setup"];
+        std::string mode = setup.value("mode", "perlin");
+        std::string presetNom = "";
+
+        if (setup.contains("preset")) {
+            presetNom = setup["preset"];
+        }
+
+        if (mode == "perlin" && !factory.getPresetsPerlinDispos().empty()) {
+            if (presetNom.empty() || factory.getPresetsPerlinDispos().find(presetNom) == factory.getPresetsPerlinDispos().end()) {
+                presetNom = factory.getPresetsPerlinDispos().begin()->first;
+            }
+        } else if (mode == "random" && !factory.getPresetsRandomDispos().empty()) {
+            if (presetNom.empty() || factory.getPresetsRandomDispos().find(presetNom) == factory.getPresetsRandomDispos().end()) {
+                presetNom = factory.getPresetsRandomDispos().begin()->first;
+            }
+        }
+
+        factory.appliquerPreset(mode, presetNom);
+    }
+}
+
+bool WorldFactory::appliquerPreset(const std::string& mode, const std::string& nomPreset) {
+    _generationMode = mode;
+    _activePresetName = nomPreset;
+
+    if (mode == "perlin") {
+        if (_presetsPerlin.count(nomPreset)) {
+            _activePerlinParams = _presetsPerlin[nomPreset];
+            return true;
+        }
+    } else if (mode == "random") {
+        if (_presetsRandom.count(nomPreset)) {
+            _customWeights = _presetsRandom[nomPreset];
+            overrideWeights(_customWeights);
+            return true;
+        }
+    }
+    return false;
 }

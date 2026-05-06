@@ -455,6 +455,9 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdFonderVille& cmd) {
     TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
     
     if (!tc || tc->getCity()) return ResultatAction::ECHEC_COORD_INVALIDE;
+    if (tc->getProprietaire() != nullptr && tc->getProprietaire() != &j) {
+        return ResultatAction::ECHEC_ARBITRE_REFUS;
+    }
     if (!_arbitre.buildCity(j, *_plateau, cmd.x, cmd.y)) return ResultatAction::ECHEC_ARBITRE_REFUS;
 
     auto it = _cityFactory.getCatalogue().find(cmd.nomVille);
@@ -727,6 +730,14 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdEnroler& cmd) {
 
 bool MoteurDeJeu::peutFonderVille(int joueurIdx, int x, int y) const {
     if (joueurIdx < 0 || joueurIdx >= (int)_joueurs.size()) return false;
+
+    const hexa* cell = _plateau->getCell(x, y);
+    const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(cell);
+    
+    if (tc && tc->getProprietaire() != nullptr && tc->getProprietaire() != &_joueurs[joueurIdx]) {
+        return false;
+    }
+
     return _arbitre.buildCity(_joueurs[joueurIdx], *_plateau, x, y);
 }
 
@@ -881,4 +892,43 @@ void MoteurDeJeu::revealMap(int pIdx) {
     _joueurs[pIdx].setVisible(fullGrid);
     
     std::cout << "[ADMIN] Carte revelee pour " << _joueurs[pIdx].getName() << std::endl;
+}
+
+std::vector<SegmentFrontiere> MoteurDeJeu::calculerFrontieres() const {
+    std::vector<SegmentFrontiere> frontieres;
+    int rows = _plateau->getRows();
+    int cols = _plateau->getCols();
+    
+    // 1. Pré-calculer l'appartenance de chaque case (1 seule passe)
+    std::vector<std::vector<int>> grilleProprietaire(rows, std::vector<int>(cols, -1));
+    for (int p = 0; p < (int)_joueurs.size(); ++p) {
+        // On récupère le territoire une seule fois par joueur
+        std::vector<std::pair<int, int>> terr = getTerritoireJoueur(p);
+        for (const auto& tuile : terr) {
+            grilleProprietaire[tuile.first][tuile.second] = p;
+        }
+    }
+
+    // 2. Calculer les bordures avec accès instantané O(1)
+    const int neighEven[6][2] = {{0, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}};
+    const int neighOdd[6][2]  = {{0, 1}, {1, 1}, {1, 0}, {0, -1}, {-1, 0}, {-1, 1}};
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            int pIdx = grilleProprietaire[i][j];
+            if (pIdx != -1) {
+                const auto& neigh = (std::abs(i) % 2 == 0) ? neighEven : neighOdd;
+                for (int side = 0; side < 6; ++side) {
+                    int ni = i + neigh[side][0];
+                    int nj = j + neigh[side][1];
+                    
+                    // On vérifie le voisin instantanément via la grille 2D
+                    if (ni < 0 || ni >= rows || nj < 0 || nj >= cols || grilleProprietaire[ni][nj] != pIdx) {
+                        frontieres.push_back({i, j, side, pIdx});
+                    }
+                }
+            }
+        }
+    }
+    return frontieres;
 }

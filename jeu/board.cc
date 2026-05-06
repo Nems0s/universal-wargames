@@ -17,15 +17,15 @@ board::board(int seed, WorldFactory & world, const GameConfig& config): _config(
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
 
     std::string mode = world.getGenerationMode();
-    float scale = world.getPerlinScale();
-    noise.SetFrequency(scale);
+    const PerlinParams& params = world.getActivePerlinParams();
+    noise.SetFrequency(params.scale);
 
     // Activer FBm multi-octaves pour un terrain riche et organique
     if (mode == "perlin") {
         noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-        noise.SetFractalOctaves(world.getPerlinOctaves());
-        noise.SetFractalLacunarity(world.getPerlinLacunarity());
-        noise.SetFractalGain(world.getPerlinPersistence());
+        noise.SetFractalOctaves(params.octaves);
+        noise.SetFractalLacunarity(params.lacunarity);
+        noise.SetFractalGain(params.persistence);
     }
 
     if (mode == "perlin" && !world.getSeuilsPerlin().empty()) {
@@ -46,8 +46,8 @@ board::board(int seed, WorldFactory & world, const GameConfig& config): _config(
         float range = globalMax - globalMin;
         if (range < 0.001f) range = 1.0f;
         
-        float redistribution = world.getPerlinRedistribution();
-        bool inversion = world.getPerlinInversion();
+        float redistribution = params.redistribution;
+        bool inversion = params.inversion;
         
         for (int i = 0; i < _height; ++i) {
             std::vector<std::unique_ptr<hexa>> ligne;

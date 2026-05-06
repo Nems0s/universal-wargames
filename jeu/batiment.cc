@@ -100,7 +100,8 @@ void JsonBatimentReader::load(const std::string& chemin,
         std::string nom = item["nom"];
         
         std::map<const Ressource*, int> coutMap;
-        for (const auto& [resName, qty] : item.value("cout", json::object()).items()) {
+        auto coutObj = item.value("cout", json::object());
+        for (const auto& [resName, qty] : coutObj.items()) {
             if (auto it = ressourcesDispo.find(resName); it != ressourcesDispo.end()) {
                 coutMap[it->second] = qty.get<int>();
             }

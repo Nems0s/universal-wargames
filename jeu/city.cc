@@ -76,14 +76,16 @@ void JsonCityReader::load(const std::string & chemin, std::map<std::string, std:
         std::string tex = item.value("texture", "");
 
         std::map<const Ressource*, int> coutMap;
-        for (const auto& [resName, qty] : item.value("cout_base", json::object()).items()) {
+        auto coutObj = item.value("cout_base", json::object());
+        for (const auto& [resName, qty] : coutObj.items()) {
             if (auto it = ressourcesDispo.find(resName); it != ressourcesDispo.end()) {
                 coutMap[it->second] = qty.get<int>();
             }
         }
 
         std::map<const Ressource*, int> prodMap;
-        for (const auto& [resName, qty] : item.value("production_base", json::object()).items()) {
+        auto prodObj = item.value("production_base", json::object());
+        for (const auto& [resName, qty] : prodObj.items()) {
             if (auto it = ressourcesDispo.find(resName); it != ressourcesDispo.end()) {
                 prodMap[it->second] = qty.get<int>();
             }
