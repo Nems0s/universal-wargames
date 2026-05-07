@@ -1962,49 +1962,47 @@ void InterfaceManager::renderGame() {
                     v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = fogColor;
                     fogBlackBatch.append(v0); fogBlackBatch.append(v1); fogBlackBatch.append(v2);
                 }
-                continue;
-            }
-
-            // --- BROUILLARD GRIS / SHROUD (Exploré mais hors de vue) ---
-            // Ajouté APRÈS les tuiles texturées dans l'ordre de rendu
-            if (!visible) {
-                sf::Color shroudColor(0, 0, 0, 100);
-                for (int tri = 0; tri < 6; ++tri) {
-                    sf::Vertex v0, v1, v2;
-                    v0.position = {posX, posY}; v0.color = shroudColor;
-                    v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = shroudColor;
-                    v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = shroudColor;
-                    shroudBatch.append(v0); shroudBatch.append(v1); shroudBatch.append(v2);
+            } else {
+                // --- BROUILLARD GRIS / SHROUD (Exploré mais hors de vue) ---
+                if (!visible) {
+                    sf::Color shroudColor(0, 0, 0, 100);
+                    for (int tri = 0; tri < 6; ++tri) {
+                        sf::Vertex v0, v1, v2;
+                        v0.position = {posX, posY}; v0.color = shroudColor;
+                        v1.position = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y}; v1.color = shroudColor;
+                        v2.position = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y}; v2.color = shroudColor;
+                        shroudBatch.append(v0); shroudBatch.append(v1); shroudBatch.append(v2);
+                    }
                 }
-            }
 
-            // --- TUILE TEXTURÉE ---
-            const hexa* tile = _moteur.getPlateau()->getCell(i, j);
-            if (tile && batches.count(tile->getSymbole())) {
-                char sym = tile->getSymbole();
-                sf::Texture& tex = _textures[sym];
-                sf::Vector2f texCenter(tex.getSize().x / 2.0f, tex.getSize().y / 2.0f);
-                float tw = tex.getSize().x / 2.0f;
-                float th = tex.getSize().y / 2.0f;
+                // --- TUILE TEXTURÉE ---
+                const hexa* tile = _moteur.getPlateau()->getCell(i, j);
+                if (tile && batches.count(tile->getSymbole())) {
+                    char sym = tile->getSymbole();
+                    sf::Texture& tex = _textures[sym];
+                    sf::Vector2f texCenter(tex.getSize().x / 2.0f, tex.getSize().y / 2.0f);
+                    float tw = tex.getSize().x / 2.0f;
+                    float th = tex.getSize().y / 2.0f;
 
-                // 6 triangles pour l'hexagone texturé
-                for (int tri = 0; tri < 6; ++tri) {
-                    sf::Vertex v0, v1, v2;
-                    v0.position  = {posX, posY};
-                    v0.texCoords = texCenter;
-                    v0.color = sf::Color::White;
+                    // 6 triangles pour l'hexagone texturé
+                    for (int tri = 0; tri < 6; ++tri) {
+                        sf::Vertex v0, v1, v2;
+                        v0.position  = {posX, posY};
+                        v0.texCoords = texCenter;
+                        v0.color = sf::Color::White;
 
-                    v1.position  = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y};
-                    v1.texCoords = {texCenter.x + hexOffsets[tri].x * tw, texCenter.y + hexOffsets[tri].y * th};
-                    v1.color = sf::Color::White;
+                        v1.position  = {posX + R * hexOffsets[tri].x, posY + R * hexOffsets[tri].y};
+                        v1.texCoords = {texCenter.x + hexOffsets[tri].x * tw, texCenter.y + hexOffsets[tri].y * th};
+                        v1.color = sf::Color::White;
 
-                    v2.position  = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y};
-                    v2.texCoords = {texCenter.x + hexOffsets[(tri+1)%6].x * tw, texCenter.y + hexOffsets[(tri+1)%6].y * th};
-                    v2.color = sf::Color::White;
+                        v2.position  = {posX + R * hexOffsets[(tri+1)%6].x, posY + R * hexOffsets[(tri+1)%6].y};
+                        v2.texCoords = {texCenter.x + hexOffsets[(tri+1)%6].x * tw, texCenter.y + hexOffsets[(tri+1)%6].y * th};
+                        v2.color = sf::Color::White;
 
-                    batches[sym].append(v0);
-                    batches[sym].append(v1);
-                    batches[sym].append(v2);
+                        batches[sym].append(v0);
+                        batches[sym].append(v1);
+                        batches[sym].append(v2);
+                    }
                 }
             }
 
@@ -2149,6 +2147,11 @@ void InterfaceManager::renderGame() {
                             citySpr.setTexture(_cityTextures[cNom]);
                             citySpr.setOrigin(citySpr.getLocalBounds().width / 2.0f, citySpr.getLocalBounds().height / 2.0f);
                             citySpr.setPosition(posX, posY);
+                            
+                            sf::FloatRect bounds = citySpr.getLocalBounds();
+                            float scale = (_tileSize * 0.8f) / std::max(bounds.width, bounds.height);
+                            citySpr.setScale(scale, scale);
+
                             citySpr.setColor(tc->getCity()->estCapitale() ? sf::Color(255, 215, 0) : sf::Color(200, 230, 255));
                             _window.draw(citySpr);
                         }
@@ -3206,10 +3209,8 @@ void InterfaceManager::renderGame() {
                     }
                     if (!hasProd) ImGui::TextDisabled("Aucune production.");
                     ImGui::EndGroup();
-                } else if (!tc->getRessource().empty()) {
-                    if (ImGui::Button("Construire Special", ImVec2(150, 40))) ImGui::OpenPopup("Menu Construction Batiments");
                 } else {
-                    ImGui::TextDisabled("Aucune ressource a exploiter ici.");
+                    if (ImGui::Button("Construire Batiment", ImVec2(150, 40))) ImGui::OpenPopup("Menu Construction Batiments");
                 }
             }
             // D. Acheter Territoire
@@ -3334,7 +3335,23 @@ void InterfaceManager::renderGame() {
         if (ImGui::BeginPopup("Menu Construction Batiments")) {
             ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "BATIMENTS DISPONIBLES");
             ImGui::Separator();
+            
+            bool batimentsAffiches = false;
+            
             for (const auto& [nom, batimentModele] : _moteur.getBatimentFactory().getCatalogue()) {
+                bool estSpecial = !batimentModele->getRessourcesSolRequired().empty();
+                
+                // === 1. FILTRAGE STRICT DES BATIMENTS ===
+                if (tc->getCity()) {
+                    // Sur une ville : on masque les bâtiments spéciaux
+                    if (estSpecial) continue;
+                } else {
+                    // Hors ville : on masque les bâtiments normaux ET ceux dont la ressource ne correspond pas à la tuile
+                    if (!estSpecial || !tc->peutConstrBatimentSpecial(*batimentModele)) continue;
+                }
+                
+                batimentsAffiches = true;
+
                 std::string coutText = "";
                 for (auto const& [res, qte] : batimentModele->getResourceConstr()) {
                     if (!coutText.empty()) coutText += ", ";
@@ -3343,18 +3360,10 @@ void InterfaceManager::renderGame() {
                 if (coutText.empty()) coutText = "Gratuit";
                 std::string label = nom + " (Cout: " + coutText + ")";
 
-                // --- DIAGNOSTIC DE CONSTRUCTION ---
+                // --- 2. DIAGNOSTIC DE CONSTRUCTION ---
                 bool peutPayer = _moteur.peutPayer(localJIdx, batimentModele->getResourceConstr());
-                bool estSpecial = !batimentModele->getRessourcesSolRequired().empty();
-                bool locationValide = false;
-
-                if (tc->getCity()) {
-                    // Dans une ville : il faut de la place, et le bâtiment ne doit pas être "Spécial"
-                    locationValide = !estSpecial && tc->getCity()->peutAjouterBatiment();
-                } else {
-                    // Hors d'une ville : le bâtiment DOIT être spécial et la ressource correspondre
-                    locationValide = estSpecial && tc->peutConstrBatimentSpecial(*batimentModele);
-                }
+                
+                bool locationValide = tc->getCity() ? tc->getCity()->peutAjouterBatiment() : true;
 
                 bool canBuild = peutPayer && locationValide;
 
@@ -3384,24 +3393,24 @@ void InterfaceManager::renderGame() {
                 
                 if (!canBuild) ImGui::PopStyleColor(1);
 
+                // --- 3. INFOBULLES CLARIFIÉES ---
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     ImGui::BeginTooltip();
                     if (!peutPayer) 
                         ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Ressources insuffisantes !");
-                    else if (estSpecial && tc->getCity()) 
-                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Batiment special : a construire en dehors d'une ville !");
-                    else if (!estSpecial && !tc->getCity()) 
-                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Batiment standard : a construire a l'interieur d'une ville !");
-                    else if (tc->getCity() && !tc->getCity()->peutAjouterBatiment()) 
+                    else if (tc->getCity() && !locationValide) 
                         ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Niveau de ville trop faible (plus d'emplacements) !");
-                    else if (estSpecial && !tc->peutConstrBatimentSpecial(*batimentModele)) 
-                        ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), "Ressource requise absente sur cette case !");
                     else
                         ImGui::TextColored(ImVec4(0.3f,1.0f,0.3f,1.0f), "Construction possible.");
                     ImGui::EndTooltip();
                 }
             }
-            if (_moteur.getBatimentFactory().getCatalogue().empty()) ImGui::TextDisabled("Aucun batiment dans le catalogue.");
+            
+            // Si la case n'accepte aucun bâtiment du catalogue
+            if (!batimentsAffiches) {
+                ImGui::TextDisabled("Aucun batiment compatible avec cette case.");
+            }
+            
             ImGui::EndPopup();
         }
 
@@ -3429,10 +3438,29 @@ void InterfaceManager::renderGame() {
             ImGui::Dummy(ImVec2(0, 5));
 
             const auto& catalogue = _moteur.getUniteFactory().getCatalogue();
+            
+            std::string maFaction = (localJIdx >= 0 && localJIdx < (int)_playerFactions.size()) ? _playerFactions[localJIdx] : "";
+            const FactionParams* fp = _moteur.getLogicConfig().getFaction(maFaction);
+
             if (catalogue.empty()) {
-                ImGui::TextDisabled("Aucune unite dans le catalogue.");
+                ImGui::TextDisabled("Aucune unite dans le catalogue global.");
             } else {
+                bool unitesAffichees = false;
                 for (const auto& [nom, uniteModele] : catalogue) {
+                    
+                    // FILTRAGE : On vérifie si l'unité appartient à la faction
+                    if (fp && !fp->unites_disponibles.empty()) {
+                        bool autorisee = false;
+                        for (const std::string& uNom : fp->unites_disponibles) {
+                            if (uNom == nom) { 
+                                autorisee = true; 
+                                break; 
+                            }
+                        }
+                        if (!autorisee) continue;
+                    }
+                    
+                    unitesAffichees = true;
                     std::string coutText;
                     for (auto const& [res, qte] : uniteModele->cout()) {
                         if (!coutText.empty()) coutText += ", ";
@@ -3492,6 +3520,10 @@ void InterfaceManager::renderGame() {
                         
                         ImGui::EndTooltip();
                     }
+                }
+
+                if (!unitesAffichees) {
+                    ImGui::TextDisabled("Aucune unite disponible pour votre faction.");
                 }
             }
             ImGui::EndPopup();

@@ -3,16 +3,15 @@
         {
             "nom": "Chasseur",
             "hp": 100,
-            "action": 0,
+            "action": 10,
             "poids": "",
             "symbole": "",
             "cout": {
-                "Neolithe": 400,
-                "Ilektraerium": 535
+                "Neolithe": 0
             },
             "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "vision": 3,
+            "fov": 2,
             "comportements": [
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
                 { "type": "AttaqueMelee", "degats": 35 }

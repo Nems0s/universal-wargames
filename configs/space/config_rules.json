@@ -2,6 +2,7 @@
     "taille_defaut": "Standard",
     "tailles_disponibles": [
         { "nom": "Tiny", "x": 50, "y": 50 },
+        { "nom": "TEST", "x": 10, "y": 10 },
         { "nom": "Standard", "x": 100, "y": 100 },
         { "nom": "Huge", "x": 200, "y": 200 }
     ],

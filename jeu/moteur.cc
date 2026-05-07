@@ -473,9 +473,12 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAmeliorer& cmd) {
         return ResultatAction::ECHEC_ARBITRE_REFUS;
 
     std::map<const Ressource*, int> coutAmelioration;
-    for (const auto& [nomRes, qte] : _logicConfig.getCoutBaseVille()) {
-        for (const auto& [resPtr, invQte] : j.getInventaire()) {
-            if (resPtr->getName() == nomRes) coutAmelioration[resPtr] = qte * tc->getCity()->getLevel(); 
+    
+    std::map<const Ressource*, int> coutBase = tc->getCity()->getCoutBase();
+    
+    if (!coutBase.empty()) {
+        for (const auto& [resPtr, qte] : coutBase) {
+            coutAmelioration[resPtr] = qte * tc->getCity()->getLevel();
         }
     }
     

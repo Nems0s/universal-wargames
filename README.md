@@ -144,9 +144,11 @@ cout_entretien {
 - gérer le fait qu'il regarde dans une direction quand il découvre
 
 
-
-FIX :
 - taille des capitales et villes (images en GUI)
 - Lecture des unités en GUI (aucune unité dans le catalogue)
 - Afficher uniquement les unités de sa faction
 - gérer le prix des villes pour les améliorer
+
+FIX
+- mauvais calcul de moral (float ratio = (moral - MIN_MORAL) / (MAX_MORAL - MIN_MORAL);)
+tester attaque puis détruire unité si moral 0
