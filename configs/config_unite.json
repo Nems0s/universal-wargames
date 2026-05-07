@@ -16,7 +16,8 @@
             "comportements": [
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
                 { "type": "AttaqueMelee", "degats": 35 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Chasseur.png"
         },
         {
             "nom": "Chasseur Amélioré",
@@ -36,7 +37,8 @@
                 { "type": "MouvementVolant", "mouvement_par_tour": 5 },
                 { "type": "AttaqueMelee", "degats": 35 },
                 { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Chasseur_Ameliorer.png"
         },
         {
             "nom": "Croiseur",
@@ -55,7 +57,8 @@
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
                 { "type": "MouvementMarin", "mouvement_par_tour": 4 },
                 { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Croiseur.png"
         },
         {
             "nom": "Frégate",
@@ -75,7 +78,8 @@
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
                 { "type": "MouvementMarin", "mouvement_par_tour": 4 },
                 { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Fregate.png"
         },
         {
             "nom": "Transporteur Tactique",
@@ -96,7 +100,8 @@
                 { "type": "MouvementMarin", "mouvement_par_tour": 4 },
                 { "type": "DefenseBouclier", "nombre_bouclier": 2 },
                 { "type": "SpecialTransport", "capacite": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Transporteur.png"
         },
         {
             "nom": "Vaisseau de Soutien",
@@ -116,7 +121,8 @@
                 { "type": "MouvementVolant", "mouvement_par_tour": 5 },
                 { "type": "DefenseBouclier", "nombre_bouclier": 2 },
                 { "type": "SoinDirect", "soin": 30, "portee": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Soutien.png"
         },
         {
             "nom": "Chasseur Azraël",
@@ -138,7 +144,8 @@
                 { "type": "AttaqueMelee", "degats": 35 },
                 { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
                 { "type": "SpecialFurtif", "duree": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Chasseur_Azrael.png"
         },
         {
             "nom": "Frégate Titus",
@@ -159,7 +166,8 @@
                 { "type": "MouvementMarin", "mouvement_par_tour": 4 },
                 { "type": "AttaqueMelee", "degats": 35 },
                 { "type": "DefenseArmure", "reduction": 20 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Fregate_Titus.png"
         },
         {
             "nom": "Nova One",
@@ -185,7 +193,8 @@
                 { "type": "MouvementVolant", "mouvement_par_tour": 5 },
                 { "type": "AttaqueDistance", "degats": 32, "portee": 3, "portee_mini": 2 },
                 { "type": "SpecialFurtif", "duree": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Nova_One.png"
         },
         {
             "nom": "Walkyrie",
@@ -210,7 +219,8 @@
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
                 { "type": "AttaqueMelee", "degats": 35 },
                 { "type": "SoinDirect", "soin": 39, "portee": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Walkyrie.png"
         },
         {
             "nom": "Dreadnought",
@@ -238,7 +248,8 @@
                 { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
                 { "type": "DefenseArmure", "reduction": 26 },
                 { "type": "SpecialTransport", "capacite": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Dreadnought.png"
         },
         {
             "nom": "Lucifer",
@@ -264,7 +275,8 @@
                 { "type": "MouvementMarin", "mouvement_par_tour": 5 },
                 { "type": "AttaqueMelee", "degats": 46 },
                 { "type": "AttaqueDistance", "degats": 32, "portee": 3, "portee_mini": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Lucifer.png"
         },
         {
             "nom": "Croiseur Égide",
@@ -284,7 +296,8 @@
                 { "type": "MouvementMarin", "mouvement_par_tour": 4 },
                 { "type": "DefenseBouclier", "nombre_bouclier": 2 },
                 { "type": "SoinIndirect", "soin": 15, "portee": 3, "tour_regeneration": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Croiseur_Egide.png"
         },
         {
             "nom": "Chasseur Gabriel",
@@ -307,7 +320,8 @@
                 { "type": "AttaqueMelee", "degats": 35 },
                 { "type": "SoinDirect", "soin": 30, "portee": 2 },
                 { "type": "SpecialFurtif", "duree": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Chasseur_Gabriel.png"
         },
         {
             "nom": "Requiem",
@@ -334,7 +348,8 @@
                 { "type": "AttaqueMelee", "degats": 46 },
                 { "type": "AttaqueDistance", "degats": 32, "portee": 3, "portee_mini": 2 },
                 { "type": "DefenseArmure", "reduction": 20 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Requiem.png"
         },
         {
             "nom": "Cénotaphe",
@@ -362,7 +377,8 @@
                 { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
                 { "type": "DefenseArmure", "reduction": 26 },
                 { "type": "DefenseBouclier", "nombre_bouclier": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Cenotaphe.png"
         },
         {
             "nom": "Compendium",
@@ -390,7 +406,8 @@
                 { "type": "SoinDirect", "soin": 39, "portee": 3 },
                 { "type": "SoinIndirect", "soin": 20, "portee": 3, "tour_regeneration": 3 },
                 { "type": "SpecialTransport", "capacite": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Compendium.png"
         },
         {
             "nom": "Séraphin",
@@ -417,7 +434,8 @@
                 { "type": "MouvementMarin", "mouvement_par_tour": 5 },
                 { "type": "AttaqueMelee", "degats": 46 },
                 { "type": "DefenseBouclier", "nombre_bouclier": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Seraphin.png"
         },
         {
             "nom": "Nuée",
@@ -436,7 +454,8 @@
                 { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
                 { "type": "MouvementVolant", "mouvement_par_tour": 5 },
                 { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Essaim/Nuee.png"
         },
         {
             "nom": "Chasseur Zéro",
@@ -458,7 +477,8 @@
                 { "type": "AttaqueMelee", "degats": 35 },
                 { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 },
                 { "type": "SpecialFurtif", "duree": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Essaim/Chasseur_Zero.png"
         },
         {
             "nom": "Élégie",
@@ -484,7 +504,8 @@
                 { "type": "MouvementVolant", "mouvement_par_tour": 5 },
                 { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
                 { "type": "SpecialFurtif", "duree": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Essaim/Elegie.png"
         },
         {
             "nom": "César",
@@ -510,7 +531,8 @@
                 { "type": "AttaqueDistance", "degats": 25, "portee": 4, "portee_mini": 2 },
                 { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 },
                 { "type": "SoinIndirect", "soin": 20, "portee": 4, "tour_regeneration": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Essaim/Cesar.png"
         },
         {
             "nom": "Ragnarök",
@@ -539,7 +561,8 @@
                 { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 },
                 { "type": "DefenseBouclier", "nombre_bouclier": 3 },
                 { "type": "SpecialTransport", "capacite": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Essaim/Ragnarok.png"
         },
         {
             "nom": "Absolue",
@@ -567,7 +590,8 @@
                 { "type": "AttaqueMelee", "degats": 46 },
                 { "type": "AttaqueIndirect", "degats": 26, "portee": 4, "tour_infection": 2 },
                 { "type": "SoinIndirect", "soin": 15, "portee": 4, "tour_regeneration": 3 }
-            ]
+            ],
+            "texture": "assets/Space/Unite/Essaim/Absolue_V2.png"
         }
     ]
 }

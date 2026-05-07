@@ -5,7 +5,7 @@
             "ressources_sol_requises": [
                 "Neolithe"
             ],
-            "texture": "",
+            "texture": "assets/Space/Batiment/M.png",
             "niveaux": [
                 {
                     "niveau": 1,
@@ -187,7 +187,7 @@
             "ressources_sol_requises": [
                 "Ilektraerium"
             ],
-            "texture": "",
+            "texture": "assets/Space/Batiment/CI.png",
             "niveaux": [
                 {
                     "niveau": 1,
@@ -286,7 +286,7 @@
             "ressources_sol_requises": [
                 "Vitriolite"
             ],
-            "texture": "",
+            "texture": "assets/Space/Batiment/CS.png",
             "niveaux": [
                 {
                     "niveau": 1,
@@ -385,7 +385,7 @@
             "ressources_sol_requises": [
                 "Heliosium"
             ],
-            "texture": "",
+            "texture": "assets/Space/Batiment/N.png",
             "niveaux": [
                 {
                     "niveau": 1,
