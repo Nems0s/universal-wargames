@@ -139,7 +139,14 @@ cout_entretien {
 - décommenter peutRecruterUnite dans l'arbitre et fix le problème
 
 
-A MODIFIER :
 - début defense, arrêt défense, désenrollement dans moteur.cc à faire
 - voir pour peutRecruterUnite dans arbitre.cc
 - gérer le fait qu'il regarde dans une direction quand il découvre
+
+
+
+FIX :
+- taille des capitales et villes (images en GUI)
+- Lecture des unités en GUI (aucune unité dans le catalogue)
+- Afficher uniquement les unités de sa faction
+- gérer le prix des villes pour les améliorer

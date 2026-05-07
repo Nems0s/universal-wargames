@@ -1,8 +1,133 @@
 {
     "villes": [
-        { "nom": "Capitale Galactique", "est_capitale": true, "max_level": 5, "pv_max_base": 2000.0, "degats_base": 100.0, "rayon_base": 4, "portee_vue": 8, "cout_base": {}, "texture": "assets/cities/capital_space.png" },
-        { "nom": "Colonie Planétaire", "est_capitale": false, "max_level": 4, "pv_max_base": 800.0, "degats_base": 40.0, "rayon_base": 3, "portee_vue": 5, "cout_base": { "Credits": 500, "Metaux_Lourds": 200, "Biomasse": 150 }, "production_base": { "Credits": 20, "Biomasse": 15 }, "texture": "assets/cities/colony_space.png" },
-        { "nom": "Station Minière", "est_capitale": false, "max_level": 3, "pv_max_base": 400.0, "degats_base": 25.0, "rayon_base": 2, "portee_vue": 4, "cout_base": { "Credits": 300, "Metaux_Lourds": 100 }, "production_base": { "Metaux_Lourds": 15 }, "texture": "assets/cities/mining_station.png" },
-        { "nom": "Base Militaire Orbitale", "est_capitale": false, "max_level": 3, "pv_max_base": 1500.0, "degats_base": 150.0, "rayon_base": 3, "portee_vue": 6, "cout_base": { "Credits": 800, "Titane": 300, "Uranium": 50 }, "production_base": { "Influence": 5, "Credits": -20 }, "texture": "assets/cities/military_base.png" }
+        {
+            "cout_base": {},
+            "degats_base": 40.0,
+            "est_capitale": true,
+            "max_level": 5,
+            "niveaux": [
+                {
+                    "cout": {
+                        "Integrium": 300,
+                        "Neolithe": 300
+                    },
+                    "niveau": 1,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 150,
+                        "Integrium": 900,
+                        "Neolithe": 600,
+                        "Vitriolite": 150
+                    },
+                    "niveau": 2,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 300,
+                        "Integrium": 1500,
+                        "Neolithe": 900,
+                        "Vitriolite": 300
+                    },
+                    "niveau": 3,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 25,
+                        "Ilektraerium": 600,
+                        "Integrium": 2000,
+                        "Neolithe": 1500,
+                        "Vitriolite": 600
+                    },
+                    "niveau": 4,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 100,
+                        "Ilektraerium": 1200,
+                        "Integrium": 3000,
+                        "Neolithe": 3000,
+                        "Vitriolite": 1200
+                    },
+                    "niveau": 5,
+                    "nombre_batiments": 4
+                }
+            ],
+            "nom": "Capitale",
+            "portee_vue": 5,
+            "pv_max_base": 500.0,
+            "rayon_base": 3,
+            "texture": "assets/Space/Batiment/Cap.png"
+        },
+        {
+            "cout_base": {
+                "Integrium": 300,
+                "Neolithe": 300
+            },
+            "degats_base": 20.0,
+            "est_capitale": false,
+            "max_level": 5,
+            "niveaux": [
+                {
+                    "cout": {
+                        "Integrium": 300,
+                        "Neolithe": 300
+                    },
+                    "niveau": 1,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 150,
+                        "Integrium": 900,
+                        "Neolithe": 600,
+                        "Vitriolite": 150
+                    },
+                    "niveau": 2,
+                    "nombre_batiments": 2
+                },
+                {
+                    "cout": {
+                        "Ilektraerium": 300,
+                        "Integrium": 1500,
+                        "Neolithe": 900,
+                        "Vitriolite": 300
+                    },
+                    "niveau": 3,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 25,
+                        "Ilektraerium": 600,
+                        "Integrium": 2000,
+                        "Neolithe": 1500,
+                        "Vitriolite": 600
+                    },
+                    "niveau": 4,
+                    "nombre_batiments": 3
+                },
+                {
+                    "cout": {
+                        "Heliosium": 100,
+                        "Ilektraerium": 1200,
+                        "Integrium": 3000,
+                        "Neolithe": 3000,
+                        "Vitriolite": 1200
+                    },
+                    "niveau": 5,
+                    "nombre_batiments": 4
+                }
+            ],
+            "nom": "Colonie",
+            "portee_vue": 3,
+            "pv_max_base": 200.0,
+            "rayon_base": 2,
+            "texture": "assets/Space/Batiment/V.png"
+        }
     ]
 }

@@ -82,14 +82,14 @@ void Joueur::decouvrirZoneVision(int startX, int startY, int rayon, int fov, int
     }
 }
 
-void Joueur::Attaquer(Unite& attaque, Unite& cible, CompAtt* const& TypeAttaque) 
+bool Joueur::Attaquer(Unite& attaque, Unite& cible, CompAtt* const& TypeAttaque) 
 {
-
     bool succes = Combat::fight(attaque, TypeAttaque, cible); 
     if(succes) 
     {
         attaque.setPoint_action(attaque.point_action() - 1);
     }
+    return succes;
 }
 
 void Joueur::Soigner(Unite& healer, Unite& cible, CompSoin* const& TypeSoin) 

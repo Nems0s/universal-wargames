@@ -11,7 +11,7 @@
             "perlin_scale": 0.15,
             "persistence": 0.45,
             "redistribution": 4.5,
-            "seuils": { ".": 0.80, "~": 0.84, "*": 0.88, "L": 0.92, "P": 0.96, "G": 0.985, "E": 0.998, "X": 1.0 }
+            "seuils": { ".": 0.35, "~": 0.50, "*": 0.60, "c": 0.68, "R": 0.78, "s": 0.83, "G": 0.88, "I": 0.93, "E": 0.97, "O": 1.0 }
         },
         "NÉBULEUSE DENSE (Chaotique)": {
             "inversion": false,
@@ -20,7 +20,7 @@
             "perlin_scale": 0.08,
             "persistence": 0.6,
             "redistribution": 1.2,
-            "seuils": { ".": 0.20, "~": 0.60, "*": 0.75, "L": 0.80, "P": 0.90, "G": 0.95, "E": 0.99, "X": 1.0 }
+            "seuils": { ".": 0.35, "~": 0.50, "*": 0.60, "c": 0.68, "R": 0.78, "s": 0.83, "G": 0.88, "I": 0.93, "E": 0.97, "O": 1.0 }
         },
         "AMAS GALACTIQUE (Très dense)": {
             "inversion": false,
@@ -29,21 +29,291 @@
             "perlin_scale": 0.25,
             "persistence": 0.3,
             "redistribution": 1.8,
-            "seuils": { ".": 0.40, "~": 0.50, "*": 0.60, "L": 0.65, "P": 0.80, "G": 0.85, "E": 0.98, "X": 1.0 }
+            "seuils": { ".": 0.35, "~": 0.50, "*": 0.60, "c": 0.68, "R": 0.78, "s": 0.83, "G": 0.88, "I": 0.93, "E": 0.97, "O": 1.0 }
         }
     },
     "presets_random": {
-        "SYSTÈMES STELLAIRES (Réalistes)": { ".": 800, "~": 40, "*": 40, "L": 40, "P": 40, "G": 25, "E": 13, "X": 2 },
-        "NÉBULEUSE DENSE (Chaotique)": { ".": 200, "~": 400, "*": 150, "L": 50, "P": 100, "G": 50, "E": 40, "X": 10 }
+        "GALAXY (Balanced)": {
+            ".": 50,
+            "~": 15,
+            "*": 8,
+            "c": 5,
+            "O": 2,
+            "R": 8,
+            "s": 4,
+            "G": 3,
+            "I": 3,
+            "E": 2
+        },
+        "STELLAR SYSTEMS (Scattered)": {
+            ".": 65,
+            "~": 10,
+            "*": 5,
+            "c": 5,
+            "O": 1,
+            "R": 6,
+            "s": 3,
+            "G": 2,
+            "I": 2,
+            "E": 1
+        },
+        "NEBULA (Dense)": {
+            ".": 30,
+            "~": 10,
+            "*": 12,
+            "c": 8,
+            "O": 3,
+            "R": 12,
+            "s": 8,
+            "G": 7,
+            "I": 5,
+            "E": 5
+        }
     },
     "tiles": [
-        { "symbole": ".", "nom": "Vide Spatial", "constructible": false, "cout": 1, "mouv": {"aerien": true, "marche": false, "nage": false}, "gen": {"nbMin": 0, "poids": 800}, "env": {"gravite": 0.0, "radiation": 0.1, "temperature": 0.0}, "properties": {}, "ressources": [], "couleur_minimap": [5,5,15] },
-        { "symbole": "~", "nom": "Nébuleuse", "constructible": false, "cout": 2, "mouv": {"aerien": true, "marche": false, "nage": false}, "gen": {"nbMin": 0, "poids": 40}, "env": {"gravite": 0.0, "radiation": 0.8, "temperature": 0.2}, "properties": {"furtivite": true, "brouillage_radar": true}, "ressources": ["Poussiere_Stellaire"], "couleur_minimap": [80,20,120] },
-        { "symbole": "*", "nom": "Champ d'Astéroïdes", "constructible": false, "cout": 3, "mouv": {"aerien": true, "marche": false, "nage": false}, "gen": {"nbMin": 0, "poids": 40}, "env": {"gravite": 0.1, "radiation": 0.2, "temperature": 0.1}, "properties": {"degats_collision": 10}, "ressources": ["Metaux_Lourds", "Titane"], "couleur_minimap": [100,100,100] },
-        { "symbole": "L", "nom": "Lune Désolée", "constructible": true, "cout": 1, "mouv": {"aerien": true, "marche": true, "nage": false}, "gen": {"nbMin": 0, "poids": 40}, "env": {"gravite": 0.3, "radiation": 0.5, "temperature": 0.1}, "properties": {"bonus_defense": 0.2}, "ressources": ["Helium3", "Titane"], "couleur_minimap": [180,180,180] },
-        { "symbole": "P", "nom": "Planète Tellurique", "constructible": true, "cout": 1, "mouv": {"aerien": true, "marche": true, "nage": false}, "gen": {"nbMin": 2, "poids": 40}, "env": {"gravite": 1.0, "radiation": 0.1, "temperature": 0.5}, "properties": {"spawn_capitale": 1.0, "fertilite": 1.5}, "ressources": ["Biomasse", "Metaux_Lourds"], "couleur_minimap": [40,150,80] },
-        { "symbole": "G", "nom": "Géante Gazeuse", "constructible": false, "cout": 4, "mouv": {"aerien": true, "marche": false, "nage": false}, "gen": {"nbMin": 1, "poids": 25}, "env": {"gravite": 3.0, "radiation": 0.9, "temperature": 0.3}, "properties": {"infranchissable_unites_legeres": true}, "ressources": ["Tritium", "Helium3"], "couleur_minimap": [200,150,50] },
-        { "symbole": "E", "nom": "Étoile", "constructible": false, "cout": 99, "mouv": {"aerien": false, "marche": false, "nage": false}, "gen": {"nbMin": 1, "poids": 13}, "env": {"gravite": 5.0, "radiation": 2.0, "temperature": 1.0}, "properties": {"eruption_proba": 0.15, "rayon_activate": 4.0}, "ressources": ["Matiere_Noire"], "couleur_minimap": [255,200,0] },
-        { "symbole": "X", "nom": "Trou Noir", "constructible": false, "cout": 99, "mouv": {"aerien": false, "marche": false, "nage": false}, "gen": {"nbMin": 0, "poids": 2}, "env": {"gravite": 10.0, "radiation": 3.0, "temperature": 0.0}, "properties": {"attraction_gravitationnelle": true, "rayon_activate": 3.0}, "ressources": ["Matiere_Noire"], "couleur_minimap": [20,0,30] }
+        {
+            "nom": "Espace",
+            "symbole": ".",
+            "cout": 1,
+            "constructible": false,
+            "mouv": {
+                "marche": true,
+                "nage": true,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 1000,
+                "nbMin": 0
+            },
+            "env": {
+                "temperature": 0.0,
+                "radiation": 0.0,
+                "gravite": 0.0
+            },
+            "ressources": [],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Espace.png",
+            "couleur_minimap": [5,5,15]
+        },
+        {
+            "nom": "Espace Profond",
+            "symbole": "~",
+            "cout": 2,
+            "constructible": false,
+            "mouv": {
+                "marche": false,
+                "nage": true,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 150,
+                "nbMin": 2
+            },
+            "env": {
+                "temperature": 0.0,
+                "radiation": 0.0,
+                "gravite": 0.0
+            },
+            "ressources": [],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Espace_Profond.png"
+        },
+        {
+            "nom": "Asteroide",
+            "symbole": "*",
+            "cout": 3,
+            "constructible": false,
+            "mouv": {
+                "marche": false,
+                "nage": true,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 80,
+                "nbMin": 2
+            },
+            "env": {
+                "temperature": 0.0,
+                "radiation": 0.0,
+                "gravite": 0.1
+            },
+            "ressources": [
+                "Neolithe"
+            ],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Asteroide.png"
+        },
+        {
+            "nom": "Comete",
+            "symbole": "c",
+            "cout": 2,
+            "constructible": false,
+            "mouv": {
+                "marche": false,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 50,
+                "nbMin": 1
+            },
+            "env": {
+                "temperature": 0.0,
+                "radiation": 0.0,
+                "gravite": 0.0
+            },
+            "ressources": [],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Comete.png"
+        },
+        {
+            "nom": "TrouNoir",
+            "symbole": "O",
+            "cout": 0,
+            "constructible": false,
+            "mouv": {
+                "marche": false,
+                "nage": false,
+                "aerien": false
+            },
+            "gen": {
+                "poids": 20,
+                "nbMin": 1
+            },
+            "env": {
+                "temperature": 0.0,
+                "radiation": 0.0,
+                "gravite": 1.0
+            },
+            "ressources": [],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Trou_Noir.png"
+        },
+        {
+            "nom": "Planete Rocheuse",
+            "symbole": "R",
+            "cout": 2,
+            "constructible": true,
+            "mouv": {
+                "marche": true,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 80,
+                "nbMin": 3
+            },
+            "env": {
+                "temperature": 0.5,
+                "radiation": 0.0,
+                "gravite": 0.5
+            },
+            "ressources": [],
+            "properties": {
+                "spawn_capitale": 1.0
+            },
+            "texture": "assets/Space/Tuiles/Planete_Rocheuse.png",
+            "couleur_minimap": [40,150,80]
+        },
+        {
+            "nom": "Satellite Naturel",
+            "symbole": "s",
+            "cout": 2,
+            "constructible": true,
+            "mouv": {
+                "marche": true,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 40,
+                "nbMin": 2
+            },
+            "env": {
+                "temperature": 0.3,
+                "radiation": 0.0,
+                "gravite": 0.3
+            },
+            "ressources": [
+                "Neolithe"
+            ],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Satellite.png"
+        },
+        {
+            "nom": "Planete Gazeuse",
+            "symbole": "G",
+            "cout": 2,
+            "constructible": true,
+            "mouv": {
+                "marche": true,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 30,
+                "nbMin": 2
+            },
+            "env": {
+                "temperature": 0.2,
+                "radiation": 0.0,
+                "gravite": 0.6
+            },
+            "ressources": [
+                "Ilektraerium"
+            ],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Planete_Gazeuse.png"
+        },
+        {
+            "nom": "Planete de Glace",
+            "symbole": "I",
+            "cout": 2,
+            "constructible": true,
+            "mouv": {
+                "marche": true,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 30,
+                "nbMin": 2
+            },
+            "env": {
+                "temperature": -0.5,
+                "radiation": 0.0,
+                "gravite": 0.4
+            },
+            "ressources": [
+                "Vitriolite"
+            ],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Planete_Glace.png"
+        },
+        {
+            "nom": "Etoile",
+            "symbole": "E",
+            "cout": 3,
+            "constructible": true,
+            "mouv": {
+                "marche": false,
+                "nage": false,
+                "aerien": true
+            },
+            "gen": {
+                "poids": 20,
+                "nbMin": 2
+            },
+            "env": {
+                "temperature": 1.0,
+                "radiation": 0.5,
+                "gravite": 0.8
+            },
+            "ressources": [
+                "Heliosium"
+            ],
+            "properties": {},
+            "texture": "assets/Space/Tuiles/Etoile.png"
+        }
     ]
 }

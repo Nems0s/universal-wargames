@@ -1,44 +1,81 @@
 {
-    "taille_defaut": "Système Solaire (Standard)",
+    "taille_defaut": "Standard",
     "tailles_disponibles": [
-        { "nom": "Secteur Local (Petit)", "x": 50, "y": 50 },
-        { "nom": "Système Solaire (Standard)", "x": 100, "y": 100 },
-        { "nom": "Amas Stellaire (Grand)", "x": 200, "y": 200 },
-        { "nom": "Galaxie Entière (Épique)", "x": 350, "y": 350 },
-        { "nom": "IA", "x": 30, "y": 30 }
+        { "nom": "Tiny", "x": 50, "y": 50 },
+        { "nom": "Standard", "x": 100, "y": 100 },
+        { "nom": "Huge", "x": 200, "y": 200 }
     ],
     "factions": [
         {
-            "nom": "Fédération Terrienne",
-            "image": "assets/factions/terran.png",
-            "specifications": { "bonus_armure": 1.2, "cout_entretien_reduit": 0.8 },
-            "unites": ["Chasseur Léger", "Frégate d'Escorte", "Croiseur Lourd", "Cuirassé Stellaire", "Vaisseau de Colonisation", "Amiral Terrien"]
+            "image": "assets/Space/Factions/UB.png",
+            "nom": "Union Bleue",
+            "specifications": {},
+            "unites": [
+                "Chasseur",
+                "Chasseur Amélioré",
+                "Croiseur",
+                "Frégate",
+                "Transporteur Tactique",
+                "Vaisseau de Soutien",
+                "Chasseur Azraël",
+                "Frégate Titus",
+                "Nova One",
+                "Walkyrie",
+                "Dreadnought",
+                "Lucifer"
+            ]
         },
         {
-            "nom": "L'Essaim Zorgon",
-            "image": "assets/factions/zorgon.png",
-            "specifications": { "bonus_vitesse": 1.5, "regeneration_biologique": 20, "malus_bouclier": 0.5 },
-            "unites": ["Drone Rapide", "Cracheur d'Acide", "Léviathan Spatial", "Vaisseau Ruche", "Reine Zorgon"]
+            "image": "assets/Space/Factions/RI.png",
+            "nom": "République d'Irnill",
+            "specifications": {},
+            "unites": [
+                "Chasseur",
+                "Chasseur Amélioré",
+                "Croiseur",
+                "Frégate",
+                "Transporteur Tactique",
+                "Vaisseau de Soutien",
+                "Croiseur Égide",
+                "Chasseur Gabriel",
+                "Requiem",
+                "Cénotaphe",
+                "Compendium",
+                "Séraphin"
+            ]
         },
         {
-            "nom": "Le Nexus Cybernétique",
-            "image": "assets/factions/nexus.png",
-            "specifications": { "bonus_bouclier": 2.0, "immunite_radiation": true, "malus_vitesse": 0.8 },
-            "unites": ["Sonde Autonome", "Intercepteur IA", "Vaisseau Assimilateur", "Dreadnought Synthétique", "IA Primordiale"]
+            "image": "assets/Space/Factions/E.png",
+            "nom": "Essaim",
+            "specifications": {},
+            "unites": [
+                "Chasseur",
+                "Chasseur Amélioré",
+                "Croiseur",
+                "Frégate",
+                "Transporteur Tactique",
+                "Vaisseau de Soutien",
+                "Nuée",
+                "Chasseur Zéro",
+                "Élégie",
+                "César",
+                "Ragnarök",
+                "Absolue"
+            ]
         }
     ],
-    "ressources_depart": { "Credits": 1000, "Biomasse": 500, "Metaux_Lourds": 300, "Titane": 50 },
-    "production_capitale": { "Credits": 50, "Biomasse": 30, "Metaux_Lourds": 20, "Influence": 5 },
+    "ressources_depart": { "Neolithe": 500, "Integrium": 500 },
+    "production_capitale": { "Neolithe": 50, "Integrium": 50 },
     "regles_entretien": {
-        "capacite_ville": 10,
-        "capacite_ville_niveau": 5,
-        "cout_defaut": { "Credits": 5, "Biomasse": 2 }
-    },
-    "regles_villes": {
-        "distance_min_entre_villes": 5,
-        "multiplicateur": 1.5
+        "capacite_ville": 5,
+        "capacite_ville_niveau": 3,
+        "cout_defaut": {}
     },
     "regles_unites": {
         "cout_rotation": 1
+    },
+    "regles_villes": {
+        "distance_min_entre_villes": 3,
+        "multiplicateur": 1.5
     }
 }

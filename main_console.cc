@@ -500,11 +500,27 @@ int main() {
     // -------------------------------------------------------
     // 1. Chargement de la configuration
     // -------------------------------------------------------
-    MoteurDeJeu moteur;
 
     std::cout << "\nChargement des configurations depuis configs/..." << std::endl;
+
+    MoteurDeJeu moteur;
+
+    // Config
+    GameConfigFiles mesConfigs;
+    std::string jeu = "space";
+
+    // Paths
+    mesConfigs.rulesPath = "configs/" + jeu + "/config_rules.json";
+    mesConfigs.ressourcesPath = "configs/" + jeu + "/config_ressources.json";
+    mesConfigs.batimentsPath = "configs/" + jeu + "/config_batiments.json";
+    mesConfigs.villesPath = "configs/" + jeu + "/config_villes.json";
+    mesConfigs.unitesPath = "configs/" + jeu + "/config_unites.json";
+    mesConfigs.tuilesPath = "configs/" + jeu + "/config_tuiles.json";
+    mesConfigs.winsPath = "configs/" + jeu + "/config_wins.json";
+
+    // Chargement
     try {
-        moteur.chargerConfiguration("configs/config_rules.json");
+        moteur.chargerConfiguration(mesConfigs);
         std::cout << "[SYSTEME] Configuration chargée." << std::endl;
         std::cout << "  Coût de rotation : " << moteur.getCoutRotation() << " PA" << std::endl;
     } catch (const std::exception& e) {

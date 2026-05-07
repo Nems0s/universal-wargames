@@ -7,23 +7,19 @@ struct CmdFonderVille { int x, y; std::string nomVille; };
 struct CmdAcheterCase { int x, y; };
 struct CmdAmeliorer { int x, y; };
 struct CmdDeplacement { int xSrc, ySrc, xDest, yDest; };
-struct CmdAttaque { int xSrc, ySrc, xDest, yDest; };
+struct CmdAttaque { int xSrc, ySrc, xDest, yDest, indexAtt; };
 struct CmdRotation { int x, y; direction dir; };
 struct CmdRecrutement { int x, y; std::string nomUnite; };
 struct CmdConstruction { int x, y; std::string nomBatiment; };
-struct CmdSoigner { int xSrc, ySrc, xDest, yDest; };
+struct CmdSoigner { int xSrc, ySrc, xDest, yDest, indexSoin; };
 struct CmdCamoufler { int x, y; };
 struct CmdCharger { int xPassager, yPassager, xTransport, yTransport; };
 struct CmdDecharger { int xTransport, yTransport, indexPassager, xDest, yDest; };
 struct CmdEnroler { int xCommandant, yCommandant, xRecrue, yRecrue; };
+struct CmdDesenroler { int xCommandant, yCommandant, xRecrue, yRecrue; };
+struct CmdChangerDefense { int x, y; };
 struct CmdDetruireUnite { int x, y; };
 struct CmdFinTour {};
-
-    // ResultatAction actionModifierVision(Joueur& j, const Action& action);
-    // ResultatAction actionDebutDefense(Joueur& j, const Action& a);
-    // ResultatAction actionArretDefense(Joueur& j, const Action& a);
-    // ResultatAction actionDesenrolement(Joueur& j, const Action& a);
-    
 
 // variant : contient un seule des structures suivantes
 using CommandeJeu = std::variant<
@@ -40,6 +36,7 @@ using CommandeJeu = std::variant<
     CmdCharger,
     CmdDecharger,
     CmdEnroler,
+    CmdChangerDefense,
     CmdDetruireUnite,
     CmdFinTour
 >;

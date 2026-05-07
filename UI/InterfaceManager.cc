@@ -2262,7 +2262,7 @@ void InterfaceManager::renderGame() {
                         float angleDeg = getRotationAngle(d); 
                         float angleRad = angleDeg * PI / 180.0f;
                         
-                        float halfFov = (u->getFov() / 2.0f) * PI / 180.0f; 
+                        float halfFov = (u->getFov()*60.0f / 2.0f) * PI / 180.0f; 
                         float coneLength = u->getVisionRange() * W * 1.5f;
                         
                         sf::VertexArray cone(sf::TriangleFan, 4);

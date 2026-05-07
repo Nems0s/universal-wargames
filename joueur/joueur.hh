@@ -66,7 +66,7 @@ public:
     void incNbCasesAchetees() { _nbCasesAchetees++; }
 
     //Action sur les Unites
-    void Attaquer(Unite& attaque, Unite& cible, CompAtt* const& TypeAttaque);
+    bool Attaquer(Unite& attaque, Unite& cible, CompAtt* const& TypeAttaque);
     void Soigner(Unite& healer, Unite& cible, CompSoin* const& TypeSoin);
     void ActiverCamouflage(Unite& unite);
     void RejoindreCommandant(Unite& commandant, Unite& unite);

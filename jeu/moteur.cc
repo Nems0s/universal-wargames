@@ -2,58 +2,6 @@
 #include "combat.hh"
 #include <iostream>
 
-/*
-
-ResultatAction GameManager::actionDebutDefense(Joueur& j, const Action& action) 
-{
-    Unite* u = _plateau.getUnite(action.x1, action.y1);
-    if(u && _arbitre.appartientJoueur(j, *u) && !u->defensif()) 
-    {
-        j.ChangerPositionDefensive(*u);
-        return ResultatAction::SUCCES;
-    }
-    return ResultatAction::ECHEC_ARBITRE_REFUS;
-}
-
-ResultatAction GameManager::actionArretDefense(Joueur& j, const Action& action) 
-{
-    Unite* u = _plateau.getUnite(action.x1, action.y1);
-    if(u && _arbitre.appartientJoueur(j, *u) && u->defensif()) 
-    {
-        u->changerDefense();
-        return ResultatAction::SUCCES;
-    }
-    return ResultatAction::ECHEC_ARBITRE_REFUS;
-}
-
-ResultatAction GameManager::actionDesenrolement(Joueur& j, const Action& action) 
-{
-    Unite* com = _plateau.getUnite(action.x1, action.y1);
-    Unite* reg = _plateau.getUnite(action.x2, action.y2);
-    if (com && reg) 
-    {
-        if (auto* commandant = dynamic_cast<Rank_Commandant*>(com->rank().get()))
-        {
-            auto listeU = commandant->liste_unites();
-            auto it = std::find(listeU.begin(), listeU.end(), reg->shared_from_this());
-
-            if (it != listeU.end()) 
-            {
-                j.QuitterCommandant(*com, *reg);
-                return ResultatAction::SUCCES;
-            } 
-            else 
-            {
-                return ResultatAction::ECHEC_ARBITRE_REFUS;
-            }
-            
-        }
-    }
-    return ResultatAction::ECHEC_ARBITRE_REFUS;
-}
-
-*/
-
 // ------------------------------------------- //
 // ---------- Init et configuration ---------- //
 // ------------------------------------------- //
@@ -292,6 +240,9 @@ void MoteurDeJeu::actualiserVisibiliteJoueur(int pIdx) {
     for (City* c : j.getCities()) {
         if (c) j.decouvrirZoneVision(c->getX(), c->getY(), c->getVisionRange(), 360, w, h, direction::est, true);
     }
+    for (const auto& tuile : getTerritoireJoueur(pIdx)) {
+        j.decouvrirZoneVision(tuile.first, tuile.second, 1, 360, w, h, direction::est, true);
+    }
 }
 
 void MoteurDeJeu::chargerPartieDepuisJson(const nlohmann::json& j, const std::vector<std::string>& factions) {
@@ -450,6 +401,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdFinTour& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdFonderVille& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
     Joueur& j = _joueurs[pIdx];
     hexa* cell = const_cast<hexa*>(_plateau->getCell(cmd.x, cmd.y));
     TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
@@ -480,6 +433,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdFonderVille& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAcheterCase& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     if (!_arbitre.peutAcheterCase(j, cmd.x, cmd.y, *_plateau, _logicConfig)) return ResultatAction::ECHEC_ARBITRE_REFUS;
 
@@ -496,6 +451,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAcheterCase& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdConstruction& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     auto nvBat = _batimentFactory.create(cmd.nomBatiment);
     if (!nvBat) return ResultatAction::ECHEC_ARBITRE_REFUS;
 
@@ -506,6 +463,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdConstruction& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAmeliorer& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     const hexa* cell = _plateau->getCell(cmd.x, cmd.y);
     const TuileConfigurable* tc = dynamic_cast<const TuileConfigurable*>(cell);
@@ -528,6 +487,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAmeliorer& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDeplacement& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     Unite* u = _plateau->getUnite(cmd.xSrc, cmd.ySrc);
     
@@ -541,7 +502,10 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDeplacement& cmd) {
     if (u->point_action() < coutPA) return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
     if (_plateau->deplacerUnite(*u, cmd.xDest, cmd.yDest)) {
+        Coord src = u->location();
+        direction nouvDir = directionVers(src, {cmd.xDest, cmd.yDest});
         u->setLocation({cmd.xDest, cmd.yDest});
+        u->setRegarde(nouvDir);
         u->setPoint_action(u->point_action() - coutPA);
         return ResultatAction::SUCCES;
     }
@@ -549,6 +513,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDeplacement& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRotation& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Unite* u = _plateau->getUnite(cmd.x, cmd.y);
     if (!u || !_arbitre.appartientJoueur(_joueurs[pIdx], *u)) return ResultatAction::ECHEC_COORD_INVALIDE;
 
@@ -561,6 +527,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRotation& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAttaque& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     Unite* att = _plateau->getUnite(cmd.xSrc, cmd.ySrc);
     Unite* def = _plateau->getUnite(cmd.xDest, cmd.yDest);
@@ -568,11 +536,18 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAttaque& cmd) {
     if (!att || !def || !_arbitre.appartientJoueur(j, *att)) return ResultatAction::ECHEC_ARBITRE_REFUS;
     if (att->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
-    for (CompAtt* attComp : att->Offensive()) {
-        if (_arbitre.peutAttaquer(j, *att, *def, attComp)) {
-            att->setPoint_action(att->point_action() - 1);
-            if (Combat::fight(*att, attComp, *def)) {
-                if (def->health_point() <= 0) {
+    std::list<CompAtt*> listeAtt = att->Offensive();
+    if(listeAtt.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+    if (cmd.indexAtt >= 0 && cmd.indexAtt < listeAtt.size()) 
+    {
+        auto it = std::next(listeAtt.begin(), cmd.indexAtt);
+        if (_arbitre.peutAttaquer(j, *att, *def, *it)) 
+        {
+            if(j.Attaquer(*att, *def, *it)) 
+            {
+                if (def->health_point() <= 0) 
+                {
                     if (def->getProprietaire()) def->getProprietaire()->perdreUnite(def);
                     _plateau->retirerUnite(cmd.xDest, cmd.yDest);
                 }
@@ -584,7 +559,10 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAttaque& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRecrutement& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
     Joueur& j = _joueurs[pIdx];
+
+    if (_plateau->getUnite(cmd.x, cmd.y) != nullptr) return ResultatAction::ECHEC_COORD_INVALIDE;
 
     int capaciteMax = _logicConfig.getCapaciteBase();
     for (City* c : j.getCities()) {
@@ -606,12 +584,14 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRecrutement& cmd) {
 
     Unite* raw = unite.get();
     raw->setProprietaire(&j);
-    _plateau->placerUnite(cmd.x, cmd.y, std::move(unite));
     j.ajouterUnite(raw);
+    _plateau->placerUnite(cmd.x, cmd.y, std::move(unite));
     return ResultatAction::SUCCES;
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdSoigner& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     Unite* healer = _plateau->getUnite(cmd.xSrc, cmd.ySrc);
     Unite* cible = _plateau->getUnite(cmd.xDest, cmd.yDest);
@@ -619,13 +599,15 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdSoigner& cmd) {
     if (!healer || !cible || !_arbitre.appartientJoueur(j, *healer)) return ResultatAction::ECHEC_ARBITRE_REFUS;
     if (healer->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
-    for (CompSoin* soinComp : healer->Soin()) {
-        if (_arbitre.peutSoigner(j, *healer, *cible, soinComp)) {
-            
-            int soin = soinComp->healing_point(); 
-            cible->setHealth_point(std::min(cible->health_point_max(), cible->health_point() + soin));
-            
-            healer->setPoint_action(healer->point_action() - 1);
+    std::list<CompSoin*> listeSoin = healer->Soin();
+    if(listeSoin.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+    if (cmd.indexSoin >= 0 && cmd.indexSoin < listeSoin.size()) 
+    {
+        auto it = std::next(listeSoin.begin(), cmd.indexSoin);
+        if(_arbitre.peutSoigner(j, *healer, *cible, *it)) 
+        {
+            j.Soigner(*healer, *cible, *it);
             return ResultatAction::SUCCES;
         }
     }
@@ -633,26 +615,25 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdSoigner& cmd) {
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdCamoufler& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     Unite* u = _plateau->getUnite(cmd.x, cmd.y);
 
     if (!u || !_arbitre.appartientJoueur(j, *u)) return ResultatAction::ECHEC_ARBITRE_REFUS;
     if (u->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
-    if (_arbitre.peutActiverCamouflage(j, *u)) {
-        CompFurtif* furtif = u->Cammouflage();
-        if (furtif) {
-            
-            furtif->ActiveCammouflage(); 
-            
-            u->setPoint_action(u->point_action() - 1);
-            return ResultatAction::SUCCES;
-        }
+    if (_arbitre.peutActiverCamouflage(j, *u)) 
+    {
+        j.ActiverCamouflage(*u);
+        return ResultatAction::SUCCES;
     }
     return ResultatAction::ECHEC_ARBITRE_REFUS;
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdCharger& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     Unite* passager = _plateau->getUnite(cmd.xPassager, cmd.yPassager);
     Unite* transport = _plateau->getUnite(cmd.xTransport, cmd.yTransport);
@@ -663,18 +644,17 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdCharger& cmd) {
     if (transport->point_action() <= 0 || passager->point_action() <= 0) 
         return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
-    if (_arbitre.peutTransporter(j, *transport)) {
-        
-        std::shared_ptr<Unite> ptrPassager = _plateau->extraireUnite(cmd.xPassager, cmd.yPassager);
-        transport->Transport()->MonterUnite(*transport, ptrPassager); 
-        
-        passager->setPoint_action(passager->point_action() - 1);
+    if (_arbitre.peutTransporter(j, *transport)) 
+    {
+        j.Transporter(*transport, *passager);
         return ResultatAction::SUCCES;
     }
     return ResultatAction::ECHEC_ARBITRE_REFUS;
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDecharger& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     Unite* transport = _plateau->getUnite(cmd.xTransport, cmd.yTransport);
 
@@ -682,26 +662,28 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDecharger& cmd) {
     if (transport->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
     if (cmd.xDest < 0 || cmd.xDest >= _plateau->getRows() || cmd.yDest < 0 || cmd.yDest >= _plateau->getCols()) return ResultatAction::ECHEC_COORD_INVALIDE;
 
-    if (_plateau->getUnite(cmd.xDest, cmd.yDest) == nullptr) {
-         
+    if (_plateau->getUnite(cmd.xDest, cmd.yDest) == nullptr) 
+    {
          auto liste = transport->Transport()->liste_unite_transporter();
-         if (cmd.indexPassager >= 0 && cmd.indexPassager < liste.size()) {
-             auto it = std::next(liste.begin(), cmd.indexPassager);
-             std::shared_ptr<Unite> passager = *it;
+         if (cmd.indexPassager >= 0 && cmd.indexPassager < liste.size()) 
+         {
+            auto it = std::next(liste.begin(), cmd.indexPassager);
+            std::shared_ptr<Unite> passager = *it;
 
-             if (transport->Transport()->DescenteUniteUnite(*transport, passager)) {
-                 passager->setLocation({cmd.xDest, cmd.yDest});
-                 _plateau->placerUnite(cmd.xDest, cmd.yDest, passager);
-                 
-                 transport->setPoint_action(transport->point_action() - 1);
-                 return ResultatAction::SUCCES;
-             }
+            if(_arbitre.peutDechargerTransport(j, *transport, *passager, cmd.xDest, cmd.yDest))
+            {
+                j.DechargerTransport(*transport, *passager, cmd.xDest, cmd.yDest);
+                _plateau->placerUnite(cmd.xDest, cmd.yDest, passager);
+                return ResultatAction::SUCCES;
+            }
          }
     }
     return ResultatAction::ECHEC_ARBITRE_REFUS;
 }
 
 ResultatAction MoteurDeJeu::executer(int pIdx, const CmdEnroler& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
     Joueur& j = _joueurs[pIdx];
     Unite* com = _plateau->getUnite(cmd.xCommandant, cmd.yCommandant);
     Unite* recrue = _plateau->getUnite(cmd.xRecrue, cmd.yRecrue);
@@ -711,17 +693,47 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdEnroler& cmd) {
     
     if (com->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
 
-    if (_arbitre.peutRejoindreCommandant(j, *com, *recrue)) {
-        auto r = com->rank();
-        auto comRank = std::dynamic_pointer_cast<Rank_Commandant>(r);
-        if (comRank) {
-            
-            comRank->ajout_unite(recrue->shared_from_this());
-            com->setPoint_action(com->point_action() - 1);
-            return ResultatAction::SUCCES;
-        }
+    if (_arbitre.peutRejoindreCommandant(j, *com, *recrue)) 
+    {
+        j.RejoindreCommandant(*com, *recrue);
+        return ResultatAction::SUCCES;
     }
     return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDesenroler& cmd) {
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
+    Joueur& j = _joueurs[pIdx];
+    Unite* com = _plateau->getUnite(cmd.xCommandant, cmd.yCommandant);
+    Unite* recrue = _plateau->getUnite(cmd.xRecrue, cmd.yRecrue);
+
+    if (!com || !recrue || !_arbitre.appartientJoueur(j, *com) || !_arbitre.appartientJoueur(j, *recrue)) 
+        return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
+    if (com->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
+
+    if (_arbitre.peutQuitterCommandant(j, *com, *recrue)) 
+    {
+        j.QuitterCommandant(*com, *recrue);
+        return ResultatAction::SUCCES;
+    }
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+
+ResultatAction MoteurDeJeu::executer(int pIdx, const CmdChangerDefense& cmd) 
+{
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    
+    Joueur& j = _joueurs[pIdx];
+    Unite* u = _plateau->getUnite(cmd.x, cmd.y);
+
+    if (!u || !_arbitre.appartientJoueur(j, *u)) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    if (u->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
+
+    j.ChangerPositionDefensive(*u);
+    return ResultatAction::SUCCES;
 }
 
 // ------------------------------------------- //
