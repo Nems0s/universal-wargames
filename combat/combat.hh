@@ -2,8 +2,8 @@
 #include "unite.hh"
 
 // Echelle de moral
-const int MAX_MORAL = 20;
-const int MIN_MORAL = -20;
+const float MAX_MORAL = 20.0;
+const float MIN_MORAL = -20.0;
 
 // Pourcentage de modification durant les combats
 const float PETIT_CHANGE = 5;
