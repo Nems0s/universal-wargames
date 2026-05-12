@@ -557,8 +557,9 @@ int main() {
         std::string nom, faction;
         std::cout << "\nNom du joueur " << (i + 1) << " : ";
         std::cin >> nom;
+        std::cin.ignore(10000, '\n'); //Vide le buffer
         std::cout << "Faction pour " << nom << " : ";
-        std::cin >> faction;
+        std::getline(std::cin, faction);
         noms.push_back(nom);
         factions.push_back(faction);
     }
