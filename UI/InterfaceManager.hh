@@ -197,5 +197,6 @@ private:
     void renderLoadMenu();
 
     sf::Color getPlayerColor(int playerIndex) const;
+    void centrerSurCapitale(int playerIndex);
 
 };

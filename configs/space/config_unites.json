@@ -1,6 +1,41 @@
 {
     "unites": [
         {
+            "nom": "Transporteur Logistique",
+            "hp": 80,
+            "action": 2,
+            "poids": "Léger",
+            "vision": 3,
+            "fov": 3,
+            "cout": {
+                "Neolithe": 150,
+                "Integrium": 100
+            },
+            "cout_entretien": {
+                "Neolithe": 8
+            },
+            "capacite_max": {
+                "Neolithe": 200,
+                "Integrium": 150,
+                "Ilektraerium": 100
+            },
+            "texture": "assets/Space/Unite/Logistique.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 3
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 3
+                },
+                {
+                    "type": "SpecialRavitaillement",
+                    "portee": 1
+                }
+            ]
+        },
+        {
             "nom": "Chasseur",
             "hp": 100,
             "action": 2,
@@ -39,6 +74,9 @@
             "cout_entretien": {
                 "Neolithe": 15
             },
+            "capacite_max": {
+                "Ilektraerium": 50
+            },
             "texture": "assets/Space/Unite/Chasseur_Ameliorer.png",
             "comportements": [
                 {
@@ -57,7 +95,8 @@
                     "type": "AttaqueDistance",
                     "degats": 25,
                     "portee": 3,
-                    "portee_mini": 2
+                    "portee_mini": 2,
+                    "cout_par_action": { "Ilektraerium": 10 }
                 }
             ]
         },
@@ -196,7 +235,8 @@
                 {
                     "type": "SoinDirect",
                     "soin": 30,
-                    "portee": 2
+                    "portee": 2,
+                    "cooldown": 2
                 }
             ]
         },
@@ -239,7 +279,8 @@
                 },
                 {
                     "type": "SpecialFurtif",
-                    "duree": 3
+                    "duree": 3,
+                    "cooldown": 3
                 }
             ]
         },
@@ -315,7 +356,9 @@
                     "type": "SoinIndirect",
                     "soin": 15,
                     "portee": 3,
-                    "tour_regeneration": 3
+                    "tour_regeneration": 3,
+                    "cooldown": 1
+                    
                 }
             ]
         },
@@ -392,7 +435,8 @@
                     "type": "AttaqueIndirect",
                     "degats": 20,
                     "portee": 4,
-                    "tour_infection": 2
+                    "tour_infection": 2,
+                    "cooldown": 2
                 }
             ]
         },
@@ -605,6 +649,9 @@
             "cout_entretien": {
                 "Heliosium": 2
             },
+            "capacite_max": {
+                "Heliosium": 10
+            },
             "buff_commandant": [
                 {
                     "type": "BonusDegat",
@@ -627,13 +674,15 @@
                 },
                 {
                     "type": "AttaqueMelee",
-                    "degats": 46
+                    "degats": 46,
+                    "cout_par_action": { "Heliosium": 1 }
                 },
                 {
                     "type": "AttaqueDistance",
                     "degats": 32,
                     "portee": 3,
-                    "portee_mini": 2
+                    "portee_mini": 2,
+                    "cout_par_action": { "Heliosium": 1 }
                 }
             ]
         },
@@ -817,6 +866,9 @@
             "cout_entretien": {
                 "Heliosium": 2
             },
+            "capacite_max": {
+                "Heliosium": 10
+            },
             "buff_commandant": [
                 {
                     "type": "BonusDegat",
@@ -839,7 +891,8 @@
                 },
                 {
                     "type": "AttaqueMelee",
-                    "degats": 46
+                    "degats": 46,
+                    "cout_par_action": { "Heliosium": 1 }
                 },
                 {
                     "type": "DefenseBouclier",
@@ -1021,6 +1074,9 @@
             "cout_entretien": {
                 "Heliosium": 2
             },
+            "capacite_max": {
+                "Heliosium": 10
+            },
             "buff_commandant": [
                 {
                     "type": "BonusDegat",
@@ -1043,19 +1099,22 @@
                 },
                 {
                     "type": "AttaqueMelee",
-                    "degats": 46
+                    "degats": 46,
+                    "cout_par_action": { "Heliosium": 1 }
                 },
                 {
                     "type": "AttaqueIndirect",
                     "degats": 26,
                     "portee": 4,
-                    "tour_infection": 2
+                    "tour_infection": 2,
+                    "cout_par_action": { "Heliosium": 2 }
                 },
                 {
                     "type": "SoinIndirect",
                     "soin": 15,
                     "portee": 4,
-                    "tour_regeneration": 3
+                    "tour_regeneration": 3,
+                    "cout_par_action": { "Heliosium": 1 }
                 }
             ]
         }

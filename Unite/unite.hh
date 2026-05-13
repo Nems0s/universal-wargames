@@ -118,6 +118,7 @@ public:
     std::list<CompSoin*> Soin() const;
     CompFurtif* Cammouflage() const;
     CompTransport* Transport() const;
+    CompRavitaillement* Ravitaillement() const;
 
     void changerDefense();
     void resetTemporary_stats();

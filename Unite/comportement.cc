@@ -1,9 +1,9 @@
 #include "comportement.hh"
 #include "unite.hh"
+#include "joueur.hh"
+#include "city.hh"
 #include "orientation.hh"
 #include <algorithm>
-#include <algorithm>
-
 
 //====================================================================================================
 //                                              Tools
@@ -60,6 +60,65 @@ bool ComportementConsommable::estPayable(const Unite& u) const
         }
     }
     return true;
+}
+
+bool ComportementConsommable::rechargerDepuisJoueur(Unite& u, Joueur& j) const
+{
+    bool surVille = false;
+    for (City* c : j.getCities())
+    {
+        if (c->getX() == u.location().first && c->getY() == u.location().second)
+        {
+            surVille = true;
+            break;
+        }
+    }
+
+    if (!surVille) return false;
+
+    auto inventaire   = u.getInventaireInterne();
+    auto capaciteMax  = u.getCapaciteMax();
+    auto& invJoueur   = j.getInventaire();
+    std::map<const Ressource*, int> aRecharger;
+    for (auto const& [res, max] : capaciteMax)
+    {
+        int actuel  = inventaire.count(res) ? inventaire.at(res) : 0;
+        int manque  = max - actuel;
+        if (manque <= 0) continue;
+
+        int dispo = invJoueur.count(res) ? invJoueur.at(res) : 0;
+        int qtePrise = std::min(manque, dispo);
+        if (qtePrise > 0)
+            aRecharger[res] = qtePrise;
+    }
+    if (aRecharger.empty()) return false;
+    j.payer(aRecharger);
+    for (auto const& [res, qte] : aRecharger)
+        u.ravitaillement(res, qte);
+    return true;
+
+}
+
+bool ComportementConsommable::rechargerDepuisRavitailleur(Unite& u, Unite& ravitailleur) const
+{
+    auto invRav = ravitailleur.getInventaireInterne();
+    auto capaciteMax = u.getCapaciteMax();
+    bool transfertEffectue = false;
+    for (auto const& [res, max] : capaciteMax)
+    {
+        int actuelCible = u.getInventaireInterne().count(res) ? u.getInventaireInterne().at(res) : 0;
+        int manque = max - actuelCible;
+        if (manque <= 0) continue;
+        int dispo = invRav.count(res) ? invRav.at(res) : 0;
+        int qtePrise = std::min(manque, dispo);
+        if (qtePrise > 0)
+        {
+            u.ravitaillement(res, qtePrise);
+            ravitailleur.consommerPourAction({{res, qtePrise}});
+            transfertEffectue = true;
+        }
+    }
+    return transfertEffectue;
 }
 
 
@@ -668,4 +727,47 @@ void CompFurtif::DesactiveCammouflage()
 {
     _camoufler = false;
     _tours_restants = 0;
+}
+
+//===================================================================
+//                        Ravitaillement
+//===================================================================
+CompRavitaillement::CompRavitaillement(int portee) : _portee(portee) {}
+int CompRavitaillement::portee() const 
+{ 
+    return _portee; 
+}
+
+void CompRavitaillement::affiche() const
+{
+    std::cout << "[Special] Ravitaillement : Portée=" << _portee << std::endl;
+}
+
+bool CompRavitaillement::PeuxRavitailler(Unite const& source, Unite const& cible) const
+{
+    auto cases_a_portee = case_adjascentes(source.location(), _portee);
+    return cases_a_portee.count(cible.location()) > 0;
+}
+
+bool CompRavitaillement::TransfererRessources(Unite& source, Unite& cible) const
+{
+    auto invSource   = source.getInventaireInterne();
+    auto capaciteMax = cible.getCapaciteMax();
+    bool transfertEffectue = false;
+    for (auto const& [res, max] : capaciteMax)
+    {
+        int actuelCible = cible.getInventaireInterne().count(res)
+                          ? cible.getInventaireInterne().at(res) : 0;
+        int manque = max - actuelCible;
+        if (manque <= 0) continue;
+        int dispo    = invSource.count(res) ? invSource.at(res) : 0;
+        int qtePrise = std::min(manque, dispo);
+        if (qtePrise > 0)
+        {
+            cible.ravitaillement(res, qtePrise);
+            source.consommerPourAction({{res, qtePrise}});
+            transfertEffectue = true;
+        }
+    }
+    return transfertEffectue;
 }

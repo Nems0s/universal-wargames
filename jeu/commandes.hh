@@ -18,6 +18,8 @@ struct CmdDecharger { int xTransport, yTransport, indexPassager, xDest, yDest; }
 struct CmdEnroler { int xCommandant, yCommandant, xRecrue, yRecrue; };
 struct CmdDesenroler { int xCommandant, yCommandant, xRecrue, yRecrue; };
 struct CmdChangerDefense { int x, y; };
+struct CmdRavitaillerSurVille { int x, y; };
+struct CmdRavitailler { int xSrc, ySrc, xDest, yDest; };
 struct CmdDetruireUnite { int x, y; };
 struct CmdFinTour {};
 
@@ -36,7 +38,10 @@ using CommandeJeu = std::variant<
     CmdCharger,
     CmdDecharger,
     CmdEnroler,
+    CmdDesenroler,
     CmdChangerDefense,
+    CmdRavitaillerSurVille,
+    CmdRavitailler,
     CmdDetruireUnite,
     CmdFinTour
 >;

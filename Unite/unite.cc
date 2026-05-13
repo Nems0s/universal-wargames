@@ -307,6 +307,16 @@ CompTransport* Unite::Transport() const
     return nullptr;
 }
 
+CompRavitaillement* Unite::Ravitaillement() const
+{
+    for (const auto& comp_ptr : _liste_comportements)
+    {
+        if (auto* rav = dynamic_cast<CompRavitaillement*>(comp_ptr.get()))
+            return rav;
+    }
+    return nullptr;
+}
+
 void Unite::affiche() const
 {
     std::cout << "=== [" << _name << "] ===" << std::endl;
@@ -366,7 +376,7 @@ void Unite::ravitaillement(const Ressource* res, int qte)
     {
         if(it->second + qte <= it_max->second)
         {
-            it->second += qte; // L'itérateur se comporte comme un pointeur dans une map donc si on le modifie on modifie map 
+            it->second += qte;
         }
     }
 }
@@ -476,6 +486,10 @@ std::shared_ptr<IComportement> createComp(const json& jComp, bool hasCD, int cd,
     {
         return buildComportement<CompFurtif>(hasCD, cd, hasCons, cout, jComp.value("duree", 0));
     }
+    if (type == "SpecialRavitaillement")
+    {
+        return buildComportement<CompRavitaillement>(hasCD, cd, hasCons, cout, jComp.value("portee", 1));
+    }
 
     return nullptr;
 }
@@ -542,6 +556,26 @@ void JsonUniteReader::load(const std::string& chemin, std::map<std::string, std:
                 {
                     coutEntretienUnite[ressources.at(it.key())] = it.value();
                 }
+            }
+        }
+
+        std::map<const Ressource*, int> capaciteMaxUnite;
+        if (item.contains("capacite_max"))
+        {
+            for (auto it = item["capacite_max"].begin(); it != item["capacite_max"].end(); ++it)
+            {
+                if (ressources.count(it.key()))
+                    capaciteMaxUnite[ressources.at(it.key())] = it.value();
+            }
+        }
+
+        std::map<const Ressource*, int> inventaireDepart;
+        if (item.contains("inventaire"))
+        {
+            for (auto it = item["inventaire"].begin(); it != item["inventaire"].end(); ++it)
+            {
+                if (ressources.count(it.key()))
+                    inventaireDepart[ressources.at(it.key())] = it.value();
             }
         }
 

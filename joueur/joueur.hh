@@ -77,6 +77,9 @@ public:
 
     void ChangerPositionDefensive(Unite& unite);
 
+    bool RavitaillerSurVille(Unite& u);
+    bool Ravitailler(Unite& ravitailleur, Unite& cible);
+
     // Accesseurs
     std::string getName() const { return _name; }
     int getNbVilles() const { return _cities.size(); }

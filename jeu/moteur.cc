@@ -746,6 +746,33 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdChangerDefense& cmd)
     return ResultatAction::SUCCES;
 }
 
+ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRavitaillerSurVille& cmd)
+{
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    Joueur& j = _joueurs[pIdx];
+    Unite* u = _plateau->getUnite(cmd.x, cmd.y);
+    if (!u || !_arbitre.appartientJoueur(j, *u)) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    if (u->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
+    if (j.RavitaillerSurVille(*u))
+        return ResultatAction::SUCCES;
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+}
+
+ResultatAction MoteurDeJeu::executer(int pIdx, const CmdRavitailler& cmd)
+{
+    if (pIdx < 0 || pIdx >= (int)_joueurs.size()) return ResultatAction::ECHEC_ARBITRE_REFUS;
+    Joueur& j = _joueurs[pIdx];
+    Unite* source = _plateau->getUnite(cmd.xSrc, cmd.ySrc);
+    Unite* cible  = _plateau->getUnite(cmd.xDest, cmd.yDest);
+    if (!source || !cible || !_arbitre.appartientJoueur(j, *source))
+        return ResultatAction::ECHEC_ARBITRE_REFUS;
+    if (source->point_action() <= 0) return ResultatAction::ECHEC_PA_INSUFFISANTS;
+    if (j.Ravitailler(*source, *cible))
+        return ResultatAction::SUCCES;
+    return ResultatAction::ECHEC_ARBITRE_REFUS;
+
+}
+
 // ------------------------------------------- //
 // --------------- Etat du jeu --------------- //
 // ------------------------------------------- //

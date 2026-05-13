@@ -137,11 +137,12 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
     const Joueur& j = moteur.getJoueurs()[pIdx];
 
     std::cout << "\n--- ACTIONS POSSIBLES ---" << std::endl;
-    std::cout << " 1. Déplacer              |  2. Pivoter (changer direction)  |  3. Attaquer"    << std::endl;
+    std::cout << " 1. Déplacer              |  2. Pivoter (changer direction)   |  3. Attaquer"    << std::endl;
     std::cout << " 4. Soigner               |  5. Recruter                      |  6. Fonder Ville" << std::endl;
     std::cout << " 7. Acheter une Case      |  8. Améliorer Ville               |  9. Construire Bâtiment" << std::endl;
     std::cout << "10. Camoufler             | 11. Charger (transport)           | 12. Décharger (transport)" << std::endl;
-    std::cout << "13. Enrôler (commandant)  | 14. Détruire une unité            | 15. FIN DE TOUR" << std::endl;
+    std::cout << "13. Enrôler (commandant)  | 14. Détruire une unité  | 15. Ravitailler sur ville" << std::endl;
+    std::cout << "16. Ravitailler (unité→unité)                       | 17. FIN DE TOUR" << std::endl;
 
     int choix = 0;
     std::cout << "Choix : ";
@@ -465,15 +466,60 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
         }
 
         // ---------------------------
-        case 15: { // FIN DE TOUR
+        case 15: { // RAVITAILLER SUR VILLE
+            int x, y;
+            std::cout << "\nCoord. unité à ravitailler (x y) : ";
+            std::cin >> x >> y;
+
+            const board* plateau = moteur.getPlateau();
+            Unite* u = plateau->getUnite(x, y);
+            if (u) {
+                std::cout << "  Inventaire actuel : ";
+                for (auto const& [res, qte] : u->getInventaireInterne())
+                    std::cout << res->getName() << ": " << qte << "  ";
+                std::cout << std::endl;
+            } else {
+                std::cout << "Aucune unité à ces coordonnées." << std::endl;
+                return false;
+            }
+            cmd = CmdRavitaillerSurVille{x, y};
+            break;
+        }
+
+        // ---------------------------
+        case 16: { // RAVITAILLER (unité → unité)
+            int xSrc, ySrc, xDest, yDest;
+            std::cout << "\nCoord. ravitailleur (x y) : ";
+            std::cin >> xSrc >> ySrc;
+            std::cout << "Coord. cible        (x y) : ";
+            std::cin >> xDest >> yDest;
+
+            const board* plateau = moteur.getPlateau();
+            Unite* source = plateau->getUnite(xSrc, ySrc);
+            if (source && source->Ravitaillement()) {
+                std::cout << "  Stock disponible : ";
+                for (auto const& [res, qte] : source->getInventaireInterne())
+                    std::cout << res->getName() << ": " << qte << "  ";
+                std::cout << std::endl;
+            } else {
+                std::cout << "Cette unité n'a pas de comportement Ravitaillement." << std::endl;
+                return false;
+            }
+            cmd = CmdRavitailler{xSrc, ySrc, xDest, yDest};
+            break;
+        }
+
+        // ---------------------------
+        case 17: { // FIN DE TOUR  ← était case 15
             std::cout << "\n[FIN DE TOUR]" << std::endl;
             cmd = CmdFinTour{};
             break;
         }
 
-        default:
+        default: {
             std::cout << "Action inconnue." << std::endl;
             return false;
+        }
     }
 
     ResultatAction res = moteur.soumettreCommande(pIdx, cmd);

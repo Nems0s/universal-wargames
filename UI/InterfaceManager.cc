@@ -7,6 +7,20 @@
 #include <fstream>
 #include <sstream>
 
+
+void InterfaceManager::centrerSurCapitale(int playerIndex) {
+    if (playerIndex >= 0 && playerIndex < (int)_moteur.getJoueurs().size()) {
+        const auto& cities = _moteur.getJoueurs()[playerIndex].getCities();
+        if (!cities.empty()) {
+            City* cap = cities.front();
+            float R = _tileSize / 2.0f;
+            float W = std::sqrt(3.0f) * R;
+            _gameView.setCenter(W * cap->getY() + W * 0.5f * (std::abs(cap->getX()) % 2), 1.5f * R * cap->getX());
+        }
+    }
+}
+
+
 InterfaceManager::InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteur) 
     : _window(window), _moteur(moteur), _currentState(GameState::MENU) {
 
@@ -1719,7 +1733,8 @@ void InterfaceManager::updateNetworkLoop() {
                     _moteur.passerTour();
                     invaliderCaches();
                     _hasSelection = false;
-                    // La caméra reste où le joueur l'a laissée (pas de recentrage)
+                    // Recadrage de la caméra
+                    centrerSurCapitale(_moteur.getCurrentPlayerTurn());
                     break;
                 }
 
@@ -2885,12 +2900,13 @@ void InterfaceManager::renderGame() {
         
         _moteur.passerTour();
         invaliderCaches();
+
+        centrerSurCapitale(_moteur.getCurrentPlayerTurn());
         
         if (isMultiplayer) {
             sf::Packet turnPacket; turnPacket << static_cast<sf::Int32>(PacketType::END_TURN);
             _network.sendData(turnPacket);
         }
-        // La caméra reste où le joueur l'a laissée (pas de recentrage automatique)
     }
     if (!isMyTurn) ImGui::EndDisabled();
 

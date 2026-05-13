@@ -12,6 +12,7 @@
             "nom": "Union Bleue",
             "specifications": {},
             "unites": [
+                "Transporteur Logistique",
                 "Chasseur",
                 "Chasseur Amélioré",
                 "Croiseur",
@@ -31,6 +32,7 @@
             "nom": "République d'Irnill",
             "specifications": {},
             "unites": [
+                "Transporteur Logistique",
                 "Chasseur",
                 "Chasseur Amélioré",
                 "Croiseur",
@@ -50,6 +52,7 @@
             "nom": "Essaim",
             "specifications": {},
             "unites": [
+                "Transporteur Logistique",
                 "Chasseur",
                 "Chasseur Amélioré",
                 "Croiseur",

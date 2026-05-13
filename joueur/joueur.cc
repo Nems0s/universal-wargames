@@ -167,3 +167,34 @@ void Joueur::ChangerPositionDefensive(Unite& unite)
     unite.changerDefense();
     unite.setPoint_action(0);
 }
+
+bool Joueur::RavitaillerSurVille(Unite& u)
+{
+    // On cherche si l'unité a un ComportementConsommable
+    for (auto const& comp_ptr : u.liste_comportements())
+    {
+        if (auto* cons = dynamic_cast<ComportementConsommable*>(comp_ptr.get()))
+        {
+            bool ok = cons->rechargerDepuisJoueur(u, *this);
+            if (ok)
+            {
+                u.setPoint_action(u.point_action() - 1);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool Joueur::Ravitailler(Unite& ravitailleur, Unite& cible)
+{
+    auto* rav = ravitailleur.Ravitaillement();
+    if (!rav) return false;
+    if (!rav->PeuxRavitailler(ravitailleur, cible)) return false;
+    bool ok = rav->TransfererRessources(ravitailleur, cible);
+    if (ok)
+    {
+        ravitailleur.setPoint_action(ravitailleur.point_action() - 1);
+    }
+    return ok;
+}

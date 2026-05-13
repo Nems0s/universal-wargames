@@ -64,6 +64,8 @@ private:
     ResultatAction executer(int pIdx, const CmdEnroler& cmd);
     ResultatAction executer(int pIdx, const CmdDesenroler& cmd);
     ResultatAction executer(int pIdx, const CmdChangerDefense& cmd);
+    ResultatAction executer(int pIdx, const CmdRavitaillerSurVille& cmd);
+    ResultatAction executer(int pIdx, const CmdRavitailler& cmd);
     ResultatAction executer(int pIdx, const CmdDetruireUnite& cmd);
     ResultatAction executer(int pIdx, const CmdFinTour & cmd);
 

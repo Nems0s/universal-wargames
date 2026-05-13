@@ -2,8 +2,13 @@
 #include <iostream>
 #include <memory>
 #include <list>
+#include <map>
+#include <set>
 #include "orientation.hh"
 #include "ressource.hh"
+
+class Unite;
+class Joueur;
 
 enum class NatureMouv {TERRE, MER, AIR};
 
@@ -49,8 +54,8 @@ public:
 
     const std::map<const Ressource*, int>& getCoutAction() const;
     bool estPayable(const Unite& u) const;
-    //Ajouter la récuperation de ressource
-    //Plus unité spé qui ajoute les ressources.
+    bool rechargerDepuisJoueur(Unite& u, Joueur& j) const;
+    bool rechargerDepuisRavitailleur(Unite& u, Unite& ravitailleur) const;
 };
 
 
@@ -325,6 +330,19 @@ public:
 
     void ActiveCammouflage();
     void DesactiveCammouflage();
+};
+
+class CompRavitaillement : public IComportement
+{
+private:
+    int _portee; // portée max pour donner à une unité alliée
+public:
+    CompRavitaillement(int portee);
+    int portee() const;
+    void affiche() const override;
+
+    bool PeuxRavitailler(Unite const& source, Unite const& cible) const;
+    bool TransfererRessources(Unite& source, Unite& cible) const;
 };
 
 //===================================================================

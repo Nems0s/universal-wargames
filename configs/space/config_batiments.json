@@ -3,9 +3,7 @@
         {
             "nom": "Mine",
             "symbole": "M",
-            "ressources_sol_requises": [
-                "Neolithe"
-            ],
+            "ressources_sol_requises": [],
             "texture": "assets/Space/Batiment/M.png",
             "niveaux": [
                 {
