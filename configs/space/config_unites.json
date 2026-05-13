@@ -3,594 +3,1061 @@
         {
             "nom": "Chasseur",
             "hp": 100,
-            "action": 10,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 0
-            },
-            "cout_entretien": {},
+            "action": 2,
+            "poids": "Léger",
             "vision": 3,
-            "fov": 2,
+            "fov": 3,
+            "cout": {
+                "Neolithe": 200
+            },
+            "cout_entretien": {
+                "Neolithe": 10
+            },
+            "texture": "assets/Space/Unite/Chasseur.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
-                { "type": "AttaqueMelee", "degats": 35 }
-            ],
-            "texture": "assets/Space/Unite/Chasseur.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 3
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                }
+            ]
         },
         {
             "nom": "Chasseur Amélioré",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 120,
+            "action": 2,
+            "poids": "Léger",
+            "vision": 4,
+            "fov": 5,
             "cout": {
-                "Neolithe": 450,
-                "Ilektraerium": 500
+                "Neolithe": 300,
+                "Ilektraerium": 200
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Neolithe": 15
+            },
+            "texture": "assets/Space/Unite/Chasseur_Ameliorer.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 }
-            ],
-            "texture": "assets/Space/Unite/Chasseur_Ameliorer.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 3,
+                    "portee_mini": 2
+                }
+            ]
         },
         {
             "nom": "Croiseur",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 130,
+            "action": 2,
+            "poids": "Moyen",
+            "vision": 3,
+            "fov": 3,
             "cout": {
-                "Neolithe": 545,
-                "Ilektraerium": 435
+                "Integrium": 600
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Integrium": 10
+            },
+            "texture": "assets/Space/Unite/Croiseur.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 }
-            ],
-            "texture": "assets/Space/Unite/Croiseur.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 3,
+                    "portee_mini": 2
+                }
+            ]
         },
         {
             "nom": "Frégate",
-            "hp": 150,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 180,
+            "action": 2,
+            "poids": "Lourd",
+            "vision": 3,
+            "fov": 3,
             "cout": {
-                "Neolithe": 355,
-                "Integrium": 425,
-                "Ilektraerium": 280
+                "Neolithe": 200,
+                "Integrium": 600
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Neolithe": 15,
+                "Integrium": 5
+            },
+            "texture": "assets/Space/Unite/Fregate.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 }
-            ],
-            "texture": "assets/Space/Unite/Fregate.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 3,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "DefenseArmure",
+                    "reduction": 20
+                }
+            ]
         },
         {
             "nom": "Transporteur Tactique",
-            "hp": 125,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 160,
+            "action": 2,
+            "poids": "Lourd",
+            "vision": 3,
+            "fov": 1,
             "cout": {
-                "Neolithe": 400,
-                "Integrium": 320,
-                "Heliosium": 255
+                "Neolithe": 350,
+                "Integrium": 400,
+                "Ilektraerium": 100
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Ilektraerium": 5
+            },
+            "texture": "assets/Space/Unite/Transporteur.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "DefenseBouclier", "nombre_bouclier": 2 },
-                { "type": "SpecialTransport", "capacite": 3 }
-            ],
-            "texture": "assets/Space/Unite/Transporteur.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "DefenseBouclier",
+                    "nombre_bouclier": 2
+                },
+                {
+                    "type": "SpecialTransport",
+                    "capacite": 3
+                }
+            ]
         },
         {
             "nom": "Vaisseau de Soutien",
-            "hp": 125,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 140,
+            "action": 2,
+            "poids": "Moyen",
+            "vision": 4,
+            "fov": 5,
             "cout": {
-                "Neolithe": 450,
-                "Heliosium": 400
+                "Neolithe": 350,
+                "Integrium": 400,
+                "Vitriolite": 100
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Vitriolite": 5
+            },
+            "texture": "assets/Space/Unite/Soutien.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "DefenseBouclier", "nombre_bouclier": 2 },
-                { "type": "SoinDirect", "soin": 30, "portee": 2 }
-            ],
-            "texture": "assets/Space/Unite/Soutien.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "DefenseBouclier",
+                    "nombre_bouclier": 2
+                },
+                {
+                    "type": "SoinDirect",
+                    "soin": 30,
+                    "portee": 2
+                }
+            ]
         },
         {
             "nom": "Chasseur Azraël",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 130,
+            "action": 2,
+            "poids": "Léger",
+            "vision": 5,
+            "fov": 6,
+            "faction": "Union Bleue",
             "cout": {
-                "Neolithe": 410,
-                "Ilektraerium": 455,
-                "Vitriolite": 275
+                "Neolithe": 350,
+                "Ilektraerium": 250,
+                "Vitriolite": 150,
+                "Savoir": 10
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Vitriolite": 10
+            },
+            "texture": "assets/Space/Unite/Union_Bleue/Chasseur_Azrael.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
-                { "type": "SpecialFurtif", "duree": 3 }
-            ],
-            "texture": "assets/Space/Unite/Union_Bleue/Chasseur_Azrael.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 3,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "SpecialFurtif",
+                    "duree": 3
+                }
+            ]
         },
         {
             "nom": "Frégate Titus",
-            "hp": 150,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 200,
+            "action": 2,
+            "poids": "Lourd",
+            "vision": 3,
+            "fov": 1,
+            "faction": "Union Bleue",
             "cout": {
-                "Neolithe": 500,
-                "Integrium": 600,
-                "Ilektraerium": 265
+                "Neolithe": 350,
+                "Integrium": 300,
+                "Ilektraerium": 150,
+                "Savoir": 5
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "DefenseArmure", "reduction": 20 }
-            ],
-            "texture": "assets/Space/Unite/Union_Bleue/Fregate_Titus.png"
-        },
-        {
-            "nom": "Nova One",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 1050,
-                "Ilektraerium": 700,
-                "Vitriolite": 700
+            "cout_entretien": {
+                "Ilektraerium": 10
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusDegat", "multiplicateur": 15 }
-            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Fregate_Titus.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "AttaqueDistance", "degats": 32, "portee": 3, "portee_mini": 2 },
-                { "type": "SpecialFurtif", "duree": 3 }
-            ],
-            "texture": "assets/Space/Unite/Union_Bleue/Nova_One.png"
-        },
-        {
-            "nom": "Walkyrie",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 630,
-                "Ilektraerium": 840,
-                "Heliosium": 675
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusVie", "soin": 15 }
-            ],
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "SoinDirect", "soin": 39, "portee": 2 }
-            ],
-            "texture": "assets/Space/Unite/Union_Bleue/Walkyrie.png"
-        },
-        {
-            "nom": "Dreadnought",
-            "hp": 180,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 630,
-                "Integrium": 1260,
-                "Ilektraerium": 840
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusDefense", "bouclier": 1 }
-            ],
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
-                { "type": "DefenseArmure", "reduction": 26 },
-                { "type": "SpecialTransport", "capacite": 3 }
-            ],
-            "texture": "assets/Space/Unite/Union_Bleue/Dreadnought.png"
-        },
-        {
-            "nom": "Lucifer",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 1490,
-                "Ilektraerium": 1100
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusDegat", "multiplicateur": 15 }
-            ],
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 5 },
-                { "type": "AttaqueMelee", "degats": 46 },
-                { "type": "AttaqueDistance", "degats": 32, "portee": 3, "portee_mini": 2 }
-            ],
-            "texture": "assets/Space/Unite/Union_Bleue/Lucifer.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "DefenseArmure",
+                    "reduction": 20
+                }
+            ]
         },
         {
             "nom": "Croiseur Égide",
-            "hp": 125,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 160,
+            "action": 2,
+            "poids": "Moyen",
+            "vision": 3,
+            "fov": 3,
+            "faction": "République d'Irnill",
             "cout": {
-                "Neolithe": 440,
-                "Heliosium": 565
+                "Neolithe": 350,
+                "Integrium": 300,
+                "Ilektraerium": 150,
+                "Savoir": 5
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Ilektraerium": 10
+            },
+            "texture": "assets/Space/Unite/Republique_Irnill/Croiseur_Egide.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "DefenseBouclier", "nombre_bouclier": 2 },
-                { "type": "SoinIndirect", "soin": 15, "portee": 3, "tour_regeneration": 3 }
-            ],
-            "texture": "assets/Space/Unite/Republique_Irnill/Croiseur_Egide.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "DefenseBouclier",
+                    "nombre_bouclier": 2
+                },
+                {
+                    "type": "SoinIndirect",
+                    "soin": 15,
+                    "portee": 3,
+                    "tour_regeneration": 3
+                }
+            ]
         },
         {
             "nom": "Chasseur Gabriel",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 120,
+            "action": 2,
+            "poids": "Léger",
+            "vision": 5,
+            "fov": 6,
+            "faction": "République d'Irnill",
             "cout": {
-                "Neolithe": 450,
-                "Ilektraerium": 200,
-                "Vitriolite": 300,
-                "Heliosium": 160
+                "Neolithe": 350,
+                "Ilektraerium": 250,
+                "Vitriolite": 150,
+                "Savoir": 10
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "SoinDirect", "soin": 30, "portee": 2 },
-                { "type": "SpecialFurtif", "duree": 3 }
-            ],
-            "texture": "assets/Space/Unite/Republique_Irnill/Chasseur_Gabriel.png"
-        },
-        {
-            "nom": "Requiem",
-            "hp": 150,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 750,
-                "Integrium": 900,
-                "Ilektraerium": 1000
+            "cout_entretien": {
+                "Vitriolite": 10
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusDegat", "multiplicateur": 15 }
-            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Chasseur_Gabriel.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "AttaqueMelee", "degats": 46 },
-                { "type": "AttaqueDistance", "degats": 32, "portee": 3, "portee_mini": 2 },
-                { "type": "DefenseArmure", "reduction": 20 }
-            ],
-            "texture": "assets/Space/Unite/Republique_Irnill/Requiem.png"
-        },
-        {
-            "nom": "Cénotaphe",
-            "hp": 210,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 680,
-                "Integrium": 825,
-                "Ilektraerium": 550,
-                "Heliosium": 435
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusDefense", "bouclier": 1 }
-            ],
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
-                { "type": "DefenseArmure", "reduction": 26 },
-                { "type": "DefenseBouclier", "nombre_bouclier": 3 }
-            ],
-            "texture": "assets/Space/Unite/Republique_Irnill/Cenotaphe.png"
-        },
-        {
-            "nom": "Compendium",
-            "hp": 150,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 630,
-                "Integrium": 1260,
-                "Heliosium": 675
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusVie", "soin": 15 }
-            ],
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "DefenseArmure", "reduction": 20 },
-                { "type": "SoinDirect", "soin": 39, "portee": 3 },
-                { "type": "SoinIndirect", "soin": 20, "portee": 3, "tour_regeneration": 3 },
-                { "type": "SpecialTransport", "capacite": 3 }
-            ],
-            "texture": "assets/Space/Unite/Republique_Irnill/Compendium.png"
-        },
-        {
-            "nom": "Séraphin",
-            "hp": 125,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 1490,
-                "Ilektraerium": 440,
-                "Heliosium": 530
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
-            "rank": "Commandant",
-            "max_unites": 5,
-            "buff_commandant": [
-                { "type": "BonusDegat", "multiplicateur": 15 }
-            ],
-            "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 5 },
-                { "type": "AttaqueMelee", "degats": 46 },
-                { "type": "DefenseBouclier", "nombre_bouclier": 2 }
-            ],
-            "texture": "assets/Space/Unite/Republique_Irnill/Seraphin.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "SoinDirect",
+                    "soin": 30,
+                    "portee": 2
+                },
+                {
+                    "type": "SpecialFurtif",
+                    "duree": 3
+                }
+            ]
         },
         {
             "nom": "Nuée",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 110,
+            "action": 2,
+            "poids": "Léger",
+            "vision": 3,
+            "fov": 5,
+            "faction": "Essaim",
             "cout": {
-                "Neolithe": 645,
-                "Ilektraerium": 570
+                "Neolithe": 350,
+                "Integrium": 300,
+                "Ilektraerium": 150,
+                "Savoir": 5
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Ilektraerium": 10
+            },
+            "texture": "assets/Space/Unite/Essaim/Nuee.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 }
-            ],
-            "texture": "assets/Space/Unite/Essaim/Nuee.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueIndirect",
+                    "degats": 20,
+                    "portee": 4,
+                    "tour_infection": 2
+                }
+            ]
         },
         {
             "nom": "Chasseur Zéro",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
+            "hp": 120,
+            "action": 2,
+            "poids": "Léger",
+            "vision": 5,
+            "fov": 6,
+            "faction": "Essaim",
             "cout": {
-                "Neolithe": 375,
-                "Ilektraerium": 500,
-                "Vitriolite": 250
+                "Neolithe": 350,
+                "Ilektraerium": 250,
+                "Vitriolite": 150,
+                "Savoir": 10
             },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "cout_entretien": {
+                "Vitriolite": 10
+            },
+            "texture": "assets/Space/Unite/Essaim/Chasseur_Zero.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 },
-                { "type": "SpecialFurtif", "duree": 3 }
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "AttaqueIndirect",
+                    "degats": 20,
+                    "portee": 4,
+                    "tour_infection": 2
+                },
+                {
+                    "type": "SpecialFurtif",
+                    "duree": 3
+                }
+            ]
+        },
+        {
+            "nom": "Nova One",
+            "hp": 150,
+            "action": 3,
+            "poids": "Léger",
+            "vision": 6,
+            "fov": 6,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "Union Bleue",
+            "cout": {
+                "Neolithe": 600,
+                "Ilektraerium": 400,
+                "Vitriolite": 300,
+                "Savoir": 30
+            },
+            "cout_entretien": {
+                "Vitriolite": 5,
+                "Ilektraerium": 5
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusDegat",
+                    "multiplicateur": 30
+                }
             ],
-            "texture": "assets/Space/Unite/Essaim/Chasseur_Zero.png"
+            "texture": "assets/Space/Unite/Union_Bleue/Nova_One.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 32,
+                    "portee": 3,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "SpecialFurtif",
+                    "duree": 3
+                }
+            ]
+        },
+        {
+            "nom": "Walkyrie",
+            "hp": 140,
+            "action": 3,
+            "poids": "Moyen",
+            "vision": 5,
+            "fov": 5,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "Union Bleue",
+            "cout": {
+                "Neolithe": 400,
+                "Integrium": 400,
+                "Ilektraerium": 300,
+                "Vitriolite": 300,
+                "Savoir": 20
+            },
+            "cout_entretien": {
+                "Neolithe": 10,
+                "Integrium": 10
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusVie",
+                    "soin": 30
+                }
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Walkyrie.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 3
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "SoinDirect",
+                    "soin": 39,
+                    "portee": 2
+                }
+            ]
+        },
+        {
+            "nom": "Dreadnought",
+            "hp": 250,
+            "action": 3,
+            "poids": "Lourd",
+            "vision": 4,
+            "fov": 5,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "Union Bleue",
+            "cout": {
+                "Neolithe": 500,
+                "Integrium": 600,
+                "Ilektraerium": 400,
+                "Savoir": 35
+            },
+            "cout_entretien": {
+                "Ilektraerium": 20
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusDefense",
+                    "bouclier": 1
+                }
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Dreadnought.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 3,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "DefenseArmure",
+                    "reduction": 26
+                },
+                {
+                    "type": "SpecialTransport",
+                    "capacite": 3
+                }
+            ]
+        },
+        {
+            "nom": "Lucifer",
+            "hp": 160,
+            "action": 3,
+            "poids": "Moyen",
+            "vision": 6,
+            "fov": 6,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "Union Bleue",
+            "cout": {
+                "Neolithe": 700,
+                "Ilektraerium": 600,
+                "Heliosium": 50,
+                "Savoir": 40
+            },
+            "cout_entretien": {
+                "Heliosium": 2
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusDegat",
+                    "multiplicateur": 30
+                }
+            ],
+            "texture": "assets/Space/Unite/Union_Bleue/Lucifer.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 46
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 32,
+                    "portee": 3,
+                    "portee_mini": 2
+                }
+            ]
+        },
+        {
+            "nom": "Requiem",
+            "hp": 200,
+            "action": 3,
+            "poids": "Lourd",
+            "vision": 5,
+            "fov": 5,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "République d'Irnill",
+            "cout": {
+                "Neolithe": 500,
+                "Integrium": 400,
+                "Ilektraerium": 500,
+                "Savoir": 20
+            },
+            "cout_entretien": {
+                "Neolithe": 5,
+                "Integrium": 10
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusDegat",
+                    "multiplicateur": 30
+                }
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Requiem.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 46
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 32,
+                    "portee": 3,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "DefenseArmure",
+                    "reduction": 20
+                }
+            ]
+        },
+        {
+            "nom": "Cénotaphe",
+            "hp": 260,
+            "action": 3,
+            "poids": "Lourd",
+            "vision": 4,
+            "fov": 5,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "République d'Irnill",
+            "cout": {
+                "Neolithe": 450,
+                "Integrium": 500,
+                "Ilektraerium": 300,
+                "Savoir": 35
+            },
+            "cout_entretien": {
+                "Integrium": 5,
+                "Ilektraerium": 10
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusDefense",
+                    "bouclier": 1
+                }
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Cenotaphe.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 3,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "DefenseArmure",
+                    "reduction": 26
+                },
+                {
+                    "type": "DefenseBouclier",
+                    "nombre_bouclier": 3
+                }
+            ]
+        },
+        {
+            "nom": "Compendium",
+            "hp": 200,
+            "action": 3,
+            "poids": "Moyen",
+            "vision": 5,
+            "fov": 5,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "République d'Irnill",
+            "cout": {
+                "Neolithe": 400,
+                "Integrium": 400,
+                "Vitriolite": 500,
+                "Savoir": 25
+            },
+            "cout_entretien": {
+                "Vitriolite": 5,
+                "Neolithe": 15
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusVie",
+                    "soin": 30
+                }
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Compendium.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "DefenseArmure",
+                    "reduction": 20
+                },
+                {
+                    "type": "SoinDirect",
+                    "soin": 39,
+                    "portee": 3
+                },
+                {
+                    "type": "SoinIndirect",
+                    "soin": 20,
+                    "portee": 3,
+                    "tour_regeneration": 3
+                },
+                {
+                    "type": "SpecialTransport",
+                    "capacite": 3
+                }
+            ]
+        },
+        {
+            "nom": "Séraphin",
+            "hp": 170,
+            "action": 3,
+            "poids": "Moyen",
+            "vision": 6,
+            "fov": 6,
+            "rank": "Commandant",
+            "max_unites": 6,
+            "faction": "République d'Irnill",
+            "cout": {
+                "Neolithe": 700,
+                "Ilektraerium": 600,
+                "Heliosium": 50,
+                "Savoir": 40
+            },
+            "cout_entretien": {
+                "Heliosium": 2
+            },
+            "buff_commandant": [
+                {
+                    "type": "BonusDegat",
+                    "multiplicateur": 30
+                }
+            ],
+            "texture": "assets/Space/Unite/Republique_Irnill/Seraphin.png",
+            "comportements": [
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 46
+                },
+                {
+                    "type": "DefenseBouclier",
+                    "nombre_bouclier": 2
+                }
+            ]
         },
         {
             "nom": "Élégie",
-            "hp": 120,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 1050,
-                "Ilektraerium": 700,
-                "Vitriolite": 700
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "hp": 160,
+            "action": 3,
+            "poids": "Léger",
+            "vision": 6,
+            "fov": 6,
             "rank": "Commandant",
-            "max_unites": 5,
+            "max_unites": 6,
+            "faction": "Essaim",
+            "cout": {
+                "Neolithe": 600,
+                "Ilektraerium": 350,
+                "Vitriolite": 350,
+                "Savoir": 20
+            },
+            "cout_entretien": {
+                "Neolithe": 20,
+                "Ilektraerium": 5
+            },
             "buff_commandant": [
-                { "type": "BonusDefense", "bouclier": 1 }
+                {
+                    "type": "BonusDefense",
+                    "bouclier": 1
+                }
             ],
+            "texture": "assets/Space/Unite/Essaim/Elegie.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 3, "portee_mini": 2 },
-                { "type": "SpecialFurtif", "duree": 3 }
-            ],
-            "texture": "assets/Space/Unite/Essaim/Elegie.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 3,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "SpecialFurtif",
+                    "duree": 3
+                }
+            ]
         },
         {
             "nom": "César",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 285,
-                "Ilektraerium": 1335,
-                "Heliosium": 460
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "hp": 140,
+            "action": 3,
+            "poids": "Moyen",
+            "vision": 5,
+            "fov": 5,
             "rank": "Commandant",
-            "max_unites": 5,
+            "max_unites": 6,
+            "faction": "Essaim",
+            "cout": {
+                "Neolithe": 300,
+                "Ilektraerium": 500,
+                "Vitriolite": 300,
+                "Savoir": 25
+            },
+            "cout_entretien": {
+                "Ilektraerium": 5,
+                "Vitriolite": 10
+            },
             "buff_commandant": [
-                { "type": "BonusVie", "soin": 15 }
+                {
+                    "type": "BonusVie",
+                    "soin": 30
+                }
             ],
+            "texture": "assets/Space/Unite/Essaim/Cesar.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 3 },
-                { "type": "AttaqueDistance", "degats": 25, "portee": 4, "portee_mini": 2 },
-                { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 },
-                { "type": "SoinIndirect", "soin": 20, "portee": 4, "tour_regeneration": 3 }
-            ],
-            "texture": "assets/Space/Unite/Essaim/Cesar.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 3
+                },
+                {
+                    "type": "AttaqueDistance",
+                    "degats": 25,
+                    "portee": 4,
+                    "portee_mini": 2
+                },
+                {
+                    "type": "AttaqueIndirect",
+                    "degats": 20,
+                    "portee": 4,
+                    "tour_infection": 2
+                },
+                {
+                    "type": "SoinIndirect",
+                    "soin": 20,
+                    "portee": 4,
+                    "tour_regeneration": 3
+                }
+            ]
         },
         {
             "nom": "Ragnarök",
-            "hp": 150,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 585,
-                "Integrium": 465,
-                "Ilektraerium": 930,
-                "Heliosium": 375
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "hp": 220,
+            "action": 3,
+            "poids": "Lourd",
+            "vision": 4,
+            "fov": 5,
             "rank": "Commandant",
-            "max_unites": 5,
+            "max_unites": 6,
+            "faction": "Essaim",
+            "cout": {
+                "Neolithe": 400,
+                "Integrium": 300,
+                "Ilektraerium": 500,
+                "Savoir": 30
+            },
+            "cout_entretien": {
+                "Ilektraerium": 20
+            },
             "buff_commandant": [
-                { "type": "BonusDefense", "bouclier": 1 }
+                {
+                    "type": "BonusDefense",
+                    "bouclier": 1
+                }
             ],
+            "texture": "assets/Space/Unite/Essaim/Ragnarok.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 4 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 4 },
-                { "type": "AttaqueMelee", "degats": 35 },
-                { "type": "AttaqueIndirect", "degats": 20, "portee": 4, "tour_infection": 2 },
-                { "type": "DefenseBouclier", "nombre_bouclier": 3 },
-                { "type": "SpecialTransport", "capacite": 3 }
-            ],
-            "texture": "assets/Space/Unite/Essaim/Ragnarok.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 4
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 35
+                },
+                {
+                    "type": "AttaqueIndirect",
+                    "degats": 20,
+                    "portee": 4,
+                    "tour_infection": 2
+                },
+                {
+                    "type": "DefenseBouclier",
+                    "nombre_bouclier": 3
+                },
+                {
+                    "type": "SpecialTransport",
+                    "capacite": 3
+                }
+            ]
         },
         {
             "nom": "Absolue",
-            "hp": 100,
-            "action": 0,
-            "poids": "",
-            "symbole": "",
-            "cout": {
-                "Neolithe": 1050,
-                "Ilektraerium": 930,
-                "Heliosium": 375
-            },
-            "cout_entretien": {},
-            "vision": 0,
-            "fov": 0,
+            "hp": 170,
+            "action": 3,
+            "poids": "Moyen",
+            "vision": 6,
+            "fov": 6,
             "rank": "Commandant",
-            "max_unites": 5,
+            "max_unites": 6,
+            "faction": "Essaim",
+            "cout": {
+                "Neolithe": 700,
+                "Ilektraerium": 600,
+                "Heliosium": 50,
+                "Savoir": 40
+            },
+            "cout_entretien": {
+                "Heliosium": 2
+            },
             "buff_commandant": [
-                { "type": "BonusDegat", "multiplicateur": 15 }
+                {
+                    "type": "BonusDegat",
+                    "multiplicateur": 30
+                }
             ],
+            "texture": "assets/Space/Unite/Essaim/Absolue_V2.png",
             "comportements": [
-                { "type": "MouvementTerrestre", "mouvement_par_tour": 5 },
-                { "type": "MouvementVolant", "mouvement_par_tour": 5 },
-                { "type": "MouvementMarin", "mouvement_par_tour": 5 },
-                { "type": "AttaqueMelee", "degats": 46 },
-                { "type": "AttaqueIndirect", "degats": 26, "portee": 4, "tour_infection": 2 },
-                { "type": "SoinIndirect", "soin": 15, "portee": 4, "tour_regeneration": 3 }
-            ],
-            "texture": "assets/Space/Unite/Essaim/Absolue_V2.png"
+                {
+                    "type": "MouvementTerrestre",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementVolant",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "MouvementMarin",
+                    "mouvement_par_tour": 5
+                },
+                {
+                    "type": "AttaqueMelee",
+                    "degats": 46
+                },
+                {
+                    "type": "AttaqueIndirect",
+                    "degats": 26,
+                    "portee": 4,
+                    "tour_infection": 2
+                },
+                {
+                    "type": "SoinIndirect",
+                    "soin": 15,
+                    "portee": 4,
+                    "tour_regeneration": 3
+                }
+            ]
         }
     ]
 }

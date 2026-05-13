@@ -140,7 +140,14 @@ void MoteurDeJeu::initGame(int seed, const std::vector<std::string>& noms, const
             hexa* cell = const_cast<hexa*>(_plateau->getCell(rx, ry));
             TuileConfigurable* tc = dynamic_cast<TuileConfigurable*>(cell);
 
-            tc->placerVille(_cityFactory.create(nomCapitale, rx, ry));
+            auto capitale = _cityFactory.create(nomCapitale, rx, ry);
+    
+            auto academie = _batimentFactory.create("Academie");
+            if (academie && capitale) {
+                capitale->creeBatiment(std::move(academie));
+            }
+
+            tc->placerVille(std::move(capitale));
             joueur.ajouterVille(tc->getCity());
             tc->setProprietaire(&joueur);
         }

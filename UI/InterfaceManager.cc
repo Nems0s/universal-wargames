@@ -11,6 +11,25 @@ InterfaceManager::InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteu
     : _window(window), _moteur(moteur), _currentState(GameState::MENU) {
 
     std::cout << "INIT Lancement de l'InterfaceManager..." << std::endl;
+    
+    // --- ÉCRAN DE CHARGEMENT PRÉLIMINAIRE ---
+    sf::Texture loadingTexture;
+    sf::Sprite loadingSprite;
+
+    if (loadingTexture.loadFromFile("assets/Space/Chargement.png")) {
+        loadingSprite.setTexture(loadingTexture);
+        
+        // Mise à l'échelle pour remplir la fenêtre
+        float scaleX = (float)_window.getSize().x / loadingTexture.getSize().x;
+        float scaleY = (float)_window.getSize().y / loadingTexture.getSize().y;
+        loadingSprite.setScale(scaleX, scaleY);
+
+        _window.clear();
+        _window.draw(loadingSprite);
+        _window.display(); // On force l'affichage de l'image immédiatement
+    }
+    
+    // --- CONTINUATION DE L'INIT ---
     std::srand(static_cast<unsigned>(std::time(nullptr)));
     
     _gameView.setSize(_window.getSize().x, _window.getSize().y);
@@ -24,7 +43,7 @@ InterfaceManager::InterfaceManager(sf::RenderWindow& window, MoteurDeJeu & moteu
     loadUIConfig();
     
     std::cout << "INIT Chargement des textures..." << std::endl;
-    loadTextures();
+    loadTextures(loadingSprite);
     
     std::cout << "INIT Application du theme graphique..." << std::endl;
     applyCustomTheme();
@@ -296,7 +315,7 @@ void InterfaceManager::run() {
                     }
 
                     if (bestI != -1 && isMyTurn) {
-                        if (_isTargetingMove || _isTargetingAttack) {
+                        if (_isTargetingMove || _isTargetingAttack || _isTargetingHeal || _isTargetingLoad || _isTargetingEnrol) {
                             if (_isTargetingMove) {
                                 CmdDeplacement cmd = { _unitSourceX, _unitSourceY, bestI, bestJ };
                                 if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
@@ -338,13 +357,49 @@ void InterfaceManager::run() {
                                     _popupMsg = "Cible hors de portee ou invalide !";
                                     _showPopup = true;
                                 }
+                            }else if (_isTargetingHeal) {
+                                // Exécution de la commande de soin
+                                CmdSoigner cmd = { _unitSourceX, _unitSourceY, bestI, bestJ, _actionSubIndex };
+                                if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
+                                    addCombatLog("Unite soignee avec succes.", sf::Color(100, 255, 100));
+                                    invaliderCaches();
+                                } else {
+                                    _popupMsg = "Soin impossible sur cette cible !";
+                                    _showPopup = true;
+                                }
+                            } else if (_isTargetingLoad) {
+                                // Charger : bestI/J est le passager, _unitSourceX/Y est le transporteur
+                                CmdCharger cmd = { bestI, bestJ, _unitSourceX, _unitSourceY };
+                                if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
+                                    addCombatLog("Unite embarquee.");
+                                    invaliderCaches();
+                                } else {
+                                    _popupMsg = "Chargement impossible !";
+                                    _showPopup = true;
+                                }
+                            } else if (_isTargetingEnrol) {
+                                // Enrôler : _unitSourceX/Y est le commandant, bestI/J est la recrue
+                                CmdEnroler cmd = { _unitSourceX, _unitSourceY, bestI, bestJ };
+                                if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
+                                    addCombatLog("Unite enrolée dans l'escouade.");
+                                    invaliderCaches();
+                                } else {
+                                    _popupMsg = "Enrolement refuse !";
+                                    _showPopup = true;
+                                }
                             }
                             
                             _isTargetingMove = false;
                             _isTargetingAttack = false;
+                            _isTargetingHeal = false;
+                            _isTargetingLoad = false;
+                            _isTargetingEnrol = false;
+                            
                             _casesPossibles.clear();
                             _casesAttaquePossibles.clear();
-                            _selectedCellX = bestI; _selectedCellY = bestJ;
+                            
+                            _selectedCellX = bestI; 
+                            _selectedCellY = bestJ;
                             _hasSelection = true;
                             continue;
                         }
@@ -936,61 +991,43 @@ void InterfaceManager::renderFactionSelect() {
     // PANNEAU DE DROITE : Détails de la Faction
     // ----------------------------------------------------
     ImGui::NextColumn();
-    ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "INFORMATIONS DE FACTION");
+    ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "ETAT DE LA FLOTTE");
     ImGui::Separator();
-    
-    std::string myFaction = "";
-    int myIndex = -1;
-    
-    for (size_t i = 0; i < _connectedPlayers.size(); ++i) {
-        if (_connectedPlayers[i].name == _playerNameBuffer) {
-            myIndex = i;
-            break;
+
+    // On réduit la taille à 250 pour laisser de la place aux détails en dessous
+    ImGui::BeginChild("FactionsScrollArea", ImVec2(0, 250), true);
+    for (int i = 0; i < _numPlayers; ++i) {
+        std::string fName = (i < (int)_playerFactions.size()) ? _playerFactions[i] : "";
+        
+        if (fName.empty()) {
+            ImGui::TextDisabled("Joueur %d : En attente...", i + 1);
+        } else {
+            sf::Color pCol = getPlayerColor(i);
+            ImGui::TextColored(ImVec4(pCol.r/255.f, pCol.g/255.f, pCol.b/255.f, 1.0f), 
+                               "Joueur %d : %s", i + 1, _connectedPlayers[i].name.c_str());
+            
+            if (_factionTextures.count(fName)) {
+                // Version miniature de la bannière
+                float miniH = 60.0f; 
+                float ratio = (float)_factionTextures[fName].getSize().x / _factionTextures[fName].getSize().y;
+                ImGui::Image(_factionTextures[fName], sf::Vector2f(miniH * ratio, miniH));
+            }
         }
+        ImGui::Separator();
     }
-    
+    ImGui::EndChild();
+
+    ImGui::Dummy(ImVec2(0, 10));
+
+    // 2. ZONE DÉTAILS : Statistiques de VOTRE faction sélectionnée
+    int myIndex = -1;
+    for (size_t i = 0; i < _connectedPlayers.size(); ++i) {
+        if (_connectedPlayers[i].name == _playerNameBuffer) { myIndex = i; break; }
+    }
     if (!isMultiplayer && myIndex == -1) myIndex = 0;
 
-    if (myIndex >= 0 && myIndex < (int)_playerFactions.size()) {
-        myFaction = _playerFactions[myIndex];
-    }
-    
-    if (myFaction.empty()) {
-        ImGui::TextDisabled("Veuillez choisir une faction\npour voir ses specifications.");
-    } else {
-        auto factions = _moteur.getFactionsAvailable();
-        if (factions.count(myFaction)) {
-            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "%s", myFaction.c_str());
-            ImGui::Dummy(ImVec2(0, 10));
-            
-            if (_factionTextures.count(myFaction)) {
-                sf::Texture& tex = _factionTextures[myFaction];
-                
-                float maxImgHeight = 180.0f;
-                float ratio = (float)tex.getSize().x / (float)tex.getSize().y;
-                float imgWidth = maxImgHeight * ratio;
-                
-                if (imgWidth > 350.0f) {
-                    imgWidth = 350.0f;
-                    maxImgHeight = imgWidth / ratio;
-                }
-                
-                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (350.0f - imgWidth) * 0.5f);
-                ImGui::Image(tex, sf::Vector2f(imgWidth, maxImgHeight));
-                ImGui::Dummy(ImVec2(0, 10));
-            }
-            
-            const auto& factionParams = factions[myFaction];
-            if (factionParams.params.empty()) {
-                ImGui::TextDisabled("Aucune specification particuliere.");
-            } else {
-                for (auto const& [statName, valeur] : factionParams.params) {
-                    ImGui::BulletText("%s : %.2f", statName.c_str(), valeur);
-                }
-            }
-        }
-    }
 
+    // Réinitialisation de la mise en page pour les boutons du bas
     ImGui::Columns(1);
     
     bool allReady = true;
@@ -3341,6 +3378,8 @@ void InterfaceManager::renderGame() {
             for (const auto& [nom, batimentModele] : _moteur.getBatimentFactory().getCatalogue()) {
                 bool estSpecial = !batimentModele->getRessourcesSolRequired().empty();
                 
+                if (nom == "Academie") continue; //Empeche la création d'academie
+
                 // === 1. FILTRAGE STRICT DES BATIMENTS ===
                 if (tc->getCity()) {
                     // Sur une ville : on masque les bâtiments spéciaux
@@ -3872,51 +3911,82 @@ void InterfaceManager::renderGame() {
 // ------------- Fonctions de textures et themes ---------------- //
 // ---------------------------------------------------------------//
 
-void InterfaceManager::loadTextures() {
-    // 1. Textures des tuiles de terrain
+void InterfaceManager::loadTextures(sf::Sprite& bg) {
+    // Configuration de la barre de progression
+    float barWidth = 400.0f;
+    float barHeight = 20.0f;
+    sf::Vector2f barPos((_window.getSize().x - barWidth) / 2.f, _window.getSize().y * 0.8f);
+
+    // Fonction utilitaire pour mettre à jour l'affichage
+    auto updateLoadingBar = [&](float progress, const std::string& label) {
+        _window.clear();
+        _window.draw(bg); // Dessine l'image Astra Lernaea
+
+        // Fond de la barre (gris sombre)
+        sf::RectangleShape track(sf::Vector2f(barWidth, barHeight));
+        track.setPosition(barPos);
+        track.setFillColor(sf::Color(30, 30, 30, 200));
+        track.setOutlineThickness(2);
+        track.setOutlineColor(sf::Color(200, 180, 75, 150)); // Contour doré
+
+        // Remplissage (doré)
+        sf::RectangleShape fill(sf::Vector2f(barWidth * progress, barHeight));
+        fill.setPosition(barPos);
+        fill.setFillColor(sf::Color(200, 180, 75));
+
+        _window.draw(track);
+        _window.draw(fill);
+        _window.display();
+    };
+
+    // --- 1. Textures des tuiles ---
     if (_tuilesJson.contains("tiles")) {
-        for (auto& t : _tuilesJson["tiles"]) {
-            std::string texturePath = t.value("texture", "");
-            std::string symboleStr = t.value("symbole", "");
+        auto& tiles = _tuilesJson["tiles"];
+        for (size_t i = 0; i < tiles.size(); ++i) {
+            std::string texturePath = tiles[i].value("texture", "");
+            std::string symboleStr = tiles[i].value("symbole", "");
             if (!texturePath.empty() && !symboleStr.empty()) {
-                char symb = symboleStr[0];
-                if (!_textures[symb].loadFromFile(texturePath)) {
-                    std::cerr << "Erreur : Texture terrain introuvable -> " << texturePath << std::endl;
-                }
+                _textures[symboleStr[0]].loadFromFile(texturePath);
             }
+            updateLoadingBar(0.1f + (i / (float)tiles.size()) * 0.15f, "Secteurs...");
         }
     }
-    // Tuile de bordure par défaut
-    if (_textures.find('#') == _textures.end()) {
-        _textures['#'].loadFromFile("assets/border.png");
-    }
+    if (_textures.find('#') == _textures.end()) _textures['#'].loadFromFile("assets/border.png");
 
-    // 2. Textures des Villes (Chargement dynamique)
-    for (const auto& [nom, modele] : _moteur.getCityFactory().getCatalogue()) {
+    // --- 2. Textures des Villes ---
+    auto& cityCat = _moteur.getCityFactory().getCatalogue();
+    size_t cityIdx = 0;
+    for (const auto& [nom, modele] : cityCat) {
         std::string cTex = modele->getTexturePath();
-        if (!cTex.empty() && !_cityTextures[nom].loadFromFile(cTex)) {
-            std::cerr << "Erreur : Texture Ville introuvable -> " << cTex << " pour " << nom << std::endl;
-        }
+        if (!cTex.empty()) _cityTextures[nom].loadFromFile(cTex);
+        cityIdx++;
+        updateLoadingBar(0.25f + (cityIdx / (float)cityCat.size()) * 0.15f, "Colonies...");
     }
 
-    // 3. Textures des Bâtiments
-    for (const auto& [nom, modele] : _moteur.getBatimentFactory().getCatalogue()) {
+    // --- 3. Textures des Bâtiments ---
+    auto& batCat = _moteur.getBatimentFactory().getCatalogue();
+    size_t batIdx = 0;
+    for (const auto& [nom, modele] : batCat) {
         std::string bTex = modele->getTexturePath();
-        if (!bTex.empty() && !_buildingTextures[nom].loadFromFile(bTex)) {
-            std::cerr << "Erreur : Texture Batiment introuvable -> " << bTex << std::endl;
-        }
+        if (!bTex.empty()) _buildingTextures[nom].loadFromFile(bTex);
+        batIdx++;
+        updateLoadingBar(0.40f + (batIdx / (float)batCat.size()) * 0.15f, "Infrastructures...");
     }
 
-    // 4. Textures des Unités
-    for (const auto& [nom, modele] : _moteur.getUniteFactory().getCatalogue()) {
+    // --- 4. Textures des Unités ---
+    auto& unitCat = _moteur.getUniteFactory().getCatalogue();
+    size_t unitIdx = 0;
+    for (const auto& [nom, modele] : unitCat) {
         std::string uTex = modele->texturePath();
-        if (!uTex.empty() && !_unitTextures[nom].loadFromFile(uTex)) {
-            std::cerr << "Erreur : Texture Unite introuvable -> " << uTex << std::endl;
-        }
+        if (!uTex.empty()) _unitTextures[nom].loadFromFile(uTex);
+        unitIdx++;
+        updateLoadingBar(0.55f + (unitIdx / (float)unitCat.size()) * 0.15f, "Flottes...");
     }
 
-    // 5. Textures des ressources
-    for (const auto& [resName, resPtr] : _moteur.getRessourceFactory().getCatalogue()) {
+    // --- 5. Textures des ressources ---
+    auto& resCat = _moteur.getRessourceFactory().getCatalogue();
+    size_t resIdx = 0;
+    for (const auto& [resName, resPtr] : resCat) {
         if (resPtr && !resPtr->getIconPath().empty()) {
             sf::Texture tex;
             if (tex.loadFromFile(resPtr->getIconPath())) {
@@ -3924,20 +3994,24 @@ void InterfaceManager::loadTextures() {
                 _resourceIcons[resName] = tex;
             }
         }
+        resIdx++;
+        updateLoadingBar(0.70f + (resIdx / (float)resCat.size()) * 0.15f, "Logistique...");
     }
 
-    // 6. Texture des factions
+    // --- 6. Texture des factions ---
     if (_rulesJson.contains("factions")) {
-        for (const auto& f : _rulesJson["factions"]) {
-            std::string nomFac = f.value("nom", "");
-            std::string imgPath = f.value("image", "");
+        auto& factions = _rulesJson["factions"];
+        for (size_t i = 0; i < factions.size(); ++i) {
+            std::string nomFac = factions[i].value("nom", "");
+            std::string imgPath = factions[i].value("image", "");
             if (!nomFac.empty() && !imgPath.empty()) {
-                if (!_factionTextures[nomFac].loadFromFile(imgPath)) {
-                    std::cerr << "Erreur : Texture Faction introuvable -> " << imgPath << std::endl;
-                }
+                _factionTextures[nomFac].loadFromFile(imgPath);
             }
+            updateLoadingBar(0.85f + (i / (float)factions.size()) * 0.15f, "Empires...");
         }
     }
+    
+    updateLoadingBar(1.0f, "Initialisation terminee");
 }
 
 void InterfaceManager::applyCustomTheme() {
@@ -4073,12 +4147,14 @@ float InterfaceManager::getRotationAngle(direction dir) {
 void InterfaceManager::renderUnitActions(Unite* u) {
     if (!u) return;
 
-    ImGui::Dummy(ImVec2(0, 10));
-    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "ROTATION DE L'UNITE");
-    ImGui::Separator();
-
     bool isMultiplayer = (_network.getState() == NetworkState::CONNECTED || _network.getState() == NetworkState::HOSTING);
-    int localJIdx = isMultiplayer ? _localPlayerIndex : _moteur.getCurrentPlayerTurn();
+    int currentTurn = _moteur.getCurrentPlayerTurn();
+    int localJIdx = isMultiplayer ? _localPlayerIndex : currentTurn;
+
+    // --- SECTION 1 : ROTATION (Logique existante) ---
+    ImGui::Dummy(ImVec2(0, 10));
+    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "TACTIQUE DE ROTATION");
+    ImGui::Separator();
 
     int coutRot = _moteur.getCoutRotation();
     bool peutTourner = (u->point_action() >= coutRot); 
@@ -4091,7 +4167,6 @@ void InterfaceManager::renderUnitActions(Unite* u) {
     }
 
     auto drawRotBtn = [&](const char* label, direction dir) {
-        // Coloration : Vert si direction actuelle, Jaune si prévisualisation
         bool isCurrent = (u->regarde() == dir);
         bool isPreview = (_hasPreviewRotation && _previewDirection == dir);
         
@@ -4100,41 +4175,25 @@ void InterfaceManager::renderUnitActions(Unite* u) {
         
         if (ImGui::Button(label, ImVec2(45, 45))) {
             _hasPreviewRotation = true;
-            _previewDirection = dir; // On enregistre juste la volonté de tourner
+            _previewDirection = dir;
         }
-
         if (isCurrent || isPreview) ImGui::PopStyleColor(1);
     };
 
-    // --- POSITIONNEMENT EN HEXAGONE DES BOUTONS ---
     ImGui::Dummy(ImVec2(0, 5));
-    
-    // Ligne du haut (NO, NE)
     ImGui::Indent(65); 
-    drawRotBtn("NO", direction::nord_ouest); 
-    ImGui::SameLine(0, 15); 
-    drawRotBtn("NE", direction::nord_est); 
+    drawRotBtn("NO", direction::nord_ouest); ImGui::SameLine(0, 15); drawRotBtn("NE", direction::nord_est); 
     ImGui::Unindent(65);
-    
-    // Ligne du milieu (O, E)
     ImGui::Indent(35);
-    drawRotBtn(" O", direction::ouest); 
-    ImGui::SameLine(0, 75); 
-    drawRotBtn(" E", direction::est);
+    drawRotBtn(" O", direction::ouest); ImGui::SameLine(0, 75); drawRotBtn(" E", direction::est);
     ImGui::Unindent(35);
-    
-    // Ligne du bas (SO, SE)
     ImGui::Indent(65); 
-    drawRotBtn("SO", direction::sud_ouest); 
-    ImGui::SameLine(0, 15); 
-    drawRotBtn("SE", direction::sud_est); 
+    drawRotBtn("SO", direction::sud_ouest); ImGui::SameLine(0, 15); drawRotBtn("SE", direction::sud_est); 
     ImGui::Unindent(65);
 
-    // --- LE BOUTON DE CONFIRMATION ---
     if (_hasPreviewRotation && _previewDirection != u->regarde()) {
         ImGui::Dummy(ImVec2(0, 10));
         if (ImGui::Button("Confirmer Rotation", ImVec2(150, 40))) {
-            
             CmdRotation cmd = { _selectedCellX, _selectedCellY, _previewDirection };
             if (_moteur.soumettreCommande(localJIdx, cmd) == ResultatAction::SUCCES) {
                 if (isMultiplayer) {
@@ -4146,8 +4205,85 @@ void InterfaceManager::renderUnitActions(Unite* u) {
             _hasPreviewRotation = false;
         }
     }
-
     if (!peutTourner) ImGui::EndDisabled();
+
+    // --- SECTION 2 : CAPACITÉS SPÉCIALES (Nouveautés) ---
+    ImGui::Dummy(ImVec2(0, 15));
+    ImGui::TextColored(ImVec4(0.8f, 0.7f, 0.3f, 1.0f), "CAPACITES DE COMBAT");
+    ImGui::Separator();
+
+    if (u->point_action() <= 0) ImGui::BeginDisabled();
+
+    // A. Sélection d'attaques multiples (Offensive)
+    auto listeAtt = u->Offensive();
+    int idxAtt = 0;
+    for (auto* comp : listeAtt) {
+        std::string label = "Attaque Speciale " + std::to_string(idxAtt + 1);
+        if (ImGui::Button(label.c_str(), ImVec2(160, 30))) {
+            _isTargetingAttack = true;
+            _actionSubIndex = idxAtt; // Défini dans .hh pour CmdAttaque
+            _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
+            _casesAttaquePossibles = _moteur.getAttaquesPossibles(localJIdx, _selectedCellX, _selectedCellY);
+        }
+        idxAtt++;
+    }
+
+    // B. Soin (Heal)
+    if (!u->Soin().empty()) {
+        if (ImGui::Button("Dispenser Soins", ImVec2(160, 30))) {
+            _isTargetingHeal = true; // Flag à ajouter dans .hh
+            _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
+            addCombatLog("Selectionnez une cible a soigner.");
+        }
+    }
+
+    // C. Transport et Déchargement
+    if (u->Transport()) {
+        if (ImGui::Button("Charger Unite", ImVec2(160, 30))) {
+            _isTargetingLoad = true; // Flag à ajouter dans .hh
+            _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
+        }
+
+        auto passagers = u->Transport()->liste_unite_transporter();
+        if (!passagers.empty()) {
+            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Passagers en soute : %d", (int)passagers.size());
+            int idxP = 0;
+            for (auto& p : passagers) {
+                if (ImGui::Button(("Decharger " + p->name()).c_str())) {
+                    // Ici on pourrait aussi ajouter un mode de ciblage pour la case de sortie
+                    CmdDecharger cmd = { _selectedCellX, _selectedCellY, _selectedCellX, _selectedCellY, idxP };
+                    _moteur.soumettreCommande(localJIdx, cmd);
+                }
+                idxP++;
+            }
+        }
+    }
+
+    // D. Furtivité (Stealth)
+    // Vérification basée sur les capacités définies dans config_unites.json
+    if (u->name().find("Azrael") != std::string::npos || u->name().find("Gabriel") != std::string::npos) {
+        if (ImGui::Button("Activer Furtivite", ImVec2(160, 30))) {
+            CmdCamoufler cmd = { _selectedCellX, _selectedCellY };
+            _moteur.soumettreCommande(localJIdx, cmd);
+        }
+    }
+
+    // E. Gestion des Commandants (Enrôlement)
+    auto rankCom = std::dynamic_pointer_cast<Rank_Commandant>(u->rank());
+    if (rankCom) {
+        if (ImGui::Button("Enroler Unite", ImVec2(160, 30))) {
+            _isTargetingEnrol = true; // Flag à ajouter dans .hh
+            _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
+        }
+    }
+
+    // F. Posture Défensive
+    if (ImGui::Button("Changer Defense", ImVec2(160, 30))) {
+        CmdChangerDefense cmd = { _selectedCellX, _selectedCellY };
+        _moteur.soumettreCommande(localJIdx, cmd);
+    }
+
+    if (u->point_action() <= 0) ImGui::EndDisabled();
 }
 
 void InterfaceManager::sendLobbySync() {

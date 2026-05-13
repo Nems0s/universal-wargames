@@ -137,9 +137,7 @@
                 "radiation": 0.0,
                 "gravite": 0.1
             },
-            "ressources": [
-                "Neolithe"
-            ],
+            "ressources": [],
             "properties": {},
             "texture": "assets/Space/Tuiles/Asteroide.png"
         },
@@ -208,7 +206,9 @@
                 "radiation": 0.0,
                 "gravite": 0.5
             },
-            "ressources": [],
+            "ressources": [
+                "Integrium", "Neolithe"
+            ],
             "properties": {
                 "spawn_capitale": 1.0
             },
@@ -260,7 +260,7 @@
                 "gravite": 0.6
             },
             "ressources": [
-                "Ilektraerium"
+                "Ilektraerium", "Integrium"
             ],
             "properties": {},
             "texture": "assets/Space/Tuiles/Planete_Gazeuse.png"
@@ -285,7 +285,7 @@
                 "gravite": 0.4
             },
             "ressources": [
-                "Vitriolite"
+                "Vitriolite", "Neolithe"
             ],
             "properties": {},
             "texture": "assets/Space/Tuiles/Planete_Glace.png"

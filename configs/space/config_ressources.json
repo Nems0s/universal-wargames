@@ -24,6 +24,11 @@
             "nom": "Heliosium",
             "symbole": "He",
             "icone": "assets/Space/Ressource/Heliosium.png"
+        },
+        {
+            "nom": "Savoir",
+            "symbole": "Sa",
+            "icone": "assets/Space/Ressource/Savoir.png"
         }
     ]
 }

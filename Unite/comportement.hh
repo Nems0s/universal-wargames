@@ -49,6 +49,8 @@ public:
 
     const std::map<const Ressource*, int>& getCoutAction() const;
     bool estPayable(const Unite& u) const;
+    //Ajouter la récuperation de ressource
+    //Plus unité spé qui ajoute les ressources.
 };
 
 

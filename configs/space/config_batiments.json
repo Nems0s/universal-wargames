@@ -492,11 +492,31 @@
         },
         {
             "nom": "Batterie de Défense Planétaire",
-            "symbole": "DP",
-            "cout": {"Credits": 350, "Titane": 150, "Uranium": 20},
+            "symbole": "T",
+            "texture": "assets/Space/Batiment/T.png",
+            "cout": {
+                "Neolithe": 500,
+                "Integrium": 500,
+                "Ilektraerium": 100,
+                "Vitriolite": 100
+            },
             "production": [],
             "ressources_sol_requises": [],
             "comportements": [{"type": "AttaqueDistance", "degats": 120, "portee": 4, "cooldown": 1}]
+        },
+        {
+            "nom": "Academie",
+            "symbole": "A",
+            "ressources_sol_requises": [],
+            "texture": "assets/Space/Batiment/A.png",
+            "niveaux": [],
+            "cout": {},
+            "production": [
+                {
+                    "ressource": "Savoir",
+                    "quantite": 2
+                }
+            ]
         }
     ]
 }

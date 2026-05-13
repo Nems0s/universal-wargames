@@ -94,6 +94,10 @@ private:
 
     bool _isTargetingMove = false;
     bool _isTargetingAttack = false;
+    bool _isTargetingHeal = false;
+    bool _isTargetingLoad = false;  
+    bool _isTargetingEnrol = false;
+    int _actionSubIndex = 0;
     int _unitSourceX = -1;
     int _unitSourceY = -1;
     std::vector<std::pair<int, int>> _casesPossibles;
@@ -166,7 +170,7 @@ private:
     void loadUIConfig();
     void saveConfig();
     void initGame();
-    void loadTextures();
+    void loadTextures(sf::Sprite& bg);
     void applyCustomTheme();
     bool DrawArrowSelector(const char* id, int* current_index, const std::vector<std::string>& items);
 
