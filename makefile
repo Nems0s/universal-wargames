@@ -20,21 +20,30 @@ SRC_CPP = 	$(wildcard UI/imgui/*.cpp) $(wildcard UI/imgui-sfml/*.cpp)
 OBJ = $(patsubst %.cc, $(BUILD_DIR)/%.o, $(SRC_CC))
 OBJ += $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SRC_CPP))
 
-# Les 2 executables (terminal et gui)
+# Pour Test
+SRC_TEST = $(wildcard tests/*.cc)
+OBJ_TEST = $(patsubst %.cc, $(BUILD_DIR)/%.o, $(SRC_TEST))
+
+# Les 3 executables (terminal, gui et test)
 EXEC_CLI = $(BIN_DIR)/wargame_cli
 EXEC_GUI = $(BIN_DIR)/wargame_gui
+EXEC_TEST = $(BIN_DIR)/wargame_test
+
 
 
 # -- Raccourcis -- #
 
 # par défaut : utiliser "make" pour tout compiler
-all: $(BUILD_DIR) $(BIN_DIR) $(EXEC_CLI) $(EXEC_GUI)
+all: $(BUILD_DIR) $(BIN_DIR) $(EXEC_CLI) $(EXEC_GUI) $(EXEC_TEST)
 
 # "make cli" pour compiler la version console
 cli: $(EXEC_CLI)
 
 # "make gui" pour compiler la version graphique
 gui: $(EXEC_GUI)
+
+# "make test" pour compiler les tests unitaires
+test: $(EXEC_TEST)
 
 
 # -- règles des builds -- #
@@ -46,6 +55,10 @@ $(EXEC_CLI): $(OBJ) $(BUILD_DIR)/main_console.o | $(BIN_DIR)
 # Règle pour la version Graphique
 $(EXEC_GUI): $(OBJ) $(BUILD_DIR)/main_gui.o | $(BIN_DIR)
 	$(CXX) $(OBJ) $(BUILD_DIR)/main_gui.o -o $(EXEC_GUI) $(LIBS)
+
+# Règle pour les tests
+$(EXEC_TEST): $(OBJ) $(OBJ_TEST) | $(BIN_DIR)
+	$(CXX) $(OBJ) $(OBJ_TEST) -o $(EXEC_TEST) $(LIBS)
 
 
 # --- règles génériques --- #
@@ -69,7 +82,7 @@ $(BUILD_DIR)/%.o: %.cpp | $(BUILD_DIR)
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean cli gui
+.PHONY: all clean cli gui test
 
 # Ajouter j suivi d'un nombre pour du multithreading
 # make gui -j4

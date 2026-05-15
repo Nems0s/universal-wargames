@@ -241,6 +241,14 @@ bool CompAttMelee::PeuxAttaquer(Unite const& attaquante, Unite const& cible)cons
 
     if (it != cases_possibles.end())
     {
+        //Test porter
+        auto adjacentes = case_adjascentes(attaquante.location(), 1);
+        if (adjacentes.find(cible.location()) == adjacentes.end()) 
+        {
+            return false;
+        }
+
+        //Test Nature cible
         auto listMouvA = attaquante.Mobilite();
         auto listMouvC = cible.Mobilite();
 

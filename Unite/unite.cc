@@ -170,6 +170,18 @@ void Unite::setInventaireInterne(std::map<const Ressource*, int> inventaire)
     _inventaireInterne = inventaire;
 }
 
+//Setters pour les test //////////////////////////////////////////////////
+void Unite::setCapaciteMax(std::map<const Ressource*, int> capacitemax)
+{
+    _capaciteMax = capacitemax;
+} 
+
+void Unite::setRank(std::shared_ptr<IRank> newrank)
+{
+    _rank = newrank;
+}  
+///////////////////////////////////////////////////////////////////////////
+
 std::map<const Ressource*, int> Unite::getCapaciteMax()const
 {
     return _capaciteMax;

@@ -73,10 +73,14 @@ public:
     void setTemporary_health(int newTemporary_health);
     void setTemporary_damage(int newTemporary_damage);
     void setSymbol(char s);
-    void setInventaireInterne(std::map<const Ressource*, int> inventaire);    
+    void setInventaireInterne(std::map<const Ressource*, int> inventaire);
     void setTuilesVisibles(const std::list<Coord>& liste);
     void setVisionRange(int r);
     void setFov(int f);
+
+    //Setters pour les tests
+    void setCapaciteMax(std::map<const Ressource*, int> capacitemax);
+    void setRank(std::shared_ptr<IRank> newrank);  
 
     // MODIFIE PAR NAIM
     std::string texturePath() const { return _texturePath; }

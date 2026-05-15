@@ -111,15 +111,15 @@ void EffetMoral(Unite & u, int degatsArme)
     std::string etat = "Neutre";
 
     // Fuite
-    if (ratio < 0.14)
+    if (ratio < 0.14)// -20 à -15
     {
         std::cout << "[ALERTE] " << u.name() << " s'enfuit du champ de bataille !" << std::endl;
         u.setHealth_point(0);
         return;
-        }
+    }
 
     // Panique
-    else if (ratio < 0.28)
+    else if (ratio < 0.28)// -14 à -9
     {
         coeff = 0.5;
         if (u.health_point() > u.health_point_max() * 0.8)
@@ -130,34 +130,34 @@ void EffetMoral(Unite & u, int degatsArme)
     }
 
     // Peur
-    else if (ratio < 0.42)
+    else if (ratio < 0.42)// -8 à -4
     {
         coeff = 0.8;
         etat = "Peur (Malus)";
     }
 
     // Fatigue
-    else if (ratio > 0.86)
+    else if (ratio > 0.86)// 4 à 8
     {
         coeff = 0.9;
         etat = "Fatigue (Malus)";
     }
 
     // Héroïsme
-    else if (ratio > 0.72)
+    else if (ratio > 0.72)// 9 à 14
     {
         coeff = 1.5;
         etat = "Heroisme (Bonus)";
     }
 
     // Courage
-    else if (ratio > 0.58)
+    else if (ratio > 0.58)// 15 à 20
     {
         coeff = 1.2;
         etat = "Courage (Bonus)";
     }
     
-    if(etat != "Neutre")
+    if(etat != "Neutre")// -3 à 3
     {
         std::cout << "[ETAT] " << u.name() << " est en etat : " << etat << std::endl;
     }
