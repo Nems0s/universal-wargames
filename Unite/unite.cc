@@ -5,26 +5,26 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
-Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, char symbole, const std::string& texturePath)
-    :_name(name),
+Unite::Unite(const std::string &name, int hp, int point_action, int vision, int fov, Poids poids, direction dir, Coord loc,  std::shared_ptr<IRank> r, std::list<std::shared_ptr<IComportement>> liste_comportements, std::map<const Ressource*, int> cout, std::map<const Ressource*, int> cout_entretien, char symbole, const std::string& texturePath): 
+    _name(name),
     _health_point(hp),
     _health_point_max(hp),
     _moral_point(0),
     _point_action(point_action),
     _point_action_max(point_action),
-    _visionRange(vision),
-    _fov(fov),
-    _fov_ref(fov),
     _poids(poids),
     _regarde(dir),
+    _fov(fov),
+    _fov_ref(fov),
+    _visionRange(vision),
     _location(loc),
     _rank(r),
     _liste_comportements(liste_comportements),
     _cout(cout),
     _cout_entretien(cout_entretien),
+    _defensif(false),
     _symbol(symbole),
-    _texturePath(texturePath),
-    _defensif(false)
+    _texturePath(texturePath)
 {}
 
 

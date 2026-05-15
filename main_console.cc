@@ -141,15 +141,14 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
     std::cout << " 4. Soigner               |  5. Recruter                      |  6. Fonder Ville" << std::endl;
     std::cout << " 7. Acheter une Case      |  8. Améliorer Ville               |  9. Construire Bâtiment" << std::endl;
     std::cout << "10. Camoufler             | 11. Charger (transport)           | 12. Décharger (transport)" << std::endl;
-    std::cout << "13. Enrôler (commandant)  | 14. Détruire une unité  | 15. Ravitailler sur ville" << std::endl;
-    std::cout << "16. Ravitailler (unité→unité)                       | 17. FIN DE TOUR" << std::endl;
+    std::cout << "13. Enrôler (commandant)  | 14. Détruire une unité            | 15. Ravitailler sur ville" << std::endl;
+    std::cout << "16. Ravitailler           | 17. FIN DE TOUR" << std::endl;
 
     int choix = 0;
     std::cout << "Choix : ";
     std::cin >> choix;
 
     CommandeJeu cmd = CmdFinTour{};
-    bool valide = true;
 
     switch (choix) {
 
@@ -226,11 +225,14 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
 
             const board* plateau = moteur.getPlateau();
             Unite* att = plateau->getUnite(xSrc, ySrc);
+            int choix_attaque = 0;
+
             if (att) {
                 std::cout << "\nAttaquant : " << att->name()
                           << "  dir=" << directionToString(att->regarde()) << std::endl;
                 afficherConeVision(att);
 
+                int choix_attaque;
                 auto attaques = att->Offensive();
                 if (!attaques.empty()) {
                     std::cout << "Attaques disponibles :" << std::endl;
@@ -240,19 +242,50 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
                         comp->affiche();
                         ++i;
                     }
+                    std::cout << "Choisissez l'index de l'attaque : ";
+                    std::cin >> choix_attaque;
+
+                    if (choix_attaque < 0 || choix_attaque >= static_cast<int>(attaques.size())) {
+                        std::cout << "Index d'attaque invalide." << std::endl;
+                        return false;
+                    }
+
                 } else {
                     std::cout << "Cette unité n'a aucune capacité offensive." << std::endl;
                     return false;
                 }
 
-                // Afficher les cases attaquables
+                auto itAtt = attaques.begin();
+                std::advance(itAtt, choix_attaque);
+                CompAtt* attaque_choisie = *itAtt;
+
                 auto attaquables = moteur.getAttaquesPossibles(pIdx, xSrc, ySrc);
                 if (!attaquables.empty()) {
-                    std::cout << "Cibles dans le cône et à portée : ";
-                    for (auto& p : attaquables) std::cout << "(" << p.first << "," << p.second << ") ";
+                    std::cout << "Cibles valides pour cette attaque : ";
+                    bool auMoinsUneCible = false;
+                    
+                    for (auto& p : attaquables) {
+                        Unite* ciblePotentielle = plateau->getUnite(p.first, p.second);
+                        if (ciblePotentielle != nullptr) {
+                            bool dansLaPortee = attaque_choisie->PeuxAttaquer(*att, *ciblePotentielle);
+                            
+                            if (dansLaPortee) {
+                                std::cout << "(" << p.first << "," << p.second << ") ";
+                                auMoinsUneCible = true;
+                            }
+                        }
+                    }
+                    
+                    if (!auMoinsUneCible)
+                    {
+                        std::cout << "(Aucune cible valide pour cette attaque)";
+                        return false;
+                    }
                     std::cout << std::endl;
+
                 } else {
-                    std::cout << "(Aucune cible dans le cône de vision et à portée)" << std::endl;
+                    std::cout << "(Aucune cible globale trouvée)" << std::endl;
+                    return false;
                 }
             } else {
                 std::cout << "Aucune unité à ces coordonnées." << std::endl;
@@ -267,13 +300,13 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
             if (def) {
                 bool avantage = avantage_attaque(att->location(), def->location(), def->regarde(), def->getFov());
                 if (avantage) {
-                    std::cout << "  ★ AVANTAGE : vous attaquez dans le DOS du défenseur !" << std::endl;
+                    std::cout << " AVANTAGE : vous attaquez dans le DOS du défenseur !" << std::endl;
                 } else {
-                    std::cout << "  ▲ Attaque de face : le défenseur vous voit." << std::endl;
+                    std::cout << " Attaque de face : le défenseur vous voit." << std::endl;
                 }
             }
 
-            cmd = CmdAttaque{xSrc, ySrc, xDest, yDest};
+            cmd = CmdAttaque{xSrc, ySrc, xDest, yDest, choix_attaque};
             break;
         }
 
@@ -285,6 +318,8 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
 
             const board* plateau = moteur.getPlateau();
             Unite* healer = plateau->getUnite(xSrc, ySrc);
+            int choix_soin = 0;
+
             if (healer) {
                 auto soins = healer->Soin();
                 if (!soins.empty()) {
@@ -295,8 +330,44 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
                         comp->affiche();
                         ++i;
                     }
+                    std::cout << "Choisissez l'index du soin : ";
+                    std::cin >> choix_soin;
+                    if (choix_soin < 0 || choix_soin >= static_cast<int>(soins.size())) {
+                        std::cout << "Index de soin invalide." << std::endl;
+                        return false;
+                    }
+
+                    auto itSoin = soins.begin();
+                    std::advance(itSoin, choix_soin);
+                    CompSoin* soin_choisi = *itSoin;
+
+                    std::cout << "Cibles valides pour ce soin : ";
+                    bool auMoinsUneCibleSoin = false;
+
+                    // On génère les cases adjacentes selon la portée du soin
+                    int portee = soin_choisi->portee();
+                    auto cases_possibles = case_adjascentes(healer->location(), portee); 
+
+                    for (const auto& p : cases_possibles) {
+                        Unite* ciblePotentielle = plateau->getUnite(p.first, p.second);
+                        
+                        if (ciblePotentielle != nullptr) {
+                            // On vérifie avec la méthode définie dans ton comportement
+                            if (soin_choisi->PeuxSoigner(*healer, *ciblePotentielle)) {
+                                std::cout << "(" << p.first << "," << p.second << ") ";
+                                auMoinsUneCibleSoin = true;
+                            }
+                        }
+                    }
+                    
+                    if (!auMoinsUneCibleSoin) 
+                    {
+                        std::cout << "(Aucune cible valide pour ce soin)";
+                        return false;
+                    }
+                    std::cout << std::endl;
                 } else {
-                    std::cout << "Cette unité n'a aucune capacité de soin." << std::endl;
+                    std::cout << "(Aucune cible globale trouvée)" << std::endl;
                     return false;
                 }
             } else {
@@ -306,7 +377,7 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
 
             std::cout << "Coord. cible (x y) : ";
             std::cin >> xDest >> yDest;
-            cmd = CmdSoigner{xSrc, ySrc, xDest, yDest};
+            cmd = CmdSoigner{xSrc, ySrc, xDest, yDest, choix_soin};
             break;
         }
 
@@ -526,10 +597,8 @@ bool menuAction(MoteurDeJeu& moteur, int pIdx) {
     afficherResultat(res);
 
     // Si rotation réussie : afficher le nouveau cône
-    if (res == ResultatAction::SUCCES && choix == 2) {
-        int x = 0, y = 0;
-        // Relire la position (on ne peut pas accéder à cmd facilement via le variant ici)
-        // On informe l'utilisateur de consulter le détail de l'unité
+    if (res == ResultatAction::SUCCES && choix == 2) 
+    {
         std::cout << "  → Utilisez 'Voir mes unités' pour voir le nouveau cône de vision." << std::endl;
     }
 

@@ -277,7 +277,7 @@ void JsonWorldReader::chargerConfig(std::string chemin, const std::map<std::stri
         d.env.gravite = t["env"]["gravite"];
 
         // Bloc RES (Ressources multiples)
-        for (const std::string& resNom : t.value("ressources", json::array())) {
+        for (const std::string resNom : t.value("ressources", json::array())) {
             if (auto it = resDispo.find(resNom); it != resDispo.end()) {
                 d.ressourceSpeciale.push_back(it->second);
             }

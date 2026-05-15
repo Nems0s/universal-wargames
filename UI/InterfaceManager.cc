@@ -348,7 +348,7 @@ void InterfaceManager::run() {
                                 int pvDefAvant = uDef ? uDef->health_point() : 0;
                                 int pvAttAvant = uAtt ? uAtt->health_point() : 0;
 
-                                CmdAttaque cmd = { _unitSourceX, _unitSourceY, bestI, bestJ };
+                                CmdAttaque cmd = { _unitSourceX, _unitSourceY, bestI, bestJ, _actionSubIndex };
                                 if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
                                     
                                     Unite* uDefApres = _moteur.getPlateau()->getUnite(bestI, bestJ);
@@ -485,7 +485,7 @@ void InterfaceManager::run() {
                                 int pvDefAvant = uDef ? uDef->health_point() : 0;
                                 int pvAttAvant = uAtt ? uAtt->health_point() : 0;
 
-                                CmdAttaque cmd = { _dragSourceX, _dragSourceY, targetI, targetJ };
+                                CmdAttaque cmd = { _dragSourceX, _dragSourceY, targetI, targetJ, 0}; //Il faudrait pouvoir choisir l'attaque
                                 if (_moteur.soumettreCommande(currentTurn, cmd) == ResultatAction::SUCCES) {
                                     
                                     // Combat Log
@@ -1763,8 +1763,8 @@ void InterfaceManager::updateNetworkLoop() {
 
                 // L'autre joueur a attaqué
                 case PacketType::ACTION_ATTACK: {
-                    int xSrc, ySrc, xDest, yDest;
-                    if (packet >> xSrc >> ySrc >> xDest >> yDest) {
+                    int xSrc, ySrc, xDest, yDest, indexAtt;
+                    if (packet >> xSrc >> ySrc >> xDest >> yDest >> indexAtt) {
                         int turn = _moteur.getCurrentPlayerTurn();
                         
                         // Etat avant l'attaque par le réseau
@@ -1775,7 +1775,7 @@ void InterfaceManager::updateNetworkLoop() {
                         int pvDefAvant = uDef ? uDef->health_point() : 0;
                         int pvAttAvant = uAtt ? uAtt->health_point() : 0;
 
-                        CmdAttaque cmd = { xSrc, ySrc, xDest, yDest };
+                        CmdAttaque cmd = { xSrc, ySrc, xDest, yDest, indexAtt};
                         if (_moteur.soumettreCommande(turn, cmd) == ResultatAction::SUCCES) {
                             
                             // Etat après l'attaque
@@ -2547,7 +2547,7 @@ void InterfaceManager::renderGame() {
                 ImGui::TableNextRow();
                 
                 ImGui::TableSetColumnIndex(0); 
-                if (i == _localPlayerIndex) {
+                if (i == static_cast<size_t>(_localPlayerIndex)) {
                     ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "%s (Vous)", j.getName().c_str());
                 } else {
                     ImGui::Text("%s", j.getName().c_str());
@@ -3934,7 +3934,7 @@ void InterfaceManager::loadTextures(sf::Sprite& bg) {
     sf::Vector2f barPos((_window.getSize().x - barWidth) / 2.f, _window.getSize().y * 0.8f);
 
     // Fonction utilitaire pour mettre à jour l'affichage
-    auto updateLoadingBar = [&](float progress, const std::string& label) {
+    auto updateLoadingBar = [&](float progress, const std::string& /*label*/) {
         _window.clear();
         _window.draw(bg); // Dessine l'image Astra Lernaea
 
@@ -4232,8 +4232,7 @@ void InterfaceManager::renderUnitActions(Unite* u) {
 
     // A. Sélection d'attaques multiples (Offensive)
     auto listeAtt = u->Offensive();
-    int idxAtt = 0;
-    for (auto* comp : listeAtt) {
+    for (size_t idxAtt = 0; idxAtt < listeAtt.size(); ++idxAtt) {
         std::string label = "Attaque Speciale " + std::to_string(idxAtt + 1);
         if (ImGui::Button(label.c_str(), ImVec2(160, 30))) {
             _isTargetingAttack = true;
@@ -4241,7 +4240,6 @@ void InterfaceManager::renderUnitActions(Unite* u) {
             _unitSourceX = _selectedCellX; _unitSourceY = _selectedCellY;
             _casesAttaquePossibles = _moteur.getAttaquesPossibles(localJIdx, _selectedCellX, _selectedCellY);
         }
-        idxAtt++;
     }
 
     // B. Soin (Heal)

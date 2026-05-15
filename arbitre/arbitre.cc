@@ -53,7 +53,7 @@ bool Arbitre::verifierVictoire(const Joueur& j, const GameConfig & config) const
     if (config.getVictorySets().empty()) return false;
     
     int activeIndex = config.getActiveVictorySet();
-    if (activeIndex < 0 || activeIndex >= config.getVictorySets().size()) return false;
+    if (activeIndex < 0 || static_cast<size_t>(activeIndex) >= config.getVictorySets().size()) return false;
     
     const VictorySet& vSet = config.getVictorySets()[activeIndex];
     
@@ -90,7 +90,7 @@ bool Arbitre::verifierVictoire(const Joueur& j, const GameConfig & config) const
         if (met) conditionsMet++;
     }
     
-    if (vSet.mode == WinMode::ALL && conditionsMet == vSet.conditions.size()) return true;
+    if (vSet.mode == WinMode::ALL && static_cast<size_t>(conditionsMet) == vSet.conditions.size()) return true;
     if (vSet.mode == WinMode::ANY && conditionsMet > 0) return true;
     
     return false;

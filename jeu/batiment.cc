@@ -116,7 +116,7 @@ void JsonBatimentReader::load(const std::string& chemin,
         }
 
         std::vector<const Ressource*> solsRequis;
-        for (const std::string& sNom : item.value("ressources_sol_requises", json::array())) {
+        for (const std::string sNom : item.value("ressources_sol_requises", json::array())) {
             if (auto it = ressourcesDispo.find(sNom); it != ressourcesDispo.end()) {
                 solsRequis.push_back(it->second);
             }

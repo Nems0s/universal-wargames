@@ -96,7 +96,7 @@ void MoteurDeJeu::initGame(int seed, const std::vector<std::string>& noms, const
         // 2) Cherche de l'espacement maximal
         std::vector<std::pair<int, int>> spotsChoisis;
 
-        if (spotsValides.size() >= nbJoueurs) {
+        if (spotsValides.size() >= static_cast<size_t>(nbJoueurs)){
             // Emplacement au hasard parmi les emplacement valide
             int firstIndex = std::rand() % spotsValides.size();
             spotsChoisis.push_back(spotsValides[firstIndex]);
@@ -402,7 +402,8 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDetruireUnite& cmd) {
     return ResultatAction::SUCCES;
 }
 
-ResultatAction MoteurDeJeu::executer(int pIdx, const CmdFinTour& cmd) {
+ResultatAction MoteurDeJeu::executer(int /*pIdx*/, const CmdFinTour& /*cmd*/) { 
+    //Commenter les nom des attributs permet de dire au compilateur je sais que je dois avoir ces arguments mais je ne vais pas les utiliser 
     passerTour();
     return ResultatAction::FIN_TOUR;
 }
@@ -549,7 +550,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdAttaque& cmd) {
     std::list<CompAtt*> listeAtt = att->Offensive();
     if(listeAtt.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
 
-    if (cmd.indexAtt >= 0 && cmd.indexAtt < listeAtt.size()) 
+    if (cmd.indexAtt >= 0 && static_cast<size_t>(cmd.indexAtt) < listeAtt.size()) 
     {
         auto it = std::next(listeAtt.begin(), cmd.indexAtt);
         if (_arbitre.peutAttaquer(j, *att, *def, *it)) 
@@ -612,7 +613,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdSoigner& cmd) {
     std::list<CompSoin*> listeSoin = healer->Soin();
     if(listeSoin.empty()) return ResultatAction::ECHEC_ARBITRE_REFUS;
 
-    if (cmd.indexSoin >= 0 && cmd.indexSoin < listeSoin.size()) 
+    if (cmd.indexSoin >= 0 && static_cast<size_t>(cmd.indexSoin) < listeSoin.size()) 
     {
         auto it = std::next(listeSoin.begin(), cmd.indexSoin);
         if(_arbitre.peutSoigner(j, *healer, *cible, *it)) 
@@ -675,7 +676,7 @@ ResultatAction MoteurDeJeu::executer(int pIdx, const CmdDecharger& cmd) {
     if (_plateau->getUnite(cmd.xDest, cmd.yDest) == nullptr) 
     {
          auto liste = transport->Transport()->liste_unite_transporter();
-         if (cmd.indexPassager >= 0 && cmd.indexPassager < liste.size()) 
+         if (cmd.indexPassager >= 0 && static_cast<size_t>(cmd.indexPassager) < liste.size()) 
          {
             auto it = std::next(liste.begin(), cmd.indexPassager);
             std::shared_ptr<Unite> passager = *it;

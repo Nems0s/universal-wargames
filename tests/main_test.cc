@@ -291,7 +291,6 @@ TEST_CASE("Vision - Taille et limites du cône de vision")
     CHECK(it == vue.end());
 }
 
-
 // Test Factory
 TEST_CASE("Factory - Injection des comportements à la création") 
 {
@@ -300,7 +299,8 @@ TEST_CASE("Factory - Injection des comportements à la création")
     auto u = createTestUnite("Archer");
     u->ajouterComportement(std::make_shared<CompAttDistance>(15, 4, 2));
 
-    CHECK_EQ(u->Offensive().size(), 1);
+    size_t verif = 1;
+    CHECK_EQ(u->Offensive().size(), verif);
     CHECK_EQ(u->Offensive().front()->portee(), 4);
     CHECK_EQ(u->getSymbol(), 'U');
 }
