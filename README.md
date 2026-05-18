@@ -1,6 +1,8 @@
 # Projet Aux Armes/ Universal Wargame
 
-Ce projet a été réalisé dans le cadre de notre troisième année de licence. Il s'agit de la mise en place d'un moteur d'universal Wargame, et de la mise en place d'une instance sur le thème de l'espace.
+Ce projet a été réalisé dans le cadre de notre troisième année de licence. Il s'agit du développement d'un moteur d'**Universal Wargame** modulable, accompagné d'une instance de jeu basée sur le thème de l'espace.
+
+**Technologies utilisées :** C++ (Moteur, UI), Python (IA / Gym), SFML, ImGui.
 
 ---
 ## Fonctionnalités
@@ -29,21 +31,25 @@ Ce projet a été réalisé dans le cadre de notre troisième année de licence.
 ---
 ## Prérequis
 ### Dans un environnement linux :
-- sudo apt update
-- sudo apt install libsfml-dev
-
+```bash
+sudo apt update
+sudo apt install libsfml-dev
+````
 dans le dossier UI :
-- git clone https://github.com/ocornut/imgui.git
-- cd imgui && git checkout v1.90.4 && cd ..
+```bash
+git clone https://github.com/ocornut/imgui.git
+cd imgui && git checkout v1.90.4 && cd ..
 
-- git clone https://github.com/SFML/imgui-sfml.git
-- cd imgui-sfml && git checkout v2.6 && cd ../..
-
-
+git clone https://github.com/SFML/imgui-sfml.git
+cd imgui-sfml && git checkout v2.6 && cd ../..
+```
 ### Créer l'installateur Windows depuis linux :
 
 **1. Préparer le compilateur croisé**
-- Commande pour la compilation Windows sous Linux : `sudo apt install mingw-w64`
+- Commande pour la compilation Windows sous Linux :
+  ```bash
+  sudo apt install mingw-w64
+  ```
 
 **2. Préparer la SFML**
 - Télécharger la version 2.6.2 de SFML pour Windows **GCC MinGW (64-bit)** : https://www.sfml-dev.org/download/sfml/2.6.2/
@@ -69,31 +75,28 @@ La SFML nécessite certaines DLLs du compilateur MinGW pour fonctionner sur une 
 ---
 ## Compilation et Lancement du jeu
 ### Compilation du projet
-1. En console
-  - make cli
+1. En console: `make cli`
 
-2. Pour l'interface graphique
-  - make gui
+2. Pour l'interface graphique: `make gui`
 
-3. Pour les tests
-  - make test
+3. Pour les tests: `make test`
 
-4. Pour tout lancer
-  - make
+4. Pour tout lancer: `make`
 
 **Conseil** : Pour accélerer la compilation vous pouvez utiliser -j4 ou -j8 après la commande. Cela permet dans lancer la compilation en multithreading.
 
 ### Lancement des fichiers
-1. En console
-  - ./bin/wargame_cli
+1. En console: `./bin/wargame_cli`
 
-2. Pour l'interface graphique
-  - ./bin/wargame_gui
+2. Pour l'interface graphique: `./bin/wargame_gui`
 
-3. Pour les tests
-  - ./bin/wargame_test
+3. Pour les tests: `./bin/wargame_test`
 
 **Infos** les fichiers de configuration json dans configs peuvent être modifier à tout moment pour changer le contexte du jeu. Vous pouvez également modifier les assets présents dans le dossier du même nom.
+
+---
+## Implémentation
+`ASTRA_LERNAEA/` représente l'instanciation de test que nous vous proposons. Dans ce dossier, vous retrouverez le Lore ainsi que la fiche d'équilibrage de l'économie et des unités.
 
 ---
 ## Auteurs
