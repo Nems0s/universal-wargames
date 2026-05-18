@@ -104,14 +104,27 @@ class SpaceWargamesEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         
-        if seed is not None:
-            game_seed = int(seed) % 100000 
-        else:
-            game_seed = int(np.random.randint(0, 10000))
+        # --- BOUCLE ANTI-CARTES CASSÉES ---
+        map_valide = False
+        tentatives = 0
         
-        # Init C++
-        self.moteur.initGame(game_seed, self.noms_joueurs, ["Pirates", "Pirates"])
-        self.moteur.setActiveVictorySet(2) 
+        while not map_valide:
+            if seed is not None:
+                game_seed = (int(seed) + tentatives) % 100000 
+            else:
+                game_seed = int(np.random.randint(0, 100000))
+            
+            # Init C++
+            self.moteur.initGame(game_seed, self.noms_joueurs, ["Pirates", "Pirates"])
+            self.moteur.setActiveVictorySet(1) # Victoire Militaire pour l'entraînement
+            
+            # Si la partie ne se termine pas instantanément (tour 0), c'est que l'ennemi existe !
+            if not self.moteur.isPartieTerminee():
+                map_valide = True
+            else:
+                tentatives += 1
+                # Le "while" va silencieusement relancer une nouvelle seed !
+        # -----------------------------------
         
         # Reset variables Python
         self.nb_tours_joues = 0
@@ -166,35 +179,53 @@ class SpaceWargamesEnv(gym.Env):
         # --- 3. CALCUL DU REWARD SHAPING (Totalement géré en Python) ---
         new_obs_dict = self._get_obs_dict(pIdx, self.cam_x, self.cam_y)
         
-        if code_resultat == 0:
+        # --- CALCUL DU REWARD SHAPING ---
+        if code_resultat == 0: # L'ACTION EST VALIDE
             self.compteur_erreurs = 0
             
-            # A. Récompense d'Exploration (Couche 0)
+            # 1. LA RÉCOMPENSE DE BASE (Vitale !)
+            # Rien que le fait de réussir à cliquer sur une case valide sans faire d'erreur
+            # doit lui donner un micro-bonus pour l'encourager à interagir.
+            reward += 0.05 
+            
+            # 2. RÉCOMPENSES SPÉCIFIQUES (On guide sa stratégie 4X)
+            if act_type == 0:   # Fonder une ville (Expansion)
+                reward += 5.0   
+            elif act_type == 4: # Attaque (Militaire)
+                reward += 3.0   
+            elif act_type == 2: # Améliorer une ville (Développement)
+                reward += 2.5
+            elif act_type == 7: # Construction d'un bâtiment (Économie)
+                reward += 2.0
+            elif act_type == 6: # Recrutement (Armée)
+                reward += 1.5   
+            elif act_type == 1: # Acheter une case (Territoire)
+                reward += 0.5
+            elif act_type == 3: # Déplacement (Logistique)
+                reward += 0.1
+                
+            # 3. RÉCOMPENSE D'EXPLORATION (Brouillard de guerre)
             nouvelles_explorees = np.sum(new_obs_dict["minimap"][0] == 1.0)
             if nouvelles_explorees > self.tuiles_explorees:
-                reward += (nouvelles_explorees - self.tuiles_explorees) * 0.1 # +0.1 par nouvelle case
+                reward += (nouvelles_explorees - self.tuiles_explorees) * 0.2
                 self.tuiles_explorees = nouvelles_explorees
-                
-            # B. Autres récompenses basées sur le type d'action (act_type)
-            if act_type == 4:  # Attaque
-                reward += 2.0  # Encourage l'agressivité
-            elif act_type == 6: # Recrutement
-                reward += 1.0
-                
-        elif code_resultat in [2, 3, 4, 5]: 
+
+        elif code_resultat in [2, 3, 4, 5]: # ERREUR (Case invalide, pas d'argent, etc.)
             reward -= 0.1
             self.compteur_erreurs += 1
-
-        # Coupe-circuit (Reward Hacking)
-        if self.compteur_erreurs > 20:
-            act_type = 14 # Force Fin de tour
-            reward -= 1.0
-            self.compteur_erreurs = 0
             
-        # --- 4. GESTION DU TOUR DE L'ENNEMI (SELF-PLAY) ---
-        if act_type == 14:
+            # Coupe-Circuit pour éviter les actions dans le vide
+            if self.compteur_erreurs > 20:
+                self.moteur.step_ai(pIdx, [14, 0, 0, 0, 0]) # On force le C++ à passer le tour
+                reward -= 1.0 # Grosse punition pour avoir spammé
+                act_type = 14 # On fait croire au script Python qu'elle a passé son tour pour déclencher l'ennemi
+                self.compteur_erreurs = 0
+
+        # 4. PUNITION POUR L'INACTIVITÉ
+        if act_type == 14: # Fin de tour
+            # Si elle passe son tour sans avoir bougé ou combattu
+            reward -= 0.5
             self.nb_tours_joues += 1
-            reward -= 0.2 # On pénalise la durée pour la forcer à gagner vite
             self.compteur_erreurs = 0
             
             # Boucle tant que c'est le tour de l'ennemi
@@ -223,9 +254,15 @@ class SpaceWargamesEnv(gym.Env):
         truncated = False
         
         if terminated:
-            if self.moteur.getNomVainqueur() == self.noms_joueurs[0]:
+            # --- CORRECTION DU BUG DE CARTE ---
+            if self.nb_tours_joues < 5:
+                # Si on gagne en moins de 5 tours, c'est que l'adversaire n'a pas pu spawner.
+                # On annule le jackpot pour ne pas corrompre l'IA !
+                reward = 0.0 
+                # (On ne met pas de print pour ne pas polluer ton terminal)
+            elif self.moteur.getNomVainqueur() == self.noms_joueurs[0]:
                 reward += 500.0
-                print(f"👑 VICTOIRE IA ({self.nb_tours_joues} tours)")
+                # print(f"👑 VICTOIRE IA ({self.nb_tours_joues} tours)")
             else:
                 reward -= 50.0   
                 

@@ -1,59 +1,60 @@
 import os
 from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.callbacks import CheckpointCallback
 from wargame_gym import SpaceWargamesEnv
 
 def main():
-    print("--- CREATION DU SUPER-CERVEAU (MULTI-INPUT) ---")
-    env = SpaceWargamesEnv()
+    print("--- 🚀 MULTIPROCESSING 🚀 ---")
 
-    # Vérification obligatoire pour s'assurer que l'environnement Dict est parfait
-    check_env(env, warn=False)
+    # Lancement de 6 environnements en même temps
+    n_envs = 6
 
-    # 1. Configuration des sauvegardes régulières
+    print(f"Création de {n_envs} univers parallèles...")
+    # SubprocVecEnv lance de vrais processus séparés. Le C++ va tourner 8x plus vite !
+    env = make_vec_env(SpaceWargamesEnv, n_envs=n_envs, vec_env_cls=SubprocVecEnv)
+
+    # La fréquence de sauvegarde doit être divisée par le nombre d'env, car on génère n_env fois plus de données à la seconde.
     checkpoint_callback = CheckpointCallback(
-        save_freq=100_000,
+        save_freq=max(100_000 // n_envs, 1),
         save_path='./sauvegardes_ia/',
-        name_prefix='ppo_multi'
+        name_prefix='ppo_multi_opti'
     )
 
     model_path = "ppo_universel_master.zip"
+    
+    # On reste sur le CPU. Avec plusieurs process C++, la charge de transfert RAM->GPU annulerait le gain.
+    mon_device = "cpu" 
 
-    my_device = "cuda"
-    # my_device = "cpu" # Plus rapide car le jeu tourne sur le CPU : transfert RAM->PCIe puis revenir lent
-
-    # 2. Logique de Reprise Automatique
     if os.path.exists(model_path):
-        print("🧠 Ancien cerveau trouvé ! Reprise de l'entraînement...")
+        print(f"🧠 Ancien cerveau trouvé ! Reprise de l'entraînement sur {mon_device.upper()}...")
         model = PPO.load(
             model_path[:-4],
             env=env,
-            device=my_device,
+            device=mon_device,
             tensorboard_log="./wargame_tensorboard/"
         )
     else:
-        print("👶 Nouveau cerveau. Création du réseau Multi-Input...")
+        print(f"👶 Nouveau cerveau. Création du réseau Multi-Input sur {mon_device.upper()}...")
         model = PPO(
-            "MultiInputPolicy", # Indique à PyTorch de créer plusieurs CNN qui fusionnent !
+            "MultiInputPolicy", 
             env, 
             verbose=1, 
             learning_rate=0.0003,
-            n_steps=2048,
-            batch_size=64,
-            ent_coef=0.01, # Encourage l'IA à explorer un peu plus
-            device=my_device,
+            n_steps=2048,      # L'IA va désormais analyser 2048 * n_envs = 16 384 actions avant d'apprendre !
+            batch_size=256,    # On augmente le Batch Size car on a beaucoup plus de données
+            ent_coef=0.01,
+            device=mon_device, 
             tensorboard_log="./wargame_tensorboard/"
         )
 
-    # Branchement du Self-Play
-    print("Branchement du Self-Play (L'IA est son propre adversaire)...")
-    env.set_model(model)
+    print("Branchement du Self-Play Asynchrone (Chargement local)...")
+    # On utilise la fonction 'load_adversary' qu'on a créée dans wargame_gym.py
+    env.env_method("load_adversary", "ppo_universel_master")
 
-    # 3. Lancement (On peut l'arrêter avec Ctrl+C et relancer, ça reprendra !)
-    print("--- DÉBUT DE L'APPRENTISSAGE ---")
+    print("--- DÉBUT DE L'APPRENTISSAGE ACCÉLÉRÉ ---")
     try:
-        # On demande 1 million, mais tu peux couper quand tu veux.
         model.learn(total_timesteps=1_000_000, callback=checkpoint_callback, reset_num_timesteps=False)
         model.save("ppo_universel_master")
         print("Entraînement terminé et modèle MASTER sauvegardé !")
@@ -64,6 +65,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# tensorboard --logdir ./wargame_tensorboard/
-# python3 train_ai.py

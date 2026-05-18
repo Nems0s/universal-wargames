@@ -1,6 +1,34 @@
-# space-wargames
+# Projet Aux Armes/ Universal Wargame
 
-dans l'environnement linux :
+Ce projet a été réalisé dans le cadre de notre troisième année de licence. Il s'agit de la mise en place d'un moteur d'universal Wargame, et de la mise en place d'une instance sur le thème de l'espace.
+
+---
+## Fonctionnalités
+
+- **Moteur de jeu 4X modulable** : Jeu au tour par tour intégrant exploration, expansion, exploitation et extermination.
+- **Data-Driven (Configuration JSON)** : Les entités du jeu (factions, unités, bâtiments, ressources, règles) sont configurables via les fichiers du dossier `configs/space/`, permettant de créer de nouvelles instances facilement.
+- **Multijoueur (Host/Join)** : Jeu en réseau avec système d'hébergement de partie et de sauvegarde.
+- **Deux Interfaces** :
+  - *Graphique (`wargame_gui`)* : Interface riche basée sur SFML et ImGui.
+  - *Console (`wargame_cli`)* : Pour jouer en mode texte.
+- **Génération procédurale** : Création de cartes variées (systèmes stellaires, nébuleuses, etc.) utilisant le Bruit de Perlin.
+- **Support IA / Reinforcement Learning** : Intégration d'un environnement Python Gym (`wargame_gym.py`) pour l'entraînement d'agents (`train_ai.py`).
+
+---
+## Structure du projet
+
+- `jeu/` : Moteur principal gérant la carte (plateau, tuiles), les villes, les bâtiments et les ressources.
+- `joueur/` : Gestion des joueurs, des factions et de leurs statistiques.
+- `unite/` : Logique, caractéristiques et comportements des unités (déplacement, ravitaillement, etc.).
+- `combat/` : Mécaniques de résolution des batailles et gestion du moral.
+- `arbitre/` : Système de validation des actions qui garantit le respect des règles du jeu.
+- `UI/` : Implémentation de l'interface graphique avec SFML et ImGui.
+- `configs/` : Contient les fichiers JSON qui définissent les paramètres des différentes instances du jeu.
+- `tests/` : Suite de tests unitaires pour assurer la fiabilité du moteur.
+
+---
+## Prérequis
+### Dans un environnement linux :
 - sudo apt update
 - sudo apt install libsfml-dev
 
@@ -11,7 +39,6 @@ dans le dossier UI :
 - git clone https://github.com/SFML/imgui-sfml.git
 - cd imgui-sfml && git checkout v2.6 && cd ../..
 
----
 
 ### Créer l'installateur Windows depuis linux :
 
@@ -34,121 +61,45 @@ La SFML nécessite certaines DLLs du compilateur MinGW pour fonctionner sur une 
 - Depuis la racine du projet sous Linux, lancer : `bash windows/package.sh`
 - Sous Windows, exécuter le script `create-installateur.iss` via Inno Setup Compiler en pointant vers le dossier généré.
 
----
-
 ### Commandes utiles
 
 **Lister les DLL nécessaires du jeu Windows (commande Linux) :**
 - `x86_64-w64-mingw32-objdump -p windows/bin/main.exe windows/sfml-win/bin/*.dll 2>/dev/null | grep "DLL Name" | sort -u`
 
+---
+## Compilation et Lancement du jeu
+### Compilation du projet
+1. En console
+  - make cli
 
+2. Pour l'interface graphique
+  - make gui
 
+3. Pour les tests
+  - make test
 
-Améliorations à faire sur le jeu :
-- Quand je zoom sur le jeu, cela zoom vers le curseur
-- Les ressources sont affichés (principales comme l'or, etc (défini dans les options avec path d'un logo)) en haut sous la barre du haut
-- Afficher la production/tour de chaque ressource avec infos dans un tooltip de chaque batiment/ville
-- Problème où on ne voit pas les troupes ou les villes ennemis sur la map
-- Menu avec une liste des joueurs et des infos sur eux 
-- Il faut pouvoir interagir avec les troupes et les villes ennemis (attaquer, capturer, etc)
-- Actuellement quand c'est notre tour et qu'on clique sur une tuile du jeu cela affiche les informations de la tuile (comme fonder ville ou autre), il faudrait que cela affiche les informations de la tuile si on la voit, sinon rien.
-- Ne pas pouvoir construire plusieurs batiment spéciale sur la même tuile ou affiché les différents batiments dans un panel avec la quantité produite/tour
-- Voir la production de chaque batiment de chaque ressource dans un panneau spécifique
-- Il faut un menu spécifique où on peut voir toutes les informations de notre empire (productions, ce qu'on possède, troupes, villes, etc)
-- Le nom des joueurs doit pouvoir être modifié après avoir appuyé sur rejoindre, pareil pour host pas avant
-- Correctement save et load la game avec des boutons continuer/new game etc.
-- Gérer le fait de se déconnecter de l'host (sans devoir leave le client)
-- Ne pas spawn la cam au début sur l'ennemi mais sur sa capitale, et à chaque tour ne pas remettre la cam sur sa capitale mais la laissez où l'on est
-- Fix le fait que ce soit impossible de recruter/build sur sa capitale
-- Fix le fait que ce soit impossible de détruire ses propres unités
-- Quand je modifie le prix des colonies ou autre dans les options, cela modifie pour soi et pas pour les autres, alors que cela doit juste être défini au début au moment de la création de la partie. Donc en modifiant dans mes options je peux payer 0 pour chaque colonie, ce qui n'est pas normal.
-- Fix le fait d'avoir les infos des villes ennemis quand cliqué dessus (pareil pour batiment et unité)
-- Pouvoir revenir sur le jeu après avoir appuyé sur menu principal ou modifier les options du jeu
-- Message de confirmation de save les options
-- Quand on ajoute 3 joueurs au jeu mais qu'en multi il y a que 2 joueurs, il faut que le 3ème joueur soit retiré de la partie, sinon pendant la partie on attends pour rien, il faut juste que ce soit joueur_max et non pas le nombre de joueurs (potentiellement plus tard quand il y aura une IA ou autre, mais pas pour l'instant)
-- persistance des options sur le pc de chacun même après avoir quitté le launcher
-- Fix les bugs sur les tuiles qui ont un contours verts pour la zone de la ville mais qui ne s'actualise pas bien quand j'achête une tour ou autre
-- Fix le bug sur les tuiles qui sont toujours sombre en arrière plan au lieu de directement affiché la tuile.
+4. Pour tout lancer
+  - make
 
+**Conseil** : Pour accélerer la compilation vous pouvez utiliser -j4 ou -j8 après la commande. Cela permet dans lancer la compilation en multithreading.
 
+### Lancement des fichiers
+1. En console
+  - ./bin/wargame_cli
 
-Nouveaux bugs :
-1. Colonie qui coute 0
-2. Cela n'affiche pas ma prod correctement car ma capitale me produit de l'or et ce n'est pas affiché dans la prod
-3. Bug sur les tuiles vertes qui s'update mal quand j'achete une nouvelle colonie etc
-4. Les colonies ne produisent plus rien alors que la config doit mettre que si
-5. Mauvaise update des cases autour de l'unité en jaune où elles peuvent se déplacer les cases 
-6. Le client peut save alors que cela doit être juste l'hôte
-7. Le client peut continuer même sans l'host après avoir leave et fait continuer
-8. Les boutons Game Settings et Graphics afficher dans la config des joueurs au niveau des factions
-9. Délimitation des planetes mal affichés (couleur correct mais affiché un point de couleur)
-10. On ne voit pas les troupes ennemis (point de couleur)
-11. Afficher message que la ville est au level max
-12. Les troupes ennemis peuvent aller sur la même case sans engager un combat, qui doit être vu par les deux joueurs
-13. Panneau de combat pour voir les stats et historique des actions
-14. Différence entre les boutons Continuer et Reprendre la partie
-15. Quand le client essaye de créer une nouvelle partie en étant dans ma partie :
+2. Pour l'interface graphique
+  - ./bin/wargame_gui
 
-Program: E:\eux\Space Wargames\main.exe
-File: Ul/imgui/imgui.cpp
-Line: 9777
+3. Pour les tests
+  - ./bin/wargame_test
 
-Expression: SizeOfDisabledStack == g.DisabledStackSize &&
-"BeginDisabled/EndDisabled Mismatch!"
+**Infos** les fichiers de configuration json dans configs peuvent être modifier à tout moment pour changer le contexte du jeu. Vous pouvez également modifier les assets présents dans le dossier du même nom.
 
-For information on how your program can cause an assertion
-failure, see the Visual C++ documentation on asserts
+---
+## Auteurs
+Ce projet a été conçu et développé en binôme :
 
-(Press Retry to debug the application - JIT must be enabled)
+* **Simon Beasse** : Conceptions des unités, des comportements ainsi que du combat et de l'interface console.
+* **Naïm Courbois** : Conception du plateau, des bâtiments, du système économique et de l'interface graphique.
 
-
-1) Bug des boutons games settings et graphics qui sont affichés au moment de la sélection des factions
-2) json config_rules add factions path vers l'image de la faction correspondant stocké dans le dossier assets et afficher cette image dans l'information de faction avant le détails des caractéristiques
-3) afficher configuration de la partie au lieu de configurer la carte, après que les joueurs aient rejoints et afficher pour celui qui a join au moment du click et non pas au moment de choisir une des factions
-4) Celui qui join peut faire back au moment du choix des factions, désactiver le bouton ou que cela affiche un message de confirmation pour demander s'il veut vraiment quitter et sinon l'enlevé des joueurs et remettre l'host sur la page d'attente des joueurs avec un message qui dit que tel joueurs s'est déconnecté.
-5) Celui qui join peut save la partie alors que cela ne devrait pas être le cas, uniquement l'host car c'est lui qui a la partie.
-6) afficher le nom de la ressource s'il n'y a pas d'image, et bloquer ça à un nombre de ressource pour éviter de prendre toute la page.
-7) contours de couleur des villes qui est mal affiché
-8) ajout de regénération des villes
-9) Ajout d'un cout d'entretien des unités
-Cout en ressource à chaque tour défini de base dans rules et pour chaque unité (Perte de HP si impossible de payer le cout d'entretien)
-10) Refonte de la gestion des conditions de victoire et de la save
-
-
-AJOUTS A FAIRE :
-- Orientation des troupes (liste des cases vus par l'unité)
-- Gestion vision-range et direction pour l'attaque et pour les tuiles vus (liste de tuiles)
-- Systèmes de munitions (est une ressource) avec le cout_entretien
-ressources {
-  nom: "Munitions"
-}
-cout_entretien {
-  par_tour: { Or: 2 }
-  par_attaque: { Munitions: 20 }
-}
-- ravitaillement à ajouter (stockage de ressource dans une unité)
-- chaque unité à une map de Ressource
-- cooldown pour tout les comportements
-- modifier dans joueur et moteur : decouvrirZoneVision
-- modifier / supprimer fov et visionRange par nouvelle logique de vision
-
-- voir pour l'init du MoteurDeJeu
-- capitale générer dans le moteur (pour chaque joueur)
-- ajouter le bruit de perlin (espace avec les planètes et jeu de pirate avec des îles de tailles différentes)
-- merge les fonctions ensembles du moteur entre unite
-- décommenter peutRecruterUnite dans l'arbitre et fix le problème
-
-
-- début defense, arrêt défense, désenrollement dans moteur.cc à faire
-- voir pour peutRecruterUnite dans arbitre.cc
-- gérer le fait qu'il regarde dans une direction quand il découvre
-
-
-- taille des capitales et villes (images en GUI)
-- Lecture des unités en GUI (aucune unité dans le catalogue)
-- Afficher uniquement les unités de sa faction
-- gérer le prix des villes pour les améliorer
-
-FIX
-- mauvais calcul de moral (float ratio = (moral - MIN_MORAL) / (MAX_MORAL - MIN_MORAL);)
-tester attaque puis détruire unité si moral 0
+---
