@@ -72,7 +72,7 @@
 
 **Unité Spécial :**
 
-&#x09;-  Chasseur Azraël: Comp=\[MouvTerrestre, MouvVolant, AttMelee, AttDistance, Furtif]
+&#x09;-  Chasseur Azraël: Comp=\[MouvTerrestre, MouvVolant, AttDistance, Furtif]
 
 
 

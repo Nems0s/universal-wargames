@@ -77,7 +77,7 @@
         "type": "tabs",
         "children": [
           {
-            "id": "7f764d80256840d8",
+            "id": "409961061649f500",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -225,7 +225,7 @@
       "bases:Créer une nouvelle base": false
     }
   },
-  "active": "f38c06588e61f28b",
+  "active": "409961061649f500",
   "lastOpenFiles": [
     "Faction 3/Commandants/Toth.md",
     "Faction 3/Commandants/Enki.md",
