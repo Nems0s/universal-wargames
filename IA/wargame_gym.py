@@ -18,13 +18,13 @@ class SpaceWargamesEnv(gym.Env):
         
         # --- CHARGEMENT CONFIGURATION ---
         configs = wargame_env.GameConfigFiles()
-        configs.rulesPath = "configs/pirate/config_rules.json"
-        configs.ressourcesPath = "configs/pirate/config_ressources.json"
-        configs.batimentsPath = "configs/pirate/config_batiments.json"
-        configs.villesPath = "configs/pirate/config_villes.json"
-        configs.winsPath = "configs/pirate/config_wins.json"
-        configs.unitesPath = "configs/pirate/config_unites.json"
-        configs.tuilesPath = "configs/pirate/config_tuiles.json"
+        configs.rulesPath = "../configs/pirate/config_rules.json"
+        configs.ressourcesPath = "../configs/pirate/config_ressources.json"
+        configs.batimentsPath = "../configs/pirate/config_batiments.json"
+        configs.villesPath = "../configs/pirate/config_villes.json"
+        configs.winsPath = "../configs/pirate/config_wins.json"
+        configs.unitesPath = "../configs/pirate/config_unites.json"
+        configs.tuilesPath = "../configs/pirate/config_tuiles.json"
         self.moteur.chargerConfiguration(configs)
         
         # --- ARCHITECTURE DES DIMENSIONS ---
